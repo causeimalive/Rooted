@@ -1,0 +1,560 @@
+[
+  {
+    "id": "adam-eve",
+    "name": "Adam",
+    "aliases": ["Eve"],
+    "era": "Primeval History",
+    "approxDateRange": "Legendary / pre-historical",
+    "summary": "The first humans, formed and placed in the Garden of Eden; their disobedience introduces sin into the human story.",
+    "events": [
+      { "order": 1, "placeId": "eden", "passages": [{ "book": "Genesis", "startChapter": 2, "endChapter": 3 }], "label": "Created and placed in Eden" }
+    ]
+  },
+  {
+    "id": "noah",
+    "name": "Noah",
+    "era": "Primeval History",
+    "approxDateRange": "Legendary / pre-historical",
+    "summary": "Built the ark and survived the great flood with his family, receiving God's covenant afterward.",
+    "events": [
+      { "order": 1, "placeId": "ararat", "passages": [{ "book": "Genesis", "startChapter": 8, "endChapter": 8 }], "label": "Ark rests on the mountains of Ararat" }
+    ]
+  },
+  {
+    "id": "abraham",
+    "name": "Abraham",
+    "aliases": ["Abram"],
+    "era": "Patriarchs",
+    "approxDateRange": "c. 2000\u20131825 BC (traditional; widely debated)",
+    "summary": "Called by God to leave Mesopotamia for Canaan, becoming the father of the Israelite nation through the covenant of promise.",
+    "events": [
+      { "order": 1, "placeId": "ur", "passages": [{ "book": "Genesis", "startChapter": 11, "endChapter": 11 }], "label": "Born/raised in Ur of the Chaldeans", "approxDate": "c. 2000 BC" },
+      { "order": 2, "placeId": "haran", "passages": [{ "book": "Genesis", "startChapter": 11, "endChapter": 12 }], "label": "Family settles in Haran" },
+      { "order": 3, "placeId": "shechem", "passages": [{ "book": "Genesis", "startChapter": 12, "endChapter": 12 }], "label": "First altar in Canaan at Shechem" },
+      { "order": 4, "placeId": "bethel", "passages": [{ "book": "Genesis", "startChapter": 12, "endChapter": 13 }], "label": "Builds an altar near Bethel" },
+      { "order": 5, "placeId": "hebron", "passages": [{ "book": "Genesis", "startChapter": 13, "endChapter": 13 }], "label": "Settles by the oaks of Mamre near Hebron" },
+      { "order": 6, "placeId": "sodom", "passages": [{ "book": "Genesis", "startChapter": 18, "endChapter": 19 }], "label": "Intercedes for Sodom" },
+      { "order": 7, "placeId": "moriah", "passages": [{ "book": "Genesis", "startChapter": 22, "endChapter": 22 }], "label": "Offers Isaac on Mount Moriah" },
+      { "order": 8, "placeId": "beersheba", "passages": [{ "book": "Genesis", "startChapter": 21, "endChapter": 21 }], "label": "Makes a covenant at Beersheba" },
+      { "order": 9, "placeId": "hebron", "passages": [{ "book": "Genesis", "startChapter": 23, "endChapter": 25 }], "label": "Dies and is buried at Machpelah, Hebron", "approxDate": "c. 1825 BC" }
+    ]
+  },
+  {
+    "id": "isaac",
+    "name": "Isaac",
+    "era": "Patriarchs",
+    "approxDateRange": "c. 1900\u20131720 BC (traditional)",
+    "summary": "Son of Abraham and Sarah, the child of promise, father of Jacob and Esau.",
+    "events": [
+      { "order": 1, "placeId": "moriah", "passages": [{ "book": "Genesis", "startChapter": 22, "endChapter": 22 }], "label": "Bound on the altar at Moriah" },
+      { "order": 2, "placeId": "beersheba", "passages": [{ "book": "Genesis", "startChapter": 26, "endChapter": 26 }], "label": "Settles and re-digs wells at Beersheba" },
+      { "order": 3, "placeId": "hebron", "passages": [{ "book": "Genesis", "startChapter": 35, "endChapter": 35 }], "label": "Dies at Hebron" }
+    ]
+  },
+  {
+    "id": "jacob",
+    "name": "Jacob",
+    "aliases": ["Israel"],
+    "era": "Patriarchs",
+    "approxDateRange": "c. 1900\u20131750 BC (traditional)",
+    "summary": "Grandson of Abraham, renamed Israel after wrestling with God; father of the twelve tribes.",
+    "events": [
+      { "order": 1, "placeId": "beersheba", "passages": [{ "book": "Genesis", "startChapter": 28, "endChapter": 28 }], "label": "Leaves Beersheba for Haran" },
+      { "order": 2, "placeId": "bethel", "passages": [{ "book": "Genesis", "startChapter": 28, "endChapter": 28 }], "label": "Dreams of a ladder to heaven at Bethel" },
+      { "order": 3, "placeId": "haran", "passages": [{ "book": "Genesis", "startChapter": 29, "endChapter": 31 }], "label": "Works for Laban, marries Leah and Rachel" },
+      { "order": 4, "placeId": "peniel", "passages": [{ "book": "Genesis", "startChapter": 32, "endChapter": 32 }], "label": "Wrestles with God at Peniel, renamed Israel" },
+      { "order": 5, "placeId": "shechem", "passages": [{ "book": "Genesis", "startChapter": 33, "endChapter": 34 }], "label": "Settles near Shechem" },
+      { "order": 6, "placeId": "bethel", "passages": [{ "book": "Genesis", "startChapter": 35, "endChapter": 35 }], "label": "Returns to Bethel, renews covenant" },
+      { "order": 7, "placeId": "goshen", "passages": [{ "book": "Genesis", "startChapter": 46, "endChapter": 47 }], "label": "Moves the family to Goshen, Egypt" }
+    ]
+  },
+  {
+    "id": "joseph",
+    "name": "Joseph",
+    "era": "Patriarchs",
+    "approxDateRange": "c. 1900\u20131800 BC (traditional)",
+    "summary": "Jacob's favored son, sold into slavery by his brothers, rose to become second-in-command in Egypt.",
+    "events": [
+      { "order": 1, "placeId": "shechem", "passages": [{ "book": "Genesis", "startChapter": 37, "endChapter": 37 }], "label": "Sent to check on his brothers near Shechem" },
+      { "order": 2, "placeId": "dothan", "passages": [{ "book": "Genesis", "startChapter": 37, "endChapter": 37 }], "label": "Sold into slavery at Dothan" },
+      { "order": 3, "placeId": "memphis-egypt", "passages": [{ "book": "Genesis", "startChapter": 39, "endChapter": 41 }], "label": "Rises to power in Egypt" },
+      { "order": 4, "placeId": "goshen", "passages": [{ "book": "Genesis", "startChapter": 45, "endChapter": 47 }], "label": "Settles his family in Goshen" }
+    ]
+  },
+  {
+    "id": "moses",
+    "name": "Moses",
+    "era": "Exodus",
+    "approxDateRange": "c. 1526\u20131406 BC (traditional; some scholars favor c. 1290\u20131213 BC)",
+    "summary": "Raised in Pharaoh's household, called at the burning bush to lead Israel out of Egyptian slavery and receive the Law at Sinai.",
+    "events": [
+      { "order": 1, "placeId": "rameses", "passages": [{ "book": "Exodus", "startChapter": 1, "endChapter": 2 }], "label": "Born in Egypt under Pharaoh's decree" },
+      { "order": 2, "placeId": "sinai", "passages": [{ "book": "Exodus", "startChapter": 3, "endChapter": 3 }], "label": "Called at the burning bush at Horeb" },
+      { "order": 3, "placeId": "rameses", "passages": [{ "book": "Exodus", "startChapter": 5, "endChapter": 12 }], "label": "Confronts Pharaoh; the plagues and Passover" },
+      { "order": 4, "placeId": "red-sea", "passages": [{ "book": "Exodus", "startChapter": 14, "endChapter": 14 }], "label": "Leads Israel through the Red Sea" },
+      { "order": 5, "placeId": "sinai", "passages": [{ "book": "Exodus", "startChapter": 19, "endChapter": 31 }], "label": "Receives the Law at Mount Sinai", "approxDate": "c. 1446 BC (traditional)" },
+      { "order": 6, "placeId": "kadesh-barnea", "passages": [{ "book": "Numbers", "startChapter": 13, "endChapter": 14 }], "label": "Sends the twelve spies from Kadesh-barnea" },
+      { "order": 7, "placeId": "mount-nebo", "passages": [{ "book": "Deuteronomy", "startChapter": 34, "endChapter": 34 }], "label": "Views the Promised Land from Nebo and dies" }
+    ]
+  },
+  {
+    "id": "aaron",
+    "name": "Aaron",
+    "era": "Exodus",
+    "approxDateRange": "c. 1529\u20131407 BC (traditional)",
+    "summary": "Moses' brother and Israel's first high priest.",
+    "events": [
+      { "order": 1, "placeId": "rameses", "passages": [{ "book": "Exodus", "startChapter": 4, "endChapter": 12 }], "label": "Speaks for Moses before Pharaoh" },
+      { "order": 2, "placeId": "sinai", "passages": [{ "book": "Exodus", "startChapter": 28, "endChapter": 29 }], "label": "Ordained as high priest at Sinai" }
+    ]
+  },
+  {
+    "id": "joshua",
+    "name": "Joshua",
+    "era": "Conquest",
+    "approxDateRange": "c. 1406\u20131375 BC (traditional)",
+    "summary": "Moses' successor who led Israel's conquest and settlement of Canaan.",
+    "events": [
+      { "order": 1, "placeId": "kadesh-barnea", "passages": [{ "book": "Numbers", "startChapter": 13, "endChapter": 14 }], "label": "One of the twelve spies" },
+      { "order": 2, "placeId": "jordan-river", "passages": [{ "book": "Joshua", "startChapter": 3, "endChapter": 4 }], "label": "Leads Israel across the Jordan" },
+      { "order": 3, "placeId": "jericho", "passages": [{ "book": "Joshua", "startChapter": 6, "endChapter": 6 }], "label": "Conquest of Jericho" },
+      { "order": 4, "placeId": "ai", "passages": [{ "book": "Joshua", "startChapter": 7, "endChapter": 8 }], "label": "Conquest of Ai" },
+      { "order": 5, "placeId": "gibeon", "passages": [{ "book": "Joshua", "startChapter": 10, "endChapter": 10 }], "label": "Defends Gibeon; sun stands still" },
+      { "order": 6, "placeId": "shechem", "passages": [{ "book": "Joshua", "startChapter": 24, "endChapter": 24 }], "label": "Renews the covenant at Shechem" }
+    ]
+  },
+  {
+    "id": "deborah",
+    "name": "Deborah",
+    "era": "Judges",
+    "approxDateRange": "c. 1200\u20131150 BC (traditional)",
+    "summary": "A prophetess and judge who led Israel to victory over Canaanite oppression.",
+    "events": [
+      { "order": 1, "placeId": "bethel", "passages": [{ "book": "Judges", "startChapter": 4, "endChapter": 4 }], "label": "Judges Israel between Ramah and Bethel" },
+      { "order": 2, "placeId": "megiddo", "passages": [{ "book": "Judges", "startChapter": 4, "endChapter": 5 }], "label": "Victory over Sisera near Megiddo" }
+    ]
+  },
+  {
+    "id": "gideon",
+    "name": "Gideon",
+    "era": "Judges",
+    "approxDateRange": "c. 1150\u20131100 BC (traditional)",
+    "summary": "A reluctant judge who defeated the Midianites with a small band of men.",
+    "events": [
+      { "order": 1, "placeId": "jezreel", "passages": [{ "book": "Judges", "startChapter": 6, "endChapter": 7 }], "label": "Defeats the Midianites near Jezreel" }
+    ]
+  },
+  {
+    "id": "samson",
+    "name": "Samson",
+    "era": "Judges",
+    "approxDateRange": "c. 1100\u20131060 BC (traditional)",
+    "summary": "A Nazirite judge of immense strength whose downfall came through Delilah.",
+    "events": [
+      { "order": 1, "placeId": "gath", "passages": [{ "book": "Judges", "startChapter": 16, "endChapter": 16 }], "label": "Conflict with the Philistines" }
+    ]
+  },
+  {
+    "id": "ruth",
+    "name": "Ruth",
+    "era": "Judges",
+    "approxDateRange": "c. 1100 BC (traditional)",
+    "summary": "A Moabite widow whose loyalty to Naomi led her to Bethlehem, where she became King David's great-grandmother.",
+    "events": [
+      { "order": 1, "placeId": "bethlehem", "passages": [{ "book": "Ruth", "startChapter": 1, "endChapter": 4 }], "label": "Gleans in Boaz's fields and is redeemed" }
+    ]
+  },
+  {
+    "id": "samuel",
+    "name": "Samuel",
+    "era": "Judges / United Kingdom",
+    "approxDateRange": "c. 1080\u20131010 BC",
+    "summary": "The last judge and a prophet who anointed Israel's first two kings, Saul and David.",
+    "events": [
+      { "order": 1, "placeId": "shiloh", "passages": [{ "book": "1 Samuel", "startChapter": 1, "endChapter": 3 }], "label": "Raised in the tabernacle at Shiloh" },
+      { "order": 2, "placeId": "mizpah", "passages": [{ "book": "1 Samuel", "startChapter": 7, "endChapter": 7 }], "label": "Leads Israel in victory at Mizpah" },
+      { "order": 3, "placeId": "ramah", "passages": [{ "book": "1 Samuel", "startChapter": 16, "endChapter": 16 }], "label": "Anoints David at Bethlehem, based from Ramah" }
+    ]
+  },
+  {
+    "id": "saul",
+    "name": "Saul",
+    "era": "United Kingdom",
+    "approxDateRange": "c. 1050\u20131010 BC",
+    "summary": "Israel's first king, whose disobedience led to his rejection and eventual death in battle.",
+    "events": [
+      { "order": 1, "placeId": "gilgal", "passages": [{ "book": "1 Samuel", "startChapter": 11, "endChapter": 11 }], "label": "Confirmed king at Gilgal" },
+      { "order": 2, "placeId": "gath", "passages": [{ "book": "1 Samuel", "startChapter": 17, "endChapter": 17 }], "label": "Army faces Goliath's challenge" },
+      { "order": 3, "placeId": "en-gedi", "passages": [{ "book": "1 Samuel", "startChapter": 24, "endChapter": 24 }], "label": "Pursues David at En Gedi" },
+      { "order": 4, "placeId": "gilboa", "passages": [{ "book": "1 Samuel", "startChapter": 31, "endChapter": 31 }], "label": "Dies in battle on Mount Gilboa", "approxDate": "c. 1010 BC" }
+    ]
+  },
+  {
+    "id": "david",
+    "name": "David",
+    "era": "United Kingdom",
+    "approxDateRange": "c. 1040\u2013970 BC",
+    "summary": "Shepherd, warrior, and psalmist who became Israel's greatest king and established Jerusalem as its capital.",
+    "events": [
+      { "order": 1, "placeId": "bethlehem", "passages": [{ "book": "1 Samuel", "startChapter": 16, "endChapter": 16 }], "label": "Anointed by Samuel in Bethlehem", "approxDate": "c. 1025 BC" },
+      { "order": 2, "placeId": "elah-valley", "passages": [{ "book": "1 Samuel", "startChapter": 17, "endChapter": 17 }], "label": "Defeats Goliath in the Valley of Elah" },
+      { "order": 3, "placeId": "en-gedi", "passages": [{ "book": "1 Samuel", "startChapter": 23, "endChapter": 24 }], "label": "Flees from Saul into the wilderness" },
+      { "order": 4, "placeId": "ziklag", "passages": [{ "book": "1 Samuel", "startChapter": 27, "endChapter": 30 }], "label": "Takes refuge among the Philistines at Ziklag" },
+      { "order": 5, "placeId": "hebron", "passages": [{ "book": "2 Samuel", "startChapter": 2, "endChapter": 5 }], "label": "Reigns over Judah from Hebron", "approxDate": "c. 1010 BC" },
+      { "order": 6, "placeId": "jerusalem", "passages": [{ "book": "2 Samuel", "startChapter": 5, "endChapter": 24 }], "label": "Captures Jerusalem, makes it his capital", "approxDate": "c. 1003 BC" }
+    ]
+  },
+  {
+    "id": "solomon",
+    "name": "Solomon",
+    "era": "United Kingdom",
+    "approxDateRange": "c. 970\u2013931 BC",
+    "summary": "David's son, renowned for wisdom, wealth, and building the first Temple in Jerusalem.",
+    "events": [
+      { "order": 1, "placeId": "gibeon", "passages": [{ "book": "1 Kings", "startChapter": 3, "endChapter": 3 }], "label": "Asks God for wisdom at Gibeon" },
+      { "order": 2, "placeId": "jerusalem", "passages": [{ "book": "1 Kings", "startChapter": 6, "endChapter": 8 }], "label": "Builds the Temple in Jerusalem", "approxDate": "c. 966 BC" }
+    ]
+  },
+  {
+    "id": "elijah",
+    "name": "Elijah",
+    "era": "Divided Kingdom",
+    "approxDateRange": "c. 870\u2013845 BC",
+    "summary": "A fiery prophet who confronted Baal worship in the northern kingdom and was taken up to heaven in a whirlwind.",
+    "events": [
+      { "order": 1, "placeId": "carmel", "passages": [{ "book": "1 Kings", "startChapter": 18, "endChapter": 18 }], "label": "Confronts the prophets of Baal on Carmel" },
+      { "order": 2, "placeId": "horeb-cave", "passages": [{ "book": "1 Kings", "startChapter": 19, "endChapter": 19 }], "label": "Hears the still small voice at Horeb" },
+      { "order": 3, "placeId": "jezreel", "passages": [{ "book": "1 Kings", "startChapter": 21, "endChapter": 21 }], "label": "Confronts Ahab over Naboth's vineyard" }
+    ]
+  },
+  {
+    "id": "elisha",
+    "name": "Elisha",
+    "era": "Divided Kingdom",
+    "approxDateRange": "c. 845\u2013800 BC",
+    "summary": "Elijah's successor who performed many miracles in Israel.",
+    "events": [
+      { "order": 1, "placeId": "jordan-river", "passages": [{ "book": "2 Kings", "startChapter": 2, "endChapter": 2 }], "label": "Receives Elijah's mantle at the Jordan" },
+      { "order": 2, "placeId": "shunem", "passages": [{ "book": "2 Kings", "startChapter": 4, "endChapter": 4 }], "label": "Raises the Shunammite woman's son" },
+      { "order": 3, "placeId": "samaria-city", "passages": [{ "book": "2 Kings", "startChapter": 6, "endChapter": 7 }], "label": "Ministers during the siege of Samaria" }
+    ]
+  },
+  {
+    "id": "jonah",
+    "name": "Jonah",
+    "era": "Divided Kingdom",
+    "approxDateRange": "c. 780 BC",
+    "summary": "A reluctant prophet swallowed by a great fish, later sent to preach repentance to Nineveh.",
+    "events": [
+      { "order": 1, "placeId": "joppa", "passages": [{ "book": "Jonah", "startChapter": 1, "endChapter": 1 }], "label": "Flees toward Tarshish from Joppa" },
+      { "order": 2, "placeId": "nineveh", "passages": [{ "book": "Jonah", "startChapter": 3, "endChapter": 4 }], "label": "Preaches repentance to Nineveh" }
+    ]
+  },
+  {
+    "id": "isaiah",
+    "name": "Isaiah",
+    "era": "Divided Kingdom",
+    "approxDateRange": "c. 740\u2013681 BC",
+    "summary": "A major prophet who ministered in Jerusalem during the Assyrian crisis, foretelling both judgment and messianic hope.",
+    "events": [
+      { "order": 1, "placeId": "jerusalem", "passages": [{ "book": "Isaiah", "startChapter": 6, "endChapter": 6 }], "label": "Called in a vision of God's throne room" }
+    ]
+  },
+  {
+    "id": "hezekiah",
+    "name": "Hezekiah",
+    "era": "Divided Kingdom",
+    "approxDateRange": "c. 715\u2013686 BC",
+    "summary": "A reforming king of Judah who resisted the Assyrian siege of Jerusalem.",
+    "events": [
+      { "order": 1, "placeId": "lachish", "passages": [{ "book": "2 Kings", "startChapter": 18, "endChapter": 18 }], "label": "Assyrian siege of Lachish" },
+      { "order": 2, "placeId": "jerusalem", "passages": [{ "book": "2 Kings", "startChapter": 19, "endChapter": 19 }], "label": "Jerusalem delivered from Assyria" }
+    ]
+  },
+  {
+    "id": "josiah",
+    "name": "Josiah",
+    "era": "Divided Kingdom",
+    "approxDateRange": "c. 640\u2013609 BC",
+    "summary": "A reforming boy-king of Judah who rediscovered the Book of the Law.",
+    "events": [
+      { "order": 1, "placeId": "jerusalem", "passages": [{ "book": "2 Kings", "startChapter": 22, "endChapter": 23 }], "label": "Institutes religious reforms after finding the Law" },
+      { "order": 2, "placeId": "megiddo", "passages": [{ "book": "2 Kings", "startChapter": 23, "endChapter": 23 }], "label": "Dies in battle at Megiddo", "approxDate": "609 BC" }
+    ]
+  },
+  {
+    "id": "jeremiah",
+    "name": "Jeremiah",
+    "era": "Divided Kingdom / Exile",
+    "approxDateRange": "c. 627\u2013570 BC",
+    "summary": "The 'weeping prophet' who warned Judah of coming judgment and witnessed Jerusalem's fall.",
+    "events": [
+      { "order": 1, "placeId": "jerusalem", "passages": [{ "book": "Jeremiah", "startChapter": 1, "endChapter": 1 }], "label": "Called as a prophet to the nations" },
+      { "order": 2, "placeId": "riblah", "passages": [{ "book": "Jeremiah", "startChapter": 39, "endChapter": 39 }], "label": "Witnesses Judah's kings judged at Riblah" }
+    ]
+  },
+  {
+    "id": "ezekiel",
+    "name": "Ezekiel",
+    "era": "Exile",
+    "approxDateRange": "c. 622\u2013570 BC",
+    "summary": "A priest-prophet who ministered among the exiles in Babylon.",
+    "events": [
+      { "order": 1, "placeId": "babylon", "passages": [{ "book": "Ezekiel", "startChapter": 1, "endChapter": 3 }], "label": "Receives visions among the exiles by the Chebar" }
+    ]
+  },
+  {
+    "id": "daniel",
+    "name": "Daniel",
+    "era": "Exile",
+    "approxDateRange": "c. 620\u2013535 BC",
+    "summary": "A Judean exile who rose to prominence in the Babylonian and Persian courts while remaining faithful to God.",
+    "events": [
+      { "order": 1, "placeId": "babylon", "passages": [{ "book": "Daniel", "startChapter": 1, "endChapter": 6 }], "label": "Serves in the Babylonian and Persian courts" }
+    ]
+  },
+  {
+    "id": "esther",
+    "name": "Esther",
+    "aliases": ["Hadassah"],
+    "era": "Exile / Persian Period",
+    "approxDateRange": "c. 480\u2013470 BC",
+    "summary": "A Jewish queen of Persia who risked her life to save her people from genocide.",
+    "events": [
+      { "order": 1, "placeId": "susa", "passages": [{ "book": "Esther", "startChapter": 2, "endChapter": 9 }], "label": "Becomes queen and saves her people at Susa" }
+    ]
+  },
+  {
+    "id": "ezra",
+    "name": "Ezra",
+    "era": "Post-Exile",
+    "approxDateRange": "c. 480\u2013440 BC",
+    "summary": "A priest and scribe who led a return of exiles to Jerusalem and reinstituted the Law.",
+    "events": [
+      { "order": 1, "placeId": "babylon", "passages": [{ "book": "Ezra", "startChapter": 7, "endChapter": 8 }], "label": "Leads exiles from Babylon toward Jerusalem" },
+      { "order": 2, "placeId": "jerusalem", "passages": [{ "book": "Ezra", "startChapter": 9, "endChapter": 10 }], "label": "Reforms and reinstitutes the Law in Jerusalem" }
+    ]
+  },
+  {
+    "id": "nehemiah",
+    "name": "Nehemiah",
+    "era": "Post-Exile",
+    "approxDateRange": "c. 460\u2013400 BC",
+    "summary": "Cupbearer to the Persian king who led the rebuilding of Jerusalem's walls.",
+    "events": [
+      { "order": 1, "placeId": "susa", "passages": [{ "book": "Nehemiah", "startChapter": 1, "endChapter": 2 }], "label": "Hears of Jerusalem's disrepair while serving in Susa" },
+      { "order": 2, "placeId": "jerusalem", "passages": [{ "book": "Nehemiah", "startChapter": 2, "endChapter": 13 }], "label": "Rebuilds Jerusalem's walls" }
+    ]
+  },
+  {
+    "id": "mary-mother-of-jesus",
+    "name": "Mary (mother of Jesus)",
+    "era": "Gospels",
+    "approxDateRange": "c. 18 BC \u2013 AD 45 (estimated)",
+    "summary": "A young Galilean woman chosen to be the mother of Jesus.",
+    "events": [
+      { "order": 1, "placeId": "nazareth", "passages": [{ "book": "Luke", "startChapter": 1, "endChapter": 1 }], "label": "Receives the angel's announcement in Nazareth" },
+      { "order": 2, "placeId": "bethlehem", "passages": [{ "book": "Luke", "startChapter": 2, "endChapter": 2 }], "label": "Gives birth to Jesus in Bethlehem", "approxDate": "c. 5\u20134 BC" },
+      { "order": 3, "placeId": "goshen", "passages": [{ "book": "Matthew", "startChapter": 2, "endChapter": 2 }], "label": "Flees to Egypt with Joseph and Jesus" }
+    ]
+  },
+  {
+    "id": "john-the-baptist",
+    "name": "John the Baptist",
+    "era": "Gospels",
+    "approxDateRange": "c. 6 BC \u2013 AD 30",
+    "summary": "The forerunner who prepared the way for Jesus and baptized him in the Jordan.",
+    "events": [
+      { "order": 1, "placeId": "jordan-river", "passages": [{ "book": "Matthew", "startChapter": 3, "endChapter": 3 }], "label": "Baptizes in the Jordan River" },
+      { "order": 2, "placeId": "jordan-river", "passages": [{ "book": "Matthew", "startChapter": 3, "endChapter": 3 }], "label": "Baptizes Jesus" }
+    ]
+  },
+  {
+    "id": "jesus",
+    "name": "Jesus Christ",
+    "aliases": ["Jesus of Nazareth", "Christ", "Messiah"],
+    "era": "Gospels",
+    "approxDateRange": "c. 5\u20134 BC \u2013 AD 30\u201333",
+    "summary": "Central figure of the New Testament: born in Bethlehem, raised in Nazareth, ministered across Galilee and Judea, crucified and, Christians believe, resurrected in Jerusalem.",
+    "events": [
+      { "order": 1, "placeId": "bethlehem", "passages": [{ "book": "Luke", "startChapter": 2, "endChapter": 2 }], "label": "Born in Bethlehem", "approxDate": "c. 5\u20134 BC" },
+      { "order": 2, "placeId": "goshen", "passages": [{ "book": "Matthew", "startChapter": 2, "endChapter": 2 }], "label": "Flees to Egypt as a child" },
+      { "order": 3, "placeId": "nazareth", "passages": [{ "book": "Matthew", "startChapter": 2, "endChapter": 2 }], "label": "Raised in Nazareth" },
+      { "order": 4, "placeId": "jordan-river", "passages": [{ "book": "Matthew", "startChapter": 3, "endChapter": 3 }], "label": "Baptized by John in the Jordan", "approxDate": "c. AD 27" },
+      { "order": 5, "placeId": "capernaum", "passages": [{ "book": "Matthew", "startChapter": 4, "endChapter": 4 }], "label": "Establishes ministry base in Capernaum" },
+      { "order": 6, "placeId": "cana", "passages": [{ "book": "John", "startChapter": 2, "endChapter": 2 }], "label": "First miracle at Cana" },
+      { "order": 7, "placeId": "sychar", "passages": [{ "book": "John", "startChapter": 4, "endChapter": 4 }], "label": "Speaks with the Samaritan woman at Sychar" },
+      { "order": 8, "placeId": "galilee", "passages": [{ "book": "Mark", "startChapter": 4, "endChapter": 6 }], "label": "Teaches and performs miracles around Galilee" },
+      { "order": 9, "placeId": "caesarea-philippi", "passages": [{ "book": "Matthew", "startChapter": 16, "endChapter": 16 }], "label": "Peter's confession at Caesarea Philippi" },
+      { "order": 10, "placeId": "mount-tabor", "passages": [{ "book": "Matthew", "startChapter": 17, "endChapter": 17 }], "label": "Transfigured before his disciples" },
+      { "order": 11, "placeId": "jericho-nt", "passages": [{ "book": "Luke", "startChapter": 19, "endChapter": 19 }], "label": "Meets Zacchaeus in Jericho" },
+      { "order": 12, "placeId": "bethany", "passages": [{ "book": "John", "startChapter": 11, "endChapter": 11 }], "label": "Raises Lazarus in Bethany" },
+      { "order": 13, "placeId": "jerusalem", "passages": [{ "book": "Matthew", "startChapter": 21, "endChapter": 21 }], "label": "Triumphal entry into Jerusalem", "approxDate": "c. AD 30\u201333" },
+      { "order": 14, "placeId": "mount-of-olives", "passages": [{ "book": "Matthew", "startChapter": 26, "endChapter": 26 }], "label": "Prays in Gethsemane on the Mount of Olives" },
+      { "order": 15, "placeId": "golgotha", "passages": [{ "book": "Matthew", "startChapter": 27, "endChapter": 27 }], "label": "Crucified at Golgotha" },
+      { "order": 16, "placeId": "emmaus", "passages": [{ "book": "Luke", "startChapter": 24, "endChapter": 24 }], "label": "Appears to disciples on the road to Emmaus" },
+      { "order": 17, "placeId": "mount-of-olives", "passages": [{ "book": "Acts", "startChapter": 1, "endChapter": 1 }], "label": "Ascends to heaven from the Mount of Olives" }
+    ]
+  },
+  {
+    "id": "peter",
+    "name": "Peter",
+    "aliases": ["Simon Peter", "Cephas"],
+    "era": "Gospels / Early Church",
+    "approxDateRange": "c. 1 BC \u2013 AD 64\u201368",
+    "summary": "A Galilean fisherman who became the leading apostle and a pillar of the early church.",
+    "events": [
+      { "order": 1, "placeId": "capernaum", "passages": [{ "book": "Matthew", "startChapter": 4, "endChapter": 4 }], "label": "Called as a disciple in Capernaum" },
+      { "order": 2, "placeId": "caesarea-philippi", "passages": [{ "book": "Matthew", "startChapter": 16, "endChapter": 16 }], "label": "Confesses Jesus as the Christ" },
+      { "order": 3, "placeId": "jerusalem", "passages": [{ "book": "Acts", "startChapter": 2, "endChapter": 2 }], "label": "Preaches at Pentecost in Jerusalem" },
+      { "order": 4, "placeId": "joppa", "passages": [{ "book": "Acts", "startChapter": 9, "endChapter": 10 }], "label": "Vision of clean and unclean animals at Joppa" },
+      { "order": 5, "placeId": "caesarea", "passages": [{ "book": "Acts", "startChapter": 10, "endChapter": 10 }], "label": "Brings the gospel to Cornelius in Caesarea" },
+      { "order": 6, "placeId": "rome", "passages": [{ "book": "1 Peter", "startChapter": 5, "endChapter": 5 }], "label": "Ministers from Rome (traditionally martyred there)", "approxDate": "c. AD 64\u201368" }
+    ]
+  },
+  {
+    "id": "john-apostle",
+    "name": "John (the Apostle)",
+    "era": "Gospels / Early Church",
+    "approxDateRange": "c. AD 6 \u2013 100",
+    "summary": "One of Jesus' inner circle, author of a Gospel, three epistles, and Revelation.",
+    "events": [
+      { "order": 1, "placeId": "capernaum", "passages": [{ "book": "Matthew", "startChapter": 4, "endChapter": 4 }], "label": "Called as a disciple in Capernaum" },
+      { "order": 2, "placeId": "jerusalem", "passages": [{ "book": "Acts", "startChapter": 3, "endChapter": 4 }], "label": "Ministers alongside Peter in Jerusalem" },
+      { "order": 3, "placeId": "ephesus", "passages": [{ "book": "Revelation", "startChapter": 2, "endChapter": 2 }], "label": "Associated with the church in Ephesus" },
+      { "order": 4, "placeId": "patmos", "passages": [{ "book": "Revelation", "startChapter": 1, "endChapter": 1 }], "label": "Exiled on Patmos, receives the Revelation", "approxDate": "c. AD 95" }
+    ]
+  },
+  {
+    "id": "mary-magdalene",
+    "name": "Mary Magdalene",
+    "era": "Gospels",
+    "approxDateRange": "1st century AD",
+    "summary": "A devoted follower of Jesus, the first witness of his resurrection.",
+    "events": [
+      { "order": 1, "placeId": "galilee", "passages": [{ "book": "Luke", "startChapter": 8, "endChapter": 8 }], "label": "Follows Jesus' ministry in Galilee" },
+      { "order": 2, "placeId": "golgotha", "passages": [{ "book": "John", "startChapter": 19, "endChapter": 19 }], "label": "Present at the crucifixion" },
+      { "order": 3, "placeId": "jerusalem", "passages": [{ "book": "John", "startChapter": 20, "endChapter": 20 }], "label": "First to see the risen Jesus" }
+    ]
+  },
+  {
+    "id": "lazarus",
+    "name": "Lazarus",
+    "era": "Gospels",
+    "approxDateRange": "1st century AD",
+    "summary": "A friend of Jesus in Bethany who was raised from the dead.",
+    "events": [
+      { "order": 1, "placeId": "bethany", "passages": [{ "book": "John", "startChapter": 11, "endChapter": 11 }], "label": "Raised from the dead by Jesus" }
+    ]
+  },
+  {
+    "id": "stephen",
+    "name": "Stephen",
+    "era": "Early Church",
+    "approxDateRange": "c. AD 34\u201335",
+    "summary": "The first Christian martyr, stoned in Jerusalem after his defense before the Sanhedrin.",
+    "events": [
+      { "order": 1, "placeId": "jerusalem", "passages": [{ "book": "Acts", "startChapter": 6, "endChapter": 7 }], "label": "Martyred outside Jerusalem" }
+    ]
+  },
+  {
+    "id": "paul",
+    "name": "Paul",
+    "aliases": ["Saul of Tarsus"],
+    "era": "Early Church",
+    "approxDateRange": "c. AD 5 \u2013 64\u201368",
+    "summary": "Former persecutor of Christians turned apostle to the Gentiles, whose missionary journeys and letters shaped the early church.",
+    "events": [
+      { "order": 1, "placeId": "jerusalem", "passages": [{ "book": "Acts", "startChapter": 7, "endChapter": 8 }], "label": "Approves of Stephen's stoning" },
+      { "order": 2, "placeId": "damascus", "passages": [{ "book": "Acts", "startChapter": 9, "endChapter": 9 }], "label": "Converted on the road to Damascus", "approxDate": "c. AD 34\u201336" },
+      { "order": 3, "placeId": "antioch-syria", "passages": [{ "book": "Acts", "startChapter": 11, "endChapter": 13 }], "label": "Sent out from the church at Antioch" },
+      { "order": 4, "placeId": "antioch-pisidia", "passages": [{ "book": "Acts", "startChapter": 13, "endChapter": 13 }], "label": "First missionary journey: Pisidian Antioch" },
+      { "order": 5, "placeId": "lystra", "passages": [{ "book": "Acts", "startChapter": 14, "endChapter": 14 }], "label": "Stoned and left for dead at Lystra" },
+      { "order": 6, "placeId": "troas", "passages": [{ "book": "Acts", "startChapter": 16, "endChapter": 16 }], "label": "Receives the Macedonian call at Troas" },
+      { "order": 7, "placeId": "philippi", "passages": [{ "book": "Acts", "startChapter": 16, "endChapter": 16 }], "label": "Imprisoned and freed by an earthquake in Philippi" },
+      { "order": 8, "placeId": "thessalonica", "passages": [{ "book": "Acts", "startChapter": 17, "endChapter": 17 }], "label": "Preaches in Thessalonica" },
+      { "order": 9, "placeId": "athens", "passages": [{ "book": "Acts", "startChapter": 17, "endChapter": 17 }], "label": "Addresses the Areopagus in Athens" },
+      { "order": 10, "placeId": "corinth", "passages": [{ "book": "Acts", "startChapter": 18, "endChapter": 18 }], "label": "Ministers 18 months in Corinth" },
+      { "order": 11, "placeId": "ephesus", "passages": [{ "book": "Acts", "startChapter": 19, "endChapter": 19 }], "label": "Extended ministry in Ephesus" },
+      { "order": 12, "placeId": "miletus", "passages": [{ "book": "Acts", "startChapter": 20, "endChapter": 20 }], "label": "Farewell to the Ephesian elders at Miletus" },
+      { "order": 13, "placeId": "jerusalem", "passages": [{ "book": "Acts", "startChapter": 21, "endChapter": 23 }], "label": "Arrested in Jerusalem" },
+      { "order": 14, "placeId": "caesarea", "passages": [{ "book": "Acts", "startChapter": 23, "endChapter": 26 }], "label": "Imprisoned in Caesarea, appeals to Caesar" },
+      { "order": 15, "placeId": "malta", "passages": [{ "book": "Acts", "startChapter": 28, "endChapter": 28 }], "label": "Shipwrecked on Malta" },
+      { "order": 16, "placeId": "rome", "passages": [{ "book": "Acts", "startChapter": 28, "endChapter": 28 }], "label": "Under house arrest in Rome, later martyred", "approxDate": "c. AD 64\u201368" }
+    ]
+  },
+  {
+    "id": "barnabas",
+    "name": "Barnabas",
+    "era": "Early Church",
+    "approxDateRange": "1st century AD",
+    "summary": "An encourager and early missionary companion of Paul.",
+    "events": [
+      { "order": 1, "placeId": "antioch-syria", "passages": [{ "book": "Acts", "startChapter": 11, "endChapter": 11 }], "label": "Ministers at the church in Antioch" },
+      { "order": 2, "placeId": "iconium", "passages": [{ "book": "Acts", "startChapter": 14, "endChapter": 14 }], "label": "Travels with Paul through Asia Minor" }
+    ]
+  },
+  {
+    "id": "timothy",
+    "name": "Timothy",
+    "era": "Early Church",
+    "approxDateRange": "c. AD 17 \u2013 97 (traditional)",
+    "summary": "Paul's young protege from Lystra who became a pastor and recipient of two New Testament letters.",
+    "events": [
+      { "order": 1, "placeId": "lystra", "passages": [{ "book": "Acts", "startChapter": 16, "endChapter": 16 }], "label": "Joins Paul's missionary team at Lystra" },
+      { "order": 2, "placeId": "ephesus", "passages": [{ "book": "1 Timothy", "startChapter": 1, "endChapter": 1 }], "label": "Pastors the church at Ephesus" }
+    ]
+  },
+  {
+    "id": "lydia",
+    "name": "Lydia",
+    "era": "Early Church",
+    "approxDateRange": "1st century AD",
+    "summary": "A businesswoman in Philippi and the first recorded European convert to Christianity.",
+    "events": [
+      { "order": 1, "placeId": "philippi", "passages": [{ "book": "Acts", "startChapter": 16, "endChapter": 16 }], "label": "Converted and baptized at Philippi" }
+    ]
+  },
+  {
+    "id": "priscilla-aquila",
+    "name": "Priscilla and Aquila",
+    "era": "Early Church",
+    "approxDateRange": "1st century AD",
+    "summary": "A missionary couple who partnered with Paul and taught Apollos more accurately.",
+    "events": [
+      { "order": 1, "placeId": "corinth", "passages": [{ "book": "Acts", "startChapter": 18, "endChapter": 18 }], "label": "Meets Paul in Corinth" },
+      { "order": 2, "placeId": "ephesus", "passages": [{ "book": "Acts", "startChapter": 18, "endChapter": 18 }], "label": "Teaches Apollos in Ephesus" }
+    ]
+  },
+  {
+    "id": "apollos",
+    "name": "Apollos",
+    "era": "Early Church",
+    "approxDateRange": "1st century AD",
+    "summary": "An eloquent Alexandrian preacher who strengthened the churches in Achaia.",
+    "events": [
+      { "order": 1, "placeId": "ephesus", "passages": [{ "book": "Acts", "startChapter": 18, "endChapter": 18 }], "label": "Instructed further in the way of God at Ephesus" },
+      { "order": 2, "placeId": "corinth", "passages": [{ "book": "Acts", "startChapter": 19, "endChapter": 19 }], "label": "Waters what Paul planted in Corinth" }
+    ]
+  },
+  {
+    "id": "cornelius",
+    "name": "Cornelius",
+    "era": "Early Church",
+    "approxDateRange": "1st century AD",
+    "summary": "A Roman centurion in Caesarea, the first Gentile convert recorded in Acts.",
+    "events": [
+      { "order": 1, "placeId": "caesarea", "passages": [{ "book": "Acts", "startChapter": 10, "endChapter": 10 }], "label": "Receives Peter's vision and the Holy Spirit" }
+    ]
+  },
+  {
+    "id": "titus",
+    "name": "Titus",
+    "era": "Early Church",
+    "approxDateRange": "1st century AD",
+    "summary": "A Gentile companion of Paul who organized the church in Crete.",
+    "events": [
+      { "order": 1, "placeId": "crete", "passages": [{ "book": "Titus", "startChapter": 1, "endChapter": 1 }], "label": "Left to organize the church in Crete" }
+    ]
+  }
+]

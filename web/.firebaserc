@@ -1,0 +1,18 @@
+{
+  "projects": {
+    "default": "rootedinchrist-faith-2026"
+  },
+  "targets": {
+    "rootedinchrist-faith-2026": {
+      "hosting": {
+        "portal": [
+          "rootedinchrist-faith-2026"
+        ],
+        "webpage": [
+          "rootedinchrist-faith"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

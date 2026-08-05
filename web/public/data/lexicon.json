@@ -1,0 +1,194 @@
+[
+  {
+    "word": "abide",
+    "kjvMeaning": "to dwell, remain, continue; to wait for",
+    "modernMeaning": "to remain; to tolerate or endure",
+    "historicalContext": "In Early Modern English, 'abide' comes from Old English 'abidan' meaning to wait or remain, often carrying a sense of faithfulness and endurance."
+  },
+  {
+    "word": "anon",
+    "kjvMeaning": "immediately; at once; soon",
+    "modernMeaning": "in a short time; soon",
+    "historicalContext": "'Anon' was common in 1611 English for 'immediately' or 'right away,' from Old English 'on an' (into one)."
+  },
+  {
+    "word": "apace",
+    "kjvMeaning": "swiftly; quickly",
+    "modernMeaning": "rapidly; at a fast pace",
+    "historicalContext": "A contraction of 'a pace,' meaning at a great pace; it conveyed urgency and speed in 17th-century English."
+  },
+  {
+    "word": "asswaged",
+    "kjvMeaning": "abated; lessened; relieved",
+    "modernMeaning": "to be calmed or reduced",
+    "historicalContext": "From the Hebrew idea of calming or stilling, 'asswaged' in the KJV describes a flood subsiding or emotions being quieted."
+  },
+  {
+    "word": "by and by",
+    "kjvMeaning": "immediately; at once",
+    "modernMeaning": "after a while; eventually",
+    "historicalContext": "In 1611, 'by and by' meant 'at once' or 'immediately,' a meaning almost reversed from today's usage."
+  },
+  {
+    "word": "charity",
+    "kjvMeaning": "selfless, divine love; agape",
+    "modernMeaning": "benevolent giving to those in need",
+    "historicalContext": "For the KJV translators, 'charity' rendered Greek 'agape,' the highest form of love, not merely almsgiving."
+  },
+  {
+    "word": "conversation",
+    "kjvMeaning": "conduct; manner of life; behavior",
+    "modernMeaning": "a spoken exchange between people",
+    "historicalContext": "The Latin root 'conversatio' meant one's way of life or behavior; the KJV uses it for lifestyle, not dialogue."
+  },
+  {
+    "word": "damnation",
+    "kjvMeaning": "condemnation; judgment; disapproval",
+    "modernMeaning": "eternal punishment in hell",
+    "historicalContext": "In the KJV, 'damnation' often referred to the verdict of condemnation rather than only post-mortem hell."
+  },
+  {
+    "word": "espy",
+    "kjvMeaning": "to see; to discover; to observe",
+    "modernMeaning": "to catch sight of; to spot",
+    "historicalContext": "From Old French 'espiier' (to spy), the KJV uses it for seeing or discovering something hidden."
+  },
+  {
+    "word": "exhort",
+    "kjvMeaning": "to encourage; to urge strongly; to comfort",
+    "modernMeaning": "to strongly encourage or urge",
+    "historicalContext": "From Greek 'parakaleo,' meaning to call alongside for comfort, encouragement, or admonition."
+  },
+  {
+    "word": "froward",
+    "kjvMeaning": "perverse; contrary; disobedient",
+    "modernMeaning": "willfully contrary; not easily governed",
+    "historicalContext": "'Froward' (from 'from-ward,' turned away) describes someone turned away from what is right."
+  },
+  {
+    "word": "graven",
+    "kjvMeaning": "carved; engraved; sculpted",
+    "modernMeaning": "engraved or carved into a surface",
+    "historicalContext": "From the verb 'grave' (to carve), it was used for idols or images cut from stone or wood."
+  },
+  {
+    "word": "harken",
+    "kjvMeaning": "to listen; to give heed; to obey",
+    "modernMeaning": "to listen attentively",
+    "historicalContext": "'Harken' meant to hear and respond, not just passive listening; it implies obedience."
+  },
+  {
+    "word": "hither",
+    "kjvMeaning": "to this place; here",
+    "modernMeaning": "to or toward this place",
+    "historicalContext": "Old English 'hider' expressed movement toward the speaker, contrasting with 'thither' (there)."
+  },
+  {
+    "word": "holpen",
+    "kjvMeaning": "helped; assisted; delivered",
+    "modernMeaning": "helped (archaic past participle)",
+    "historicalContext": "The old past participle of 'help'; the KJV uses it to describe being aided or rescued."
+  },
+  {
+    "word": "let",
+    "kjvMeaning": "to hinder; to obstruct; to restrain",
+    "modernMeaning": "to allow or permit",
+    "historicalContext": "In a few places the KJV uses 'let' in the older sense of hinder (2 Thessalonians 2:7), opposite to modern usage."
+  },
+  {
+    "word": "meat",
+    "kjvMeaning": "food; nourishment; a meal",
+    "modernMeaning": "flesh of animals used as food",
+    "historicalContext": "In 1611, 'meat' meant any solid food or meal, not specifically animal flesh."
+  },
+  {
+    "word": "peradventure",
+    "kjvMeaning": "perhaps; maybe; by chance",
+    "modernMeaning": "perhaps; possibly",
+    "historicalContext": "A French-derived adverb common in the KJV for expressing uncertainty or possibility."
+  },
+  {
+    "word": "prevent",
+    "kjvMeaning": "to come before; to precede; to anticipate",
+    "modernMeaning": "to stop something from happening",
+    "historicalContext": "From Latin 'praevenire' (to come before), the KJV uses it for God going before someone, not blocking."
+  },
+  {
+    "word": "quick",
+    "kjvMeaning": "alive; living; not dead",
+    "modernMeaning": "fast; rapid",
+    "historicalContext": "Old English 'cwic' meant alive; 'the quick and the dead' means the living and the dead."
+  },
+  {
+    "word": "raiment",
+    "kjvMeaning": "clothing; garments; apparel",
+    "modernMeaning": "clothing",
+    "historicalContext": "From Anglo-Norman 'raiment,' a general term for clothing or dress."
+  },
+  {
+    "word": "remission",
+    "kjvMeaning": "forgiveness; pardon; release from debt",
+    "modernMeaning": "a lessening of disease symptoms",
+    "historicalContext": "Translating Greek 'aphesis,' it meant the release of sins or debts, the core of forgiveness."
+  },
+  {
+    "word": "salvation",
+    "kjvMeaning": "deliverance; rescue; safety; wholeness",
+    "modernMeaning": "deliverance from sin and its consequences",
+    "historicalContext": "From Greek 'soteria,' it covered rescue, health, and wholeness in both body and soul."
+  },
+  {
+    "word": "scrip",
+    "kjvMeaning": "a small bag; a wallet; a traveling pouch",
+    "modernMeaning": "a provisional certificate or currency",
+    "historicalContext": "A small leather bag for carrying provisions or money used by travelers."
+  },
+  {
+    "word": "suffer",
+    "kjvMeaning": "to allow; to permit; to let",
+    "modernMeaning": "to experience pain or distress",
+    "historicalContext": "The KJV frequently uses 'suffer' in the sense of 'allow' or 'permit,' not endure pain."
+  },
+  {
+    "word": "supplication",
+    "kjvMeaning": "earnest request; petition; prayer",
+    "modernMeaning": "a humble plea or request",
+    "historicalContext": "From Latin 'supplicare' (to kneel), it denotes pleading prayer to God or an authority."
+  },
+  {
+    "word": "thither",
+    "kjvMeaning": "to that place; there",
+    "modernMeaning": "to or toward that place",
+    "historicalContext": "Old English 'thider' indicated movement away from the speaker, paired with 'hither.'"
+  },
+  {
+    "word": "unto",
+    "kjvMeaning": "to; toward; for; until",
+    "modernMeaning": "to (archaic form)",
+    "historicalContext": "A 17th-century compound of 'to' with an intensive 'un-,' used for direction, purpose, or time."
+  },
+  {
+    "word": "verily",
+    "kjvMeaning": "truly; surely; amen",
+    "modernMeaning": "in truth; really",
+    "historicalContext": "Translating Hebrew 'amen' and Greek 'amen,' it was a solemn affirmation, often doubled in John's Gospel."
+  },
+  {
+    "word": "wist",
+    "kjvMeaning": "knew; was aware",
+    "modernMeaning": "knew (archaic past tense)",
+    "historicalContext": "The past tense of 'wit' (to know); 'they wist not' means 'they did not know.'"
+  },
+  {
+    "word": "wot",
+    "kjvMeaning": "to know; to be aware",
+    "modernMeaning": "to know (archaic)",
+    "historicalContext": "From Old English 'witan,' 'wot' means 'I know' or 'we know' in the KJV."
+  },
+  {
+    "word": "zeal",
+    "kjvMeaning": "earnest passion; jealousy for a cause; fervent devotion",
+    "modernMeaning": "great energy or enthusiasm for a cause",
+    "historicalContext": "From Greek 'zelos,' it could mean jealousy, rivalry, or intense devotion for God or an ideal."
+  }
+]
