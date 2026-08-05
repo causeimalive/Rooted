@@ -1517,7 +1517,7 @@ export default function YouVersionReaderTab({
                   <strong>{versionTitle}</strong>
                   <span>{versionSubtitle || copyright || 'Select a version'}</span>
                 </button>
-                {compareOpen && versionMenuOpen ? (
+                {versionMenuOpen ? (
                   <div className="yv-reader-version-menu yv-reader-compare-menu yv-reader-compare-pane-menu" role="menu" aria-label="Bible version selection">
                     {availableVersions.map((entry) => {
                       const entryLabel = formatVersionLabel(entry)
