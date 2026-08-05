@@ -304,7 +304,6 @@ export default function YouVersionReaderTab({
   const { t, language } = useI18n()
   const readerBodyRef = useRef<HTMLDivElement | null>(null)
   const versionMenuRef = useRef<HTMLDivElement | null>(null)
-  const compareVersionMenuRef = useRef<HTMLDivElement | null>(null)
   const [localError, setLocalError] = useState('')
   const [versionId, setVersionId] = useState<number | null>(() => {
     const saved = Number(window.localStorage.getItem(READER_VERSION_KEY))
@@ -395,27 +394,6 @@ export default function YouVersionReaderTab({
       setCompareVersionMenuOpen(true)
     }
   }, [compareOpen, compareVersionId])
-
-  useEffect(() => {
-    if (!compareVersionMenuOpen) return
-
-    const onPointerDown = (event: PointerEvent) => {
-      const menu = compareVersionMenuRef.current
-      if (!menu || menu.contains(event.target as Node)) return
-      setCompareVersionMenuOpen(false)
-    }
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setCompareVersionMenuOpen(false)
-    }
-
-    window.addEventListener('pointerdown', onPointerDown)
-    window.addEventListener('keydown', onKeyDown)
-    return () => {
-      window.removeEventListener('pointerdown', onPointerDown)
-      window.removeEventListener('keydown', onKeyDown)
-    }
-  }, [compareVersionMenuOpen])
 
   useEffect(() => {
     if (!availableVersions.length) return
@@ -1501,50 +1479,29 @@ export default function YouVersionReaderTab({
 
           <section className="yv-reader-reader">
             <div className={`yv-reader-meta ${compareOpen ? 'yv-reader-meta-compare' : ''}`}>
-              <div className="yv-reader-meta-block" ref={versionMenuRef}>
+              <div className="yv-reader-meta-block">
                 <span className="yv-reader-meta-label">Version</span>
-                <button
-                  type="button"
-                  className="yv-reader-version-link yv-reader-version-trigger"
-                  aria-expanded={versionMenuOpen}
-                  aria-label="Change Bible version"
-                  title="Change Bible version"
-                  onPointerDown={(event) => {
-                    event.stopPropagation()
-                  }}
-                  onClick={() => setVersionMenuOpen((current) => !current)}
-                >
-                  <strong>{versionTitle}</strong>
-                  <span>{versionSubtitle || copyright || 'Select a version'}</span>
-                </button>
-                {versionMenuOpen ? (
-                  <div className="yv-reader-version-menu yv-reader-compare-menu yv-reader-compare-pane-menu" role="menu" aria-label="Bible version selection">
-                    {availableVersions.map((entry) => {
-                      const entryLabel = formatVersionLabel(entry)
-                      const isActive = entry.id === resolvedVersionId
-                      return (
-                        <div
-                          key={entry.id}
-                          className={`yv-reader-version-menu-item ${isActive ? 'active' : ''}`}
-                        >
-                          <button
-                            type="button"
-                            className="yv-reader-version-menu-item-primary"
-                            onClick={() => {
-                              setVersionId(entry.id)
-                              setVersionMenuOpen(false)
-                            }}
-                          >
-                            <span className="yv-reader-version-menu-item-main">
-                              <strong>{entryLabel.title}</strong>
-                              <span>{entryLabel.subtitle || 'Bible translation'}</span>
-                            </span>
-                          </button>
-                        </div>
-                      )
-                    })}
-                  </div>
-                ) : null}
+                {compareOpen ? (
+                  <>
+                    <strong>{versionTitle}</strong>
+                    <span>{versionSubtitle || copyright || 'Current version'}</span>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    className="yv-reader-version-link yv-reader-version-trigger"
+                    aria-expanded={versionMenuOpen}
+                    aria-label="Change Bible version"
+                    title="Change Bible version"
+                    onPointerDown={(event) => {
+                      event.stopPropagation()
+                    }}
+                    onClick={() => setVersionMenuOpen((current) => !current)}
+                  >
+                    <strong>{versionTitle}</strong>
+                    <span>{versionSubtitle || copyright || 'Select a version'}</span>
+                  </button>
+                )}
               </div>
               <div className="yv-reader-meta-block yv-reader-meta-block-center">
                 <span className="yv-reader-meta-label">Current chapter</span>
@@ -1552,59 +1509,19 @@ export default function YouVersionReaderTab({
                 <span>{isLoadingSections ? 'Loading ahead…' : `${sections.length} section${sections.length === 1 ? '' : 's'} loaded`}</span>
               </div>
               {compareOpen ? (
-                <div className="yv-reader-meta-block yv-reader-meta-block-compare" ref={compareVersionMenuRef}>
+                <div className="yv-reader-meta-block yv-reader-meta-block-compare">
                   <span className="yv-reader-meta-label">Compare version</span>
-                  <button
-                    type="button"
-                    className="yv-reader-version-link yv-reader-version-trigger"
-                    aria-expanded={compareVersionMenuOpen}
-                    aria-label="Change compare version"
-                    title="Change compare version"
-                    onPointerDown={(event) => {
-                      event.stopPropagation()
-                    }}
-                    onClick={() => setCompareVersionMenuOpen((current) => !current)}
-                  >
-                    {compareVersion ? (
-                      <>
-                        <strong>{compareVersionLabel.title}</strong>
-                        <span>{compareVersionLabel.subtitle || 'Parallel translation'}</span>
-                      </>
-                    ) : (
-                      <>
-                        <strong>Choose a version</strong>
-                        <span>Select a comparison translation</span>
-                      </>
-                    )}
-                  </button>
-                  {compareVersionMenuOpen ? (
-                    <div className="yv-reader-version-menu yv-reader-compare-menu yv-reader-compare-pane-menu" role="menu" aria-label="Compare Bible version selection">
-                      {availableVersions.map((entry) => {
-                        const label = formatVersionLabel(entry)
-                        const isActive = entry.id === compareVersionId
-                        return (
-                          <div
-                            key={entry.id}
-                            className={`yv-reader-version-menu-item ${isActive ? 'active' : ''}`}
-                          >
-                            <button
-                              type="button"
-                              className="yv-reader-version-menu-item-primary"
-                              onClick={() => {
-                                setCompareVersionId(entry.id)
-                                setCompareVersionMenuOpen(false)
-                              }}
-                            >
-                              <span className="yv-reader-version-menu-item-main">
-                                <strong>{label.title}</strong>
-                                <span>{label.subtitle || 'Bible translation'}</span>
-                              </span>
-                            </button>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  ) : null}
+                  {compareVersion ? (
+                    <>
+                      <strong>{compareVersionLabel.title}</strong>
+                      <span>{compareVersionLabel.subtitle || 'Parallel translation'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <strong>Choose a version</strong>
+                      <span>Select a comparison translation</span>
+                    </>
+                  )}
                 </div>
               ) : null}
               <div className="yv-reader-meta-tools" role="group" aria-label="Reading tools">
@@ -1728,9 +1645,47 @@ export default function YouVersionReaderTab({
                       className="yv-reader-compare-pane"
                       onScroll={() => handleComparePaneScroll('current')}
                     >
-                      <div className="yv-reader-compare-pane-header">
-                        <strong>{currentVersionLabel.title || 'Choose current version'}</strong>
-                        <span>{compareCurrentPassage?.reference ?? currentChapterLabel}</span>
+                      <div className="yv-reader-compare-pane-header yv-reader-compare-pane-header-selectable" ref={versionMenuRef}>
+                        <button
+                          type="button"
+                          className="yv-reader-compare-pane-header-button"
+                          aria-expanded={versionMenuOpen}
+                          onClick={() => setVersionMenuOpen((current) => !current)}
+                        >
+                          <span>
+                            <strong>{currentVersionLabel.title || 'Choose current version'}</strong>
+                            <small>{compareCurrentPassage?.reference ?? currentChapterLabel}</small>
+                          </span>
+                          <ChevronDown size={14} />
+                        </button>
+                        {versionMenuOpen ? (
+                          <div className="yv-reader-version-menu yv-reader-compare-menu yv-reader-compare-pane-menu yv-reader-current-pane-menu" role="menu" aria-label="Bible version selection">
+                            {availableVersions.map((entry) => {
+                              const entryLabel = formatVersionLabel(entry)
+                              const isActive = entry.id === resolvedVersionId
+                              return (
+                                <div
+                                  key={entry.id}
+                                  className={`yv-reader-version-menu-item ${isActive ? 'active' : ''}`}
+                                >
+                                  <button
+                                    type="button"
+                                    className="yv-reader-version-menu-item-primary"
+                                    onClick={() => {
+                                      setVersionId(entry.id)
+                                      setVersionMenuOpen(false)
+                                    }}
+                                  >
+                                    <span className="yv-reader-version-menu-item-main">
+                                      <strong>{entryLabel.title}</strong>
+                                      <span>{entryLabel.subtitle || 'Bible translation'}</span>
+                                    </span>
+                                  </button>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        ) : null}
                       </div>
                       <div className="yv-reader-compare-verse-indicator" aria-label="Synced verse indicator">
                         <span />
@@ -1813,9 +1768,47 @@ export default function YouVersionReaderTab({
                       className="yv-reader-compare-pane"
                       onScroll={() => handleComparePaneScroll('compare')}
                     >
-                      <div className="yv-reader-compare-pane-header">
-                        <strong>{compareVersionLabel.title || 'Choose compare version'}</strong>
-                        <span>{comparePassage?.reference || compareVersionLabel.subtitle || 'Select a translation'}</span>
+                      <div className="yv-reader-compare-pane-header yv-reader-compare-pane-header-selectable">
+                        <button
+                          type="button"
+                          className="yv-reader-compare-pane-header-button"
+                          aria-expanded={compareVersionMenuOpen}
+                          onClick={() => setCompareVersionMenuOpen((current) => !current)}
+                        >
+                          <span>
+                            <strong>{compareVersionLabel.title || 'Choose compare version'}</strong>
+                            <small>{comparePassage?.reference || compareVersionLabel.subtitle || 'Select a translation'}</small>
+                          </span>
+                          <ChevronDown size={16} />
+                        </button>
+                        {compareVersionMenuOpen ? (
+                          <div className="yv-reader-version-menu yv-reader-compare-menu yv-reader-compare-pane-menu" role="menu" aria-label="Compare Bible version selection">
+                            {availableVersions.map((entry) => {
+                              const label = formatVersionLabel(entry)
+                              const isActive = entry.id === compareVersionId
+                              return (
+                                <div
+                                  key={entry.id}
+                                  className={`yv-reader-version-menu-item ${isActive ? 'active' : ''}`}
+                                >
+                                  <button
+                                    type="button"
+                                    className="yv-reader-version-menu-item-primary"
+                                    onClick={() => {
+                                      setCompareVersionId(entry.id)
+                                      setCompareVersionMenuOpen(false)
+                                    }}
+                                  >
+                                    <span className="yv-reader-version-menu-item-main">
+                                      <strong>{label.title}</strong>
+                                      <span>{label.subtitle || 'Bible translation'}</span>
+                                    </span>
+                                  </button>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        ) : null}
                       </div>
                       <div className="yv-reader-compare-verse-indicator" aria-label="Synced verse indicator">
                         <span />

@@ -2898,7 +2898,6 @@ button.secondary {
 }
 
 .yv-reader-meta-block {
-  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.18rem;
