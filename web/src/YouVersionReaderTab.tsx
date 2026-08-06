@@ -151,6 +151,17 @@ function extractVerseBlocks(content: string): VerseBlock[] {
       }
     })
     .filter((verse) => verse.verse)
+    .reduce<VerseBlock[]>((blocks, verse) => {
+      const last = blocks[blocks.length - 1]
+      if (last && last.verse === verse.verse) {
+        last.html += ` ${verse.html}`
+        last.text += ` ${verse.text}`
+        last.strippedHtml += ` ${verse.strippedHtml}`
+      } else {
+        blocks.push(verse)
+      }
+      return blocks
+    }, [])
 }
 
 function getCompareScrollTop(pane: HTMLElement, target: HTMLElement, focusLine = COMPARE_FOCUS_LINE): number {
@@ -421,6 +432,7 @@ export default function YouVersionReaderTab({
   const compareScrollLockRef = useRef<ComparePaneSide | null>(null)
   const compareLastActiveKeyRef = useRef('')
   const compareSyncDisabledUntilRef = useRef<number>(0)
+  const compareScrollTimeoutRef = useRef<number | null>(null)
   const [compareActiveVerse, setCompareActiveVerse] = useState('')
   const [compareSelectedKey, setCompareSelectedKey] = useState('')
   const [compareScrollSync, setCompareScrollSync] = useState(true)
@@ -1235,9 +1247,10 @@ export default function YouVersionReaderTab({
     if (!verseEl) return
     const shellRect = shell.getBoundingClientRect()
     const verseRect = verseEl.getBoundingClientRect()
-    const alreadyInView = verseRect.top < shellRect.bottom && verseRect.bottom > shellRect.top
+    const alreadyInView = verseRect.top >= shellRect.top + 32 && verseRect.bottom <= shellRect.bottom - 32
     if (!alreadyInView) {
-      verseEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      const targetTop = verseRect.top - shellRect.top + shell.scrollTop - 32
+      shell.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' })
     }
     setTargetVerse(null)
   }, [sections, targetVerse])
@@ -1550,8 +1563,8 @@ export default function YouVersionReaderTab({
 
       if (shouldSync && syncTop !== null && Math.abs(syncTop - otherPane.scrollTop) > 1) {
         compareScrollLockRef.current = otherSide
-        compareSyncDisabledUntilRef.current = Math.max(compareSyncDisabledUntilRef.current, Date.now() + 150)
-        otherPane.scrollTo({ top: syncTop, behavior: 'smooth' })
+        compareSyncDisabledUntilRef.current = Math.max(compareSyncDisabledUntilRef.current, Date.now() + 80)
+        otherPane.scrollTop = syncTop
       }
     },
     [],
@@ -1565,7 +1578,12 @@ export default function YouVersionReaderTab({
       }
 
       if (compareScrollSync && Date.now() >= compareSyncDisabledUntilRef.current) {
-        updateCompareActiveVerse(side)
+        if (compareScrollTimeoutRef.current) {
+          window.clearTimeout(compareScrollTimeoutRef.current)
+        }
+        compareScrollTimeoutRef.current = window.setTimeout(() => {
+          updateCompareActiveVerse(side)
+        }, 120)
       }
 
       const pane = side === 'current' ? compareCurrentPaneRef.current : compareComparePaneRef.current

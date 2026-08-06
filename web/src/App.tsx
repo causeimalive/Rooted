@@ -456,7 +456,7 @@ export default function App() {
           />
         </h1>
         <div className="tabs">
-          <button className={`tab ${tab === 'search' ? 'active' : ''}`} onClick={() => setTab('search')}>
+          <button className={`tab ${tab === 'search' ? 'active' : ''}`} onClick={() => { setQuery(''); setResults([]); setYvSearchResults([]); setYvSearchError(''); setHeaderQuery(''); setTab('search') }}>
             <Search size={16} /> {t('search')}
           </button>
           <button className={`tab ${tab === 'reader' ? 'active' : ''}`} onClick={() => setTab('reader')}>
@@ -893,8 +893,18 @@ function SearchTab({
     [all, bookmarks],
   )
 
+  const recentSearchCount = useMemo(
+    () => recentSearches.filter((r) => findVerse(r.verseId)).length,
+    [recentSearches],
+  )
+
   const showingBookmarks = mode === 'bookmarks'
   const listVerses = showingBookmarks ? bookmarkedVerses : results.map((r) => r.verse)
+
+  const resultCount = useMemo(
+    () => (showingBookmarks ? bookmarkedVerses.length : query.trim() ? results.length : recentSearchCount),
+    [showingBookmarks, bookmarkedVerses.length, query, results.length, recentSearchCount],
+  )
 
   return (
     <div className="panel">
@@ -929,8 +939,8 @@ function SearchTab({
             </button>
           )}
         </div>
-        {!showingBookmarks && (
-          <div className="result-count">{t('resultCount', { count: String(results.length) })}</div>
+        {resultCount > 0 && (
+          <div className="result-count">{t('resultCount', { count: String(resultCount) })}</div>
         )}
       </div>
       <div className="verse-list">
