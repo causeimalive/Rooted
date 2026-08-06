@@ -1,4 +1,4 @@
-import { Fragment, memo, type RefObject } from 'react'
+import { Fragment, memo, useEffect, type RefObject } from 'react'
 
 type ReaderSection = {
   key: string
@@ -27,6 +27,9 @@ type ReaderPassageStackProps = {
   readerView: ReaderView
   focusedSectionKey: string
   isLoadingSections: boolean
+  selectedId?: string | null
+  onSelectVerse?: (verseId: string) => void
+  bookCodeById?: Record<string, string>
 }
 
 function ReaderPassageStack({
@@ -36,7 +39,31 @@ function ReaderPassageStack({
   readerView,
   focusedSectionKey,
   isLoadingSections,
+  selectedId,
+  onSelectVerse,
+  bookCodeById,
 }: ReaderPassageStackProps) {
+  useEffect(() => {
+    const shell = passageShellRef.current
+    if (!shell) return
+    const previous = shell.querySelectorAll('.yv-reader-passage-html .yv-v.selected')
+    previous.forEach((el) => el.classList.remove('selected'))
+    if (!selectedId) return
+    const parts = selectedId.split('.')
+    const verse = parts.pop()
+    const chapter = Number(parts.pop())
+    const bookCode = parts.join('.')
+    if (!verse || Number.isNaN(chapter)) return
+    const section = sections.find(
+      (s) => (bookCodeById?.[s.bookId] ?? s.bookId) === bookCode && s.chapter === chapter,
+    )
+    if (!section) return
+    const target = shell.querySelector(
+      `.yv-reader-passage-html[data-book-id="${CSS.escape(section.bookId)}"][data-chapter="${section.chapter}"] .yv-v[v="${CSS.escape(verse)}"]`,
+    ) as HTMLElement | null
+    if (target) target.classList.add('selected')
+  }, [selectedId, sections, bookCodeById, passageShellRef])
+
   if (!sections.length) {
     return (
       <div className="yv-reader-passage-shell" ref={passageShellRef}>
@@ -68,19 +95,25 @@ function ReaderPassageStack({
               {readerView === 'chapter' ? (
                 section.verses.length ? (
                   <div className="yv-reader-verse-stack">
-                    {section.verses.map((verse) => (
-                      <article
-                        key={`${section.key}-${verse.verse}`}
-                        className="yv-reader-verse-card"
-                        data-verse={verse.verse}
-                      >
-                        <div className="yv-reader-verse-number">{verse.verse}</div>
-                        <div
-                          className="yv-reader-verse-content"
-                          dangerouslySetInnerHTML={{ __html: verse.strippedHtml }}
-                        />
-                      </article>
-                    ))}
+                    {section.verses.map((verse) => {
+                      const bookCode = bookCodeById?.[section.bookId] ?? section.bookId
+                      const verseId = `${bookCode}.${section.chapter}.${verse.verse}`
+                      const selected = selectedId === verseId
+                      return (
+                        <article
+                          key={`${section.key}-${verse.verse}`}
+                          className={`yv-reader-verse-card ${selected ? 'selected' : ''}`}
+                          data-verse={verse.verse}
+                          onClick={() => onSelectVerse?.(verseId)}
+                        >
+                          <div className="yv-reader-verse-number">{verse.verse}</div>
+                          <div
+                            className="yv-reader-verse-content"
+                            dangerouslySetInnerHTML={{ __html: verse.strippedHtml }}
+                          />
+                        </article>
+                      )
+                    })}
                   </div>
                 ) : (
                   <div className="empty">No verse markers found.</div>
@@ -88,15 +121,21 @@ function ReaderPassageStack({
               ) : readerView === 'verse' ? (
                 section.verses.length ? (
                   <div className="yv-reader-verse-flow">
-                    {section.verses.map((verse) => (
-                      <article
-                        key={`${section.key}-${verse.verse}`}
-                        className="yv-reader-verse-flow-item"
-                        data-verse={verse.verse}
-                      >
-                        <div className="yv-reader-verse-flow-content" dangerouslySetInnerHTML={{ __html: verse.html }} />
-                      </article>
-                    ))}
+                    {section.verses.map((verse) => {
+                      const bookCode = bookCodeById?.[section.bookId] ?? section.bookId
+                      const verseId = `${bookCode}.${section.chapter}.${verse.verse}`
+                      const selected = selectedId === verseId
+                      return (
+                        <article
+                          key={`${section.key}-${verse.verse}`}
+                          className={`yv-reader-verse-flow-item ${selected ? 'selected' : ''}`}
+                          data-verse={verse.verse}
+                          onClick={() => onSelectVerse?.(verseId)}
+                        >
+                          <div className="yv-reader-verse-flow-content" dangerouslySetInnerHTML={{ __html: verse.html }} />
+                        </article>
+                      )
+                    })}
                   </div>
                 ) : (
                   <div className="empty">No verse markers found.</div>
@@ -104,6 +143,8 @@ function ReaderPassageStack({
               ) : (
                 <article
                   className="yv-reader-passage yv-reader-passage-html"
+                  data-book-id={section.bookId}
+                  data-chapter={section.chapter}
                   dangerouslySetInnerHTML={{ __html: section.content }}
                 />
               )}

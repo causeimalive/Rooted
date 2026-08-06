@@ -27,7 +27,7 @@ const NOTES_KEY = 'bible.notes'
 const BOOKMARKS_KEY = 'bible.bookmarks'
 const USER_KEY = 'bible.user'
 const RECENT_SEARCHES_KEY = 'bible.recentSearches'
-const MAX_RECENT_SEARCHES = 10
+const MAX_RECENT_SEARCHES = 25
 
 let currentUserId: string | null = null
 
@@ -52,6 +52,31 @@ function mergeById<T extends { id: string; createdAt?: string; updatedAt?: strin
   return Array.from(map.values())
 }
 
+function normalizeRecentSearches(searches: RecentSearch[]): RecentSearch[] {
+  const seen = new Set<string>()
+  const unique: RecentSearch[] = []
+  const sorted = [...searches].sort((a, b) => itemTimestamp(b) - itemTimestamp(a))
+  for (const search of sorted) {
+    const key = search.verseId || search.query
+    if (seen.has(key)) continue
+    seen.add(key)
+    unique.push(search)
+  }
+  return unique.slice(0, MAX_RECENT_SEARCHES)
+}
+
+function normalizeBookmarks(bookmarks: Bookmark[]): Bookmark[] {
+  const seen = new Set<string>()
+  const unique: Bookmark[] = []
+  const sorted = [...bookmarks].sort((a, b) => itemTimestamp(b) - itemTimestamp(a))
+  for (const bm of sorted) {
+    if (seen.has(bm.verseId)) continue
+    seen.add(bm.verseId)
+    unique.push(bm)
+  }
+  return unique
+}
+
 export async function syncUserData(userId: string) {
   currentUserId = userId
   const [cloudBookmarks, cloudNotes, cloudRecent] = await Promise.all([
@@ -60,15 +85,15 @@ export async function syncUserData(userId: string) {
     getUserRecentSearches(userId),
   ])
 
-  const mergedBookmarks = mergeById(getBookmarks(), cloudBookmarks).sort(
-    (a, b) => itemTimestamp(b) - itemTimestamp(a),
+  const mergedBookmarks = normalizeBookmarks(
+    mergeById(get<Bookmark>(BOOKMARKS_KEY), cloudBookmarks),
   )
   const mergedNotes = mergeById(getNotes(), cloudNotes).sort(
     (a, b) => itemTimestamp(b) - itemTimestamp(a),
   )
-  const mergedRecent = mergeById(getRecentSearches(), cloudRecent)
-    .sort((a, b) => itemTimestamp(b) - itemTimestamp(a))
-    .slice(0, MAX_RECENT_SEARCHES)
+  const mergedRecent = normalizeRecentSearches(
+    mergeById(get<RecentSearch>(RECENT_SEARCHES_KEY), cloudRecent),
+  )
 
   set(BOOKMARKS_KEY, mergedBookmarks)
   set(NOTES_KEY, mergedNotes)
@@ -104,8 +129,8 @@ async function hydrateFromIndexedDB() {
       getRecentSearchesDB(),
     ])
     if (needsNotes && notes.length) localStorage.setItem(NOTES_KEY, JSON.stringify(notes))
-    if (needsBookmarks && bookmarks.length) localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks))
-    if (needsRecentSearches && recent.length) localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(recent))
+    if (needsBookmarks && bookmarks.length) localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(normalizeBookmarks(bookmarks)))
+    if (needsRecentSearches && recent.length) localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(normalizeRecentSearches(recent)))
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('bible-study-storage-hydrated'))
     }
@@ -152,7 +177,7 @@ export function getNotes(): Note[] {
 }
 
 export function getBookmarks(): Bookmark[] {
-  return get<Bookmark>(BOOKMARKS_KEY)
+  return normalizeBookmarks(get<Bookmark>(BOOKMARKS_KEY))
 }
 
 export function saveNote(verseId: string, body: string): Note {
@@ -199,7 +224,7 @@ export function isBookmarked(verseId: string): boolean {
 }
 
 export function getRecentSearches(): RecentSearch[] {
-  return get<RecentSearch>(RECENT_SEARCHES_KEY)
+  return normalizeRecentSearches(get<RecentSearch>(RECENT_SEARCHES_KEY))
 }
 
 export function addRecentSearch(entry: { query: string; verseId: string; reference: string }) {

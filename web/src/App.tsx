@@ -473,39 +473,41 @@ export default function App() {
           </button>
         </div>
         <div className="header-tools">
-          <form
-            className="header-search"
-            onSubmit={(e) => {
-              e.preventDefault()
-              const trimmed = headerQuery.trim()
-              if (!trimmed) return
-              runSearch(trimmed)
-            }}
-          >
-            <button type="submit" className="header-search-submit" aria-label={t('search')}>
-              <Search size={16} />
-            </button>
-            <input
-              type="text"
-              enterKeyHint="search"
-              placeholder={t('searchPlaceholder')}
-              value={headerQuery}
-              onChange={(e) => setHeaderQuery(e.target.value)}
-            />
-            {headerQuery && (
-              <button
-                type="button"
-                className="header-search-clear"
-                onClick={() => {
-                  setHeaderQuery('')
-                  setQuery('')
-                }}
-                aria-label={t('delete')}
-              >
-                <X size={14} />
+          {tab !== 'search' && (
+            <form
+              className="header-search"
+              onSubmit={(e) => {
+                e.preventDefault()
+                const trimmed = headerQuery.trim()
+                if (!trimmed) return
+                runSearch(trimmed)
+              }}
+            >
+              <button type="submit" className="header-search-submit" aria-label={t('search')}>
+                <Search size={16} />
               </button>
-            )}
-          </form>
+              <input
+                type="text"
+                enterKeyHint="search"
+                placeholder={t('searchPlaceholder')}
+                value={headerQuery}
+                onChange={(e) => setHeaderQuery(e.target.value)}
+              />
+              {headerQuery && (
+                <button
+                  type="button"
+                  className="header-search-clear"
+                  onClick={() => {
+                    setHeaderQuery('')
+                    setQuery('')
+                  }}
+                  aria-label={t('delete')}
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </form>
+          )}
           <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} title={theme === 'dark' ? t('lightMode') : t('darkMode')}>
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
