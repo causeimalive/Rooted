@@ -1,4 +1,4 @@
-import { Bookmark, Note } from './types'
+import { Bookmark, Note, RecentSearch } from './types'
 import {
   clearRecentSearchesDB,
   deleteBookmarkDB,
@@ -10,12 +10,84 @@ import {
   saveNoteDB,
   saveRecentSearchDB,
 } from './indexedStorage'
+import {
+  clearUserRecentSearches,
+  deleteUserBookmark,
+  deleteUserNote,
+  deleteUserRecentSearch,
+  getUserBookmarks,
+  getUserNotes,
+  getUserRecentSearches,
+  saveUserBookmark,
+  saveUserNote,
+  saveUserRecentSearch,
+} from './cloudStorage'
 
 const NOTES_KEY = 'bible.notes'
 const BOOKMARKS_KEY = 'bible.bookmarks'
 const USER_KEY = 'bible.user'
 const RECENT_SEARCHES_KEY = 'bible.recentSearches'
 const MAX_RECENT_SEARCHES = 10
+
+let currentUserId: string | null = null
+
+function itemTimestamp(item: { createdAt?: string; updatedAt?: string }): number {
+  return new Date(item.updatedAt || item.createdAt || 0).getTime()
+}
+
+function mergeById<T extends { id: string; createdAt?: string; updatedAt?: string }>(
+  local: T[],
+  cloud: T[],
+): T[] {
+  const map = new Map<string, T>()
+  for (const item of cloud) {
+    map.set(item.id, item)
+  }
+  for (const item of local) {
+    const existing = map.get(item.id)
+    if (!existing || itemTimestamp(item) > itemTimestamp(existing)) {
+      map.set(item.id, item)
+    }
+  }
+  return Array.from(map.values())
+}
+
+export async function syncUserData(userId: string) {
+  currentUserId = userId
+  const [cloudBookmarks, cloudNotes, cloudRecent] = await Promise.all([
+    getUserBookmarks(userId),
+    getUserNotes(userId),
+    getUserRecentSearches(userId),
+  ])
+
+  const mergedBookmarks = mergeById(getBookmarks(), cloudBookmarks).sort(
+    (a, b) => itemTimestamp(b) - itemTimestamp(a),
+  )
+  const mergedNotes = mergeById(getNotes(), cloudNotes).sort(
+    (a, b) => itemTimestamp(b) - itemTimestamp(a),
+  )
+  const mergedRecent = mergeById(getRecentSearches(), cloudRecent)
+    .sort((a, b) => itemTimestamp(b) - itemTimestamp(a))
+    .slice(0, MAX_RECENT_SEARCHES)
+
+  set(BOOKMARKS_KEY, mergedBookmarks)
+  set(NOTES_KEY, mergedNotes)
+  set(RECENT_SEARCHES_KEY, mergedRecent)
+
+  await Promise.all([
+    Promise.all(mergedBookmarks.map((b) => saveUserBookmark(userId, b))),
+    Promise.all(mergedNotes.map((n) => saveUserNote(userId, n))),
+    Promise.all(mergedRecent.map((r) => saveUserRecentSearch(userId, r))),
+  ])
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('bible-study-storage-hydrated'))
+  }
+}
+
+export function clearCurrentUser() {
+  currentUserId = null
+}
 
 let indexedDBHydrated = false
 
@@ -91,12 +163,14 @@ export function saveNote(verseId: string, body: string): Note {
   const next = [note, ...notes.filter((n) => n.verseId !== verseId)]
   set(NOTES_KEY, next)
   void saveNoteDB(note).catch(() => {})
+  if (currentUserId) void saveUserNote(currentUserId, note).catch(() => {})
   return note
 }
 
 export function deleteNote(id: string) {
   set(NOTES_KEY, getNotes().filter((n) => n.id !== id))
   void deleteNoteDB(id).catch(() => {})
+  if (currentUserId) void deleteUserNote(currentUserId, id).catch(() => {})
 }
 
 export function toggleBookmark(verseId: string, label?: string): boolean {
@@ -105,6 +179,7 @@ export function toggleBookmark(verseId: string, label?: string): boolean {
   if (exists) {
     set(BOOKMARKS_KEY, bookmarks.filter((b) => b.verseId !== verseId))
     void deleteBookmarkDB(exists.id).catch(() => {})
+    if (currentUserId) void deleteUserBookmark(currentUserId, exists.id).catch(() => {})
     return false
   }
   const bm: Bookmark = {
@@ -115,19 +190,12 @@ export function toggleBookmark(verseId: string, label?: string): boolean {
   }
   set(BOOKMARKS_KEY, [bm, ...bookmarks])
   void saveBookmarkDB(bm).catch(() => {})
+  if (currentUserId) void saveUserBookmark(currentUserId, bm).catch(() => {})
   return true
 }
 
 export function isBookmarked(verseId: string): boolean {
   return getBookmarks().some((b) => b.verseId === verseId)
-}
-
-export interface RecentSearch {
-  id: string
-  query: string
-  verseId: string
-  reference: string
-  createdAt: string
 }
 
 export function getRecentSearches(): RecentSearch[] {
@@ -147,9 +215,11 @@ export function addRecentSearch(entry: { query: string; verseId: string; referen
   }
   set(RECENT_SEARCHES_KEY, [recent, ...existing].slice(0, MAX_RECENT_SEARCHES))
   void saveRecentSearchDB(recent).catch(() => {})
+  if (currentUserId) void saveUserRecentSearch(currentUserId, recent).catch(() => {})
 }
 
 export function clearRecentSearches() {
   localStorage.removeItem(RECENT_SEARCHES_KEY)
   void clearRecentSearchesDB().catch(() => {})
+  if (currentUserId) void clearUserRecentSearches(currentUserId).catch(() => {})
 }

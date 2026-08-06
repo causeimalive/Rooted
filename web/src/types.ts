@@ -7,10 +7,19 @@ export interface Verse {
   text: string
   translation: string
 }
-
 export interface Keyword {
   term: string
   meaning: string
+}
+
+export type Tab = 'search' | 'reader' | 'network' | 'map' | 'lexicon'
+export type ReaderView = 'html' | 'chapter' | 'verse'
+
+export interface Verse {
+  id: string
+  verseId: string
+  body: string
+  updatedAt: string
 }
 
 export interface SearchResult {
@@ -29,6 +38,14 @@ export interface Bookmark {
   id: string
   verseId: string
   label: string
+  createdAt: string
+}
+
+export interface RecentSearch {
+  id: string
+  query: string
+  verseId: string
+  reference: string
   createdAt: string
 }
 

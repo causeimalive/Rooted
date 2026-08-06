@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from 'react'
+import { onAuthStateChanged } from 'firebase/auth'
 import { Capacitor } from '@capacitor/core'
 import {
   BookOpen,
@@ -70,13 +71,15 @@ import NetworkScene from './NetworkScene'
 import { AuthSignOutButton } from './AuthGate'
 import {
   addRecentSearch,
+  clearCurrentUser,
   getBookmarks,
   getRecentSearches,
   isBookmarked,
+  syncUserData,
   toggleBookmark,
-  type RecentSearch,
 } from './storage'
-import { Bookmark as BookmarkType, Verse, type Place } from './types'
+import { auth } from './firebase'
+import { Bookmark as BookmarkType, Verse, type Place, type RecentSearch } from './types'
 import type { Character } from './types'
 import { useI18n } from './i18n'
 import { getWikipediaLink, useWikiSummary } from './wikipedia'
@@ -294,11 +297,21 @@ export default function App() {
     refreshSavedContent()
     window.addEventListener('bible-study-storage-hydrated', refreshSavedContent)
     window.addEventListener('storage', refreshSavedContent)
-
     return () => {
       window.removeEventListener('bible-study-storage-hydrated', refreshSavedContent)
       window.removeEventListener('storage', refreshSavedContent)
     }
+  }, [])
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        void syncUserData(user.uid).catch(() => {})
+      } else {
+        clearCurrentUser()
+      }
+    })
+    return unsubscribe
   }, [])
 
   useEffect(() => {
