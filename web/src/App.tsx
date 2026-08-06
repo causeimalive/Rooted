@@ -177,26 +177,22 @@ function interestingVerseWords(text: string, limit = 6): string[] {
   return words
 }
 
-const TAB_PARAM = 'tab'
 const VERSE_PARAM = 'verse'
 
 function parseHash(): { tab?: Tab; verseId?: string } {
   const params = new URLSearchParams(window.location.hash.replace(/^#/, ''))
-  const tab = params.get(TAB_PARAM)
   return {
-    tab: tab && TABS.includes(tab as Tab) ? (tab as Tab) : undefined,
     verseId: params.get(VERSE_PARAM) ?? undefined,
   }
 }
 
-function serializeHash(tab: Tab, verseId: string | null | undefined): string {
+function serializeHash(verseId: string | null | undefined): string {
   const params = new URLSearchParams()
-  params.set(TAB_PARAM, tab)
   if (verseId) params.set(VERSE_PARAM, verseId)
   return params.toString()
 }
 
-const BRANDING_ASSET_VERSION = '20260803e'
+const BRANDING_ASSET_VERSION = '20260805g'
 const YOUVERSION_APP_KEY = import.meta.env.VITE_YVP_APP_KEY?.trim() ?? ''
 
 export default function App() {
@@ -206,7 +202,7 @@ export default function App() {
     if (saved === 'dark' || saved === 'light') return saved
     return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
   })
-  const [tab, setTab] = useState<Tab>(() => parseHash().tab ?? 'search')
+  const [tab, setTab] = useState<Tab>('search')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
@@ -269,21 +265,20 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    const next = serializeHash(tab, selectedId)
+    const next = serializeHash(selectedId)
     if (window.location.hash.replace(/^#/, '') !== next) {
       window.history.replaceState(null, '', next ? `#${next}` : window.location.pathname)
     }
-  }, [tab, selectedId])
+  }, [selectedId])
 
   useEffect(() => {
     const onHashChange = () => {
-      const { tab: nextTab, verseId } = parseHash()
-      if (nextTab && nextTab !== tab) setTab(nextTab)
+      const { verseId } = parseHash()
       if (verseId !== undefined && verseId !== selectedId) setSelectedId(verseId || null)
     }
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
-  }, [tab, selectedId])
+  }, [selectedId])
 
   useEffect(() => {
     setBookmarks(getBookmarks())
@@ -478,7 +473,7 @@ export default function App() {
               <Search size={16} />
             </button>
             <input
-              type="search"
+              type="text"
               enterKeyHint="search"
               placeholder={t('searchPlaceholder')}
               value={headerQuery}

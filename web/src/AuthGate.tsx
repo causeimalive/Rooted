@@ -177,12 +177,14 @@ function LoginScreen({
 export function AuthSignOutButton() {
   return (
     <button
+      type="button"
       className="secondary"
       onClick={() => signOut(auth)}
       title="Sign out"
-      style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+      aria-label="Sign out"
+      style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0.55rem' }}
     >
-      <LogOut size={16} /> Sign Out
+      <LogOut size={16} />
     </button>
   )
 }

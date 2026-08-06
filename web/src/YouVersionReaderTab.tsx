@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { AlignJustify, ArrowLeftRight, Bookmark, BookOpen, ChevronDown, ChevronLeft, ChevronRight, GripVertical, Loader2, Search, Type } from 'lucide-react'
 import { findVerse } from './bible'
 import { useBibleClient, useBooks, useChapters, useHighlights, useVersion, useVersions, useYVAuth } from '@youversion/platform-react-hooks'
@@ -63,6 +63,72 @@ type CompareSection = {
 }
 
 type ComparePaneSide = 'current' | 'compare'
+
+type ComparePaneFrameProps = {
+  paneRef: { current: HTMLDivElement | null }
+  onScroll: () => void
+  children: ReactNode
+}
+
+type ReaderVersionSelectorProps = {
+  wrapperClassName?: string
+  selectorClassName?: string
+  buttonClassName?: string
+  menuOpen: boolean
+  onToggleMenu: () => void
+  title: string
+  subtitle: string
+  chevronSize: number
+  menuRef?: { current: HTMLDivElement | null }
+  menu: ReactNode
+}
+
+function ReaderVersionSelector({
+  wrapperClassName,
+  selectorClassName,
+  buttonClassName,
+  menuOpen,
+  onToggleMenu,
+  title,
+  subtitle,
+  chevronSize,
+  menuRef,
+  menu,
+}: ReaderVersionSelectorProps) {
+  return (
+    <div className={wrapperClassName ?? 'yv-reader-selector-shell'}>
+      <div className={selectorClassName ?? 'yv-reader-selector'} ref={menuRef}>
+        <button
+          type="button"
+          className={buttonClassName ?? 'yv-reader-version-button'}
+          aria-expanded={menuOpen}
+          onClick={onToggleMenu}
+        >
+          <span>
+            <strong>{title}</strong>
+            <small>{subtitle}</small>
+          </span>
+          <ChevronDown size={chevronSize} />
+        </button>
+        {menuOpen ? menu : null}
+      </div>
+    </div>
+  )
+}
+
+function ComparePaneFrame({
+  paneRef,
+  onScroll,
+  children,
+}: ComparePaneFrameProps) {
+  return (
+    <section className="yv-reader-compare-pane">
+      <div ref={paneRef} className="yv-reader-compare-pane-body" onScroll={onScroll}>
+        {children}
+      </div>
+    </section>
+  )
+}
 
 function normalizeBookLabel(value: string): string {
   return value.toLowerCase().replace(/\./g, '').replace(/\s+/g, ' ').trim()
@@ -341,6 +407,7 @@ export default function YouVersionReaderTab({
   const [compareError, setCompareError] = useState('')
   const compareCurrentPaneRef = useRef<HTMLDivElement | null>(null)
   const compareComparePaneRef = useRef<HTMLDivElement | null>(null)
+  const compareVersionMenuRef = useRef<HTMLDivElement | null>(null)
   const compareCurrentVerseRefs = useRef<Map<string, HTMLElement | null>>(new Map())
   const compareCompareVerseRefs = useRef<Map<string, HTMLElement | null>>(new Map())
   const compareLoadingMoreRef = useRef(false)
@@ -394,6 +461,28 @@ export default function YouVersionReaderTab({
       setCompareVersionMenuOpen(true)
     }
   }, [compareOpen, compareVersionId])
+
+  useEffect(() => {
+    if (!compareVersionMenuOpen) return
+
+    const menu = compareVersionMenuRef.current
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (!menu || menu.contains(event.target as Node)) return
+      setCompareVersionMenuOpen(false)
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setCompareVersionMenuOpen(false)
+    }
+
+    window.addEventListener('pointerdown', onPointerDown)
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown)
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [compareVersionMenuOpen])
 
   useEffect(() => {
     if (!availableVersions.length) return
@@ -499,6 +588,13 @@ export default function YouVersionReaderTab({
   const versionSelectionSubtitle = compareOpen && compareVersion
     ? currentVersionLabel.subtitle || copyright || 'Select a version'
     : currentVersionLabel.subtitle || copyright || 'Select a version'
+  const currentVersionDetails = `${currentVersionLabel.title}${currentVersionLabel.subtitle ? ` · ${currentVersionLabel.subtitle}` : ''}`
+  const compareVersionDetails = compareVersion
+    ? `${compareVersionLabel.title}${compareVersionLabel.subtitle ? ` · ${compareVersionLabel.subtitle}` : ''}`
+    : 'Select a compare version'
+  const passageDetails = compareOpen
+    ? [`Current version: ${currentVersionDetails}`, `Compare version: ${compareVersionDetails}`]
+    : [`Version: ${versionTitle}${versionSubtitle ? ` · ${versionSubtitle}` : ''}`, copyright || 'Select a version']
 
   const versionSelectionCard = null
 
@@ -1351,6 +1447,129 @@ export default function YouVersionReaderTab({
     [],
   )
 
+  const renderComparePaneContent = useCallback(
+    (side: ComparePaneSide): ReactNode => {
+      const isCurrent = side === 'current'
+      const baseHtml = isCurrent ? compareCurrentPassageHtml : comparePassageHtml
+      const verses = isCurrent ? compareCurrentVerses : comparePassageVerses
+      const extraSections = compareExtraSections
+
+      if (readerView === 'html') {
+        if (!baseHtml) {
+          return <div className="empty yv-reader-compare-empty">Select a comparison version to see the passage side-by-side.</div>
+        }
+
+        return (
+          <>
+            <article
+              className="yv-reader-passage yv-reader-passage-html"
+              dangerouslySetInnerHTML={{ __html: baseHtml }}
+            />
+            {extraSections.map((section) => (
+              <article
+                key={`${side}-${section.key}`}
+                className="yv-reader-passage yv-reader-passage-html"
+                dangerouslySetInnerHTML={{
+                  __html: transformPassageForBrowser(isCurrent ? section.currentPassage.content : section.comparePassage.content).html,
+                }}
+              />
+            ))}
+          </>
+        )
+      }
+
+      return (
+        <>
+          <div className={readerView === 'verse' ? 'yv-reader-verse-flow yv-reader-compare-verse-flow' : 'yv-reader-compare-verse-stack'}>
+            {verses.map((verse) => {
+              const refMap = isCurrent ? compareCurrentVerseRefs.current : compareCompareVerseRefs.current
+              const isFlow = readerView === 'verse'
+              const articleClass = isFlow
+                ? `yv-reader-verse-flow-item yv-reader-compare-verse-flow-item ${compareActiveVerse === verse.verse ? 'active' : ''}`
+                : `yv-reader-compare-verse-card ${compareActiveVerse === verse.verse ? 'active' : ''}`
+
+              return (
+                <article
+                  key={`${side}-${verse.verse}`}
+                  ref={(node) => {
+                    refMap.set(verse.verse, node)
+                  }}
+                  className={articleClass}
+                  data-verse={verse.verse}
+                  onClick={() => handleCompareVerseClick(verse.verse)}
+                >
+                  <div className="yv-reader-compare-verse-number">{verse.verse}</div>
+                  <div
+                    className={isFlow ? 'yv-reader-verse-flow-content yv-reader-compare-verse-content' : 'yv-reader-compare-verse-content'}
+                    dangerouslySetInnerHTML={{ __html: stripVerseLabel(verse.html) }}
+                  />
+                </article>
+              )
+            })}
+            {extraSections.map((section) =>
+              extractVerseBlocks(transformPassageForBrowser(isCurrent ? section.currentPassage.content : section.comparePassage.content).html).map((verse) => (
+                <article
+                  key={`${side}-${section.key}-${verse.verse}`}
+                  className={readerView === 'verse' ? 'yv-reader-verse-flow-item yv-reader-compare-verse-flow-item' : 'yv-reader-compare-verse-card'}
+                >
+                  <div className="yv-reader-compare-verse-number">{verse.verse}</div>
+                  <div
+                    className={readerView === 'verse' ? 'yv-reader-verse-flow-content yv-reader-compare-verse-content' : 'yv-reader-compare-verse-content'}
+                    dangerouslySetInnerHTML={{ __html: stripVerseLabel(verse.html) }}
+                  />
+                </article>
+              )),
+            )}
+          </div>
+        </>
+      )
+    },
+    [
+      compareActiveVerse,
+      compareCurrentPassageHtml,
+      compareCurrentVerses,
+      compareExtraSections,
+      comparePassageHtml,
+      comparePassageVerses,
+      compareCompareVerseRefs,
+      compareCurrentVerseRefs,
+      handleCompareVerseClick,
+      readerView,
+      stripVerseLabel,
+    ],
+  )
+
+  const renderVersionMenu = useCallback(
+    (
+      ariaLabel: string,
+      activeVersionId: number | null,
+      onSelect: (id: number) => void,
+      menuClassName = '',
+    ) => (
+      <div className={`yv-reader-selector-menu ${menuClassName}`.trim()} role="menu" aria-label={ariaLabel}>
+        {availableVersions.map((entry) => {
+          const entryLabel = formatVersionLabel(entry)
+          const isActive = entry.id === activeVersionId
+          return (
+            <div key={entry.id} className={`yv-reader-version-menu-item ${isActive ? 'active' : ''}`}>
+              <button
+                type="button"
+                className="yv-reader-version-menu-item-primary"
+                onClick={() => onSelect(entry.id)}
+              >
+                <span className="yv-reader-version-menu-item-main">
+                  <strong>{entryLabel.title}</strong>
+                  <span>{entryLabel.subtitle || 'Bible translation'}</span>
+                </span>
+              </button>
+            </div>
+          )
+        })}
+      </div>
+    ),
+    [availableVersions],
+  )
+
   const startResize = (event: ReactPointerEvent<HTMLButtonElement>) => {
     const body = readerBodyRef.current
     if (!body) return
@@ -1412,59 +1631,56 @@ export default function YouVersionReaderTab({
               </div>
             </div>
 
-            <div className="yv-reader-filter-group">
-              <div className="yv-reader-filter-label">Testament</div>
-              <div className="yv-reader-filter-tabs">
-                {(['all', 'OT', 'NT'] as const).map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    className={`yv-reader-filter-tab ${testamentFilter === value ? 'active' : ''}`}
-                    onClick={() => setTestamentFilter(value)}
-                  >
-                    {value === 'all' ? 'All' : value === 'OT' ? 'Old' : 'New'}
-                  </button>
-                ))}
+            <div className="yv-reader-nav-stack">
+              <div className="yv-reader-book-container">
+                <div className="yv-reader-nav-section">
+                  <div className="yv-reader-nav-section-label">Books</div>
+                  <div className="yv-reader-book-list yv-reader-book-list-scroll">
+                    {visibleBooks.map((book) => {
+                      const row = formatBookRow(book)
+                      return (
+                      <button
+                        key={book.id}
+                        type="button"
+                        className={`yv-book-pill ${book.id === activeBookId ? 'active' : ''}`}
+                        onClick={() => {
+                          const firstChapter = chapterNumbers(book)[0] ?? 1
+                          goToReference({ bookId: book.id, chapter: firstChapter })
+                        }}
+                      >
+                        <span>
+                          <strong>{row.title}</strong>
+                          <small>{row.subtitle}</small>
+                        </span>
+                        <small>{book.chapters?.length ?? 0}</small>
+                      </button>
+                    )})}
+                  </div>
+                </div>
+              </div>
+
+              <div className="yv-reader-chapter-container">
+                <div className="yv-reader-nav-section yv-reader-chapter-section">
+                  <div className="yv-reader-nav-section-label">Chapters</div>
+                  <div className="yv-reader-chapter-list">
+                    {chapterNumbersList.map((chapterNumber) => (
+                      <button
+                        key={`${navBook?.id ?? 'book'}-${chapterNumber}`}
+                        type="button"
+                        className={`yv-chapter-pill ${chapterNumber === activeChapter ? 'active' : ''}`}
+                        onClick={() =>
+                          navBook &&
+                          goToReference({ bookId: navBook.id, chapter: chapterNumber })
+                        }
+                      >
+                        {chapterNumber}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="yv-reader-book-list">
-              {visibleBooks.map((book) => {
-                const row = formatBookRow(book)
-                return (
-                <button
-                  key={book.id}
-                  type="button"
-                  className={`yv-book-pill ${book.id === activeBookId ? 'active' : ''}`}
-                  onClick={() => {
-                    const firstChapter = chapterNumbers(book)[0] ?? 1
-                    goToReference({ bookId: book.id, chapter: firstChapter })
-                  }}
-                >
-                  <span>
-                    <strong>{row.title}</strong>
-                    <small>{row.subtitle}</small>
-                  </span>
-                  <small>{book.chapters?.length ?? 0}</small>
-                </button>
-              )})}
-            </div>
-
-            <div className="yv-reader-chapter-list">
-              {chapterNumbersList.map((chapterNumber) => (
-                <button
-                  key={`${navBook?.id ?? 'book'}-${chapterNumber}`}
-                  type="button"
-                  className={`yv-chapter-pill ${chapterNumber === activeChapter ? 'active' : ''}`}
-                  onClick={() =>
-                    navBook &&
-                    goToReference({ bookId: navBook.id, chapter: chapterNumber })
-                  }
-                >
-                  {chapterNumber}
-                </button>
-              ))}
-            </div>
           </aside>
 
           <button
@@ -1478,52 +1694,15 @@ export default function YouVersionReaderTab({
           </button>
 
           <section className="yv-reader-reader">
-            <div className={`yv-reader-meta ${compareOpen ? 'yv-reader-meta-compare' : ''}`}>
-              <div className="yv-reader-meta-block">
-                <span className="yv-reader-meta-label">Version</span>
-                {compareOpen ? (
-                  <>
-                    <strong>{versionTitle}</strong>
-                    <span>{versionSubtitle || copyright || 'Current version'}</span>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    className="yv-reader-version-link yv-reader-version-trigger"
-                    aria-expanded={versionMenuOpen}
-                    aria-label="Change Bible version"
-                    title="Change Bible version"
-                    onPointerDown={(event) => {
-                      event.stopPropagation()
-                    }}
-                    onClick={() => setVersionMenuOpen((current) => !current)}
-                  >
-                    <strong>{versionTitle}</strong>
-                    <span>{versionSubtitle || copyright || 'Select a version'}</span>
-                  </button>
-                )}
+            <div className="yv-reader-meta">
+              <div className="yv-reader-meta-block yv-reader-meta-block-passages">
+                <span className="yv-reader-meta-label">Passage</span>
+                <strong>{focusedPassageTitle}</strong>
+                <span>{focusedReferenceLabel || currentPassageLabel}</span>
+                {passageDetails.map((line) => (
+                  <small key={line}>{line}</small>
+                ))}
               </div>
-              <div className="yv-reader-meta-block yv-reader-meta-block-center">
-                <span className="yv-reader-meta-label">Current chapter</span>
-                <strong>{currentChapterLabel}</strong>
-                <span>{isLoadingSections ? 'Loading ahead…' : `${sections.length} section${sections.length === 1 ? '' : 's'} loaded`}</span>
-              </div>
-              {compareOpen ? (
-                <div className="yv-reader-meta-block yv-reader-meta-block-compare">
-                  <span className="yv-reader-meta-label">Compare version</span>
-                  {compareVersion ? (
-                    <>
-                      <strong>{compareVersionLabel.title}</strong>
-                      <span>{compareVersionLabel.subtitle || 'Parallel translation'}</span>
-                    </>
-                  ) : (
-                    <>
-                      <strong>Choose a version</strong>
-                      <span>Select a comparison translation</span>
-                    </>
-                  )}
-                </div>
-              ) : null}
               <div className="yv-reader-meta-tools" role="group" aria-label="Reading tools">
                 <button
                   type="button"
@@ -1596,302 +1775,84 @@ export default function YouVersionReaderTab({
                   </div>
                 ) : compareError ? (
                   <div className="empty yv-reader-error yv-reader-compare-empty">{compareError}</div>
-                ) : readerView === 'html' ? (
-                  compareCurrentPassageHtml && comparePassageHtml ? (
-                    <div className="yv-reader-compare-grid" aria-label="Split-screen Bible comparison">
-                      <section className="yv-reader-compare-pane">
-                        <div className="yv-reader-compare-pane-header">
-                          <strong>{currentVersionLabel.title}</strong>
-                          <span>{compareCurrentPassage?.reference ?? currentChapterLabel}</span>
-                        </div>
-                        <article
-                          className="yv-reader-passage yv-reader-passage-html"
-                          dangerouslySetInnerHTML={{ __html: compareCurrentPassageHtml }}
-                        />
-                        {compareExtraSections.map((section) => (
-                          <article
-                            key={`current-${section.key}`}
-                            className="yv-reader-passage yv-reader-passage-html"
-                            dangerouslySetInnerHTML={{ __html: transformPassageForBrowser(section.currentPassage.content).html }}
-                          />
-                        ))}
-                      </section>
-
-                      <section className="yv-reader-compare-pane">
-                        <div className="yv-reader-compare-pane-header">
-                          <strong>{compareVersionLabel.title}</strong>
-                          <span>{comparePassage?.reference || compareVersionLabel.subtitle || 'Parallel translation'}</span>
-                        </div>
-                        <article
-                          className="yv-reader-passage yv-reader-passage-html"
-                          dangerouslySetInnerHTML={{ __html: comparePassageHtml }}
-                        />
-                        {compareExtraSections.map((section) => (
-                          <article
-                            key={`compare-${section.key}`}
-                            className="yv-reader-passage yv-reader-passage-html"
-                            dangerouslySetInnerHTML={{ __html: transformPassageForBrowser(section.comparePassage.content).html }}
-                          />
-                        ))}
-                      </section>
-                    </div>
-                  ) : (
-                    <div className="empty yv-reader-compare-empty">Select a comparison version to see the passage side-by-side.</div>
-                  )
                 ) : compareVerseRows.length ? (
-                  <div className="yv-reader-compare-grid" aria-label="Split-screen Bible comparison">
-                    <section
-                      ref={compareCurrentPaneRef}
-                      className="yv-reader-compare-pane"
-                      onScroll={() => handleComparePaneScroll('current')}
-                    >
-                      <div className="yv-reader-compare-pane-header yv-reader-compare-pane-header-selectable" ref={versionMenuRef}>
-                        <button
-                          type="button"
-                          className="yv-reader-compare-pane-header-button"
-                          aria-expanded={versionMenuOpen}
-                          onClick={() => setVersionMenuOpen((current) => !current)}
-                        >
-                          <span>
-                            <strong>{currentVersionLabel.title || 'Choose current version'}</strong>
-                            <small>{compareCurrentPassage?.reference ?? currentChapterLabel}</small>
-                          </span>
-                          <ChevronDown size={14} />
-                        </button>
-                        {versionMenuOpen ? (
-                          <div className="yv-reader-version-menu yv-reader-compare-menu yv-reader-compare-pane-menu yv-reader-current-pane-menu" role="menu" aria-label="Bible version selection">
-                            {availableVersions.map((entry) => {
-                              const entryLabel = formatVersionLabel(entry)
-                              const isActive = entry.id === resolvedVersionId
-                              return (
-                                <div
-                                  key={entry.id}
-                                  className={`yv-reader-version-menu-item ${isActive ? 'active' : ''}`}
-                                >
-                                  <button
-                                    type="button"
-                                    className="yv-reader-version-menu-item-primary"
-                                    onClick={() => {
-                                      setVersionId(entry.id)
-                                      setVersionMenuOpen(false)
-                                    }}
-                                  >
-                                    <span className="yv-reader-version-menu-item-main">
-                                      <strong>{entryLabel.title}</strong>
-                                      <span>{entryLabel.subtitle || 'Bible translation'}</span>
-                                    </span>
-                                  </button>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        ) : null}
-                      </div>
-                      <div className="yv-reader-compare-verse-indicator" aria-label="Synced verse indicator">
-                        <span />
-                        <small>{compareActiveVerse ? `Verse ${compareActiveVerse}` : 'Verse sync'}</small>
-                        <span />
-                      </div>
-                      {readerView === 'verse' ? (
-                        <div className="yv-reader-verse-flow yv-reader-compare-verse-flow">
-                          {compareCurrentVerses.map((verse) => (
-                            <article
-                              key={`current-${verse.verse}`}
-                              ref={(node) => {
-                                compareCurrentVerseRefs.current.set(verse.verse, node)
-                              }}
-                              className={`yv-reader-verse-flow-item yv-reader-compare-verse-flow-item ${compareActiveVerse === verse.verse ? 'active' : ''}`}
-                              data-verse={verse.verse}
-                              onClick={() => handleCompareVerseClick(verse.verse)}
-                            >
-                              <div className="yv-reader-compare-verse-number">{verse.verse}</div>
-                              <div
-                                className="yv-reader-verse-flow-content yv-reader-compare-verse-content"
-                                dangerouslySetInnerHTML={{ __html: stripVerseLabel(verse.html) }}
-                              />
-                            </article>
-                          ))}
-                          {compareExtraSections.map((section) =>
-                            extractVerseBlocks(transformPassageForBrowser(section.currentPassage.content).html).map((verse) => (
-                              <article
-                                key={`current-${section.key}-${verse.verse}`}
-                                className="yv-reader-verse-flow-item yv-reader-compare-verse-flow-item"
-                              >
-                                <div className="yv-reader-compare-verse-number">{verse.verse}</div>
-                                <div
-                                  className="yv-reader-verse-flow-content yv-reader-compare-verse-content"
-                                  dangerouslySetInnerHTML={{ __html: stripVerseLabel(verse.html) }}
-                                />
-                              </article>
-                            )),
-                          )}
-                        </div>
-                      ) : (
-                        <div className="yv-reader-compare-verse-stack">
-                          {compareCurrentVerses.map((verse) => (
-                            <article
-                              key={`current-${verse.verse}`}
-                              ref={(node) => {
-                                compareCurrentVerseRefs.current.set(verse.verse, node)
-                              }}
-                              className={`yv-reader-compare-verse-card ${compareActiveVerse === verse.verse ? 'active' : ''}`}
-                              data-verse={verse.verse}
-                              onClick={() => handleCompareVerseClick(verse.verse)}
-                            >
-                              <div className="yv-reader-compare-verse-number">{verse.verse}</div>
-                              <div
-                                className="yv-reader-compare-verse-content"
-                                dangerouslySetInnerHTML={{ __html: stripVerseLabel(verse.html) }}
-                              />
-                            </article>
-                          ))}
-                          {compareExtraSections.map((section) =>
-                            extractVerseBlocks(transformPassageForBrowser(section.currentPassage.content).html).map((verse) => (
-                              <article
-                                key={`current-stack-${section.key}-${verse.verse}`}
-                                className="yv-reader-compare-verse-card"
-                              >
-                                <div className="yv-reader-compare-verse-number">{verse.verse}</div>
-                                <div
-                                  className="yv-reader-compare-verse-content"
-                                  dangerouslySetInnerHTML={{ __html: stripVerseLabel(verse.html) }}
-                                />
-                              </article>
-                            )),
-                          )}
-                        </div>
-                      )}
-                    </section>
+                  <>
+                    <div className="yv-reader-compare-controls" aria-label="Split-screen Bible version selectors">
+                      <ReaderVersionSelector
+                        wrapperClassName="yv-reader-selector-shell yv-reader-compare-selector-shell"
+                        selectorClassName="yv-reader-compare-selector"
+                        buttonClassName="yv-reader-version-button yv-reader-compare-selector-button"
+                        menuOpen={versionMenuOpen}
+                        onToggleMenu={() => setVersionMenuOpen((current) => !current)}
+                        title={currentVersionLabel.title || 'Choose current version'}
+                        subtitle={compareCurrentPassage?.reference ?? currentChapterLabel}
+                        chevronSize={14}
+                        menuRef={versionMenuRef}
+                        menu={versionMenuOpen ? renderVersionMenu('Bible version selection', resolvedVersionId, (id) => {
+                          setVersionId(id)
+                          setVersionMenuOpen(false)
+                        }, 'yv-reader-current-pane-menu') : null}
+                      />
 
-                    <section
-                      ref={compareComparePaneRef}
-                      className="yv-reader-compare-pane"
-                      onScroll={() => handleComparePaneScroll('compare')}
-                    >
-                      <div className="yv-reader-compare-pane-header yv-reader-compare-pane-header-selectable">
-                        <button
-                          type="button"
-                          className="yv-reader-compare-pane-header-button"
-                          aria-expanded={compareVersionMenuOpen}
-                          onClick={() => setCompareVersionMenuOpen((current) => !current)}
-                        >
-                          <span>
-                            <strong>{compareVersionLabel.title || 'Choose compare version'}</strong>
-                            <small>{comparePassage?.reference || compareVersionLabel.subtitle || 'Select a translation'}</small>
-                          </span>
-                          <ChevronDown size={16} />
-                        </button>
-                        {compareVersionMenuOpen ? (
-                          <div className="yv-reader-version-menu yv-reader-compare-menu yv-reader-compare-pane-menu" role="menu" aria-label="Compare Bible version selection">
-                            {availableVersions.map((entry) => {
-                              const label = formatVersionLabel(entry)
-                              const isActive = entry.id === compareVersionId
-                              return (
-                                <div
-                                  key={entry.id}
-                                  className={`yv-reader-version-menu-item ${isActive ? 'active' : ''}`}
-                                >
-                                  <button
-                                    type="button"
-                                    className="yv-reader-version-menu-item-primary"
-                                    onClick={() => {
-                                      setCompareVersionId(entry.id)
-                                      setCompareVersionMenuOpen(false)
-                                    }}
-                                  >
-                                    <span className="yv-reader-version-menu-item-main">
-                                      <strong>{label.title}</strong>
-                                      <span>{label.subtitle || 'Bible translation'}</span>
-                                    </span>
-                                  </button>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        ) : null}
-                      </div>
-                      <div className="yv-reader-compare-verse-indicator" aria-label="Synced verse indicator">
-                        <span />
-                        <small>{compareActiveVerse ? `Verse ${compareActiveVerse}` : 'Verse sync'}</small>
-                        <span />
-                      </div>
-                      {readerView === 'verse' ? (
-                        <div className="yv-reader-verse-flow yv-reader-compare-verse-flow">
-                          {comparePassageVerses.map((verse) => (
-                            <article
-                              key={`compare-${verse.verse}`}
-                              ref={(node) => {
-                                compareCompareVerseRefs.current.set(verse.verse, node)
-                              }}
-                              className={`yv-reader-verse-flow-item yv-reader-compare-verse-flow-item ${compareActiveVerse === verse.verse ? 'active' : ''}`}
-                              data-verse={verse.verse}
-                              onClick={() => handleCompareVerseClick(verse.verse)}
-                            >
-                              <div className="yv-reader-compare-verse-number">{verse.verse}</div>
-                              <div
-                                className="yv-reader-verse-flow-content yv-reader-compare-verse-content"
-                                dangerouslySetInnerHTML={{ __html: stripVerseLabel(verse.html) }}
-                              />
-                            </article>
-                          ))}
-                          {compareExtraSections.map((section) =>
-                            extractVerseBlocks(transformPassageForBrowser(section.comparePassage.content).html).map((verse) => (
-                              <article
-                                key={`compare-${section.key}-${verse.verse}`}
-                                className="yv-reader-verse-flow-item yv-reader-compare-verse-flow-item"
-                              >
-                                <div className="yv-reader-compare-verse-number">{verse.verse}</div>
-                                <div
-                                  className="yv-reader-verse-flow-content yv-reader-compare-verse-content"
-                                  dangerouslySetInnerHTML={{ __html: stripVerseLabel(verse.html) }}
-                                />
-                              </article>
-                            )),
-                          )}
-                        </div>
-                      ) : (
-                        <div className="yv-reader-compare-verse-stack">
-                          {comparePassageVerses.map((verse) => (
-                            <article
-                              key={`compare-${verse.verse}`}
-                              ref={(node) => {
-                                compareCompareVerseRefs.current.set(verse.verse, node)
-                              }}
-                              className={`yv-reader-compare-verse-card ${compareActiveVerse === verse.verse ? 'active' : ''}`}
-                              data-verse={verse.verse}
-                              onClick={() => handleCompareVerseClick(verse.verse)}
-                            >
-                              <div className="yv-reader-compare-verse-number">{verse.verse}</div>
-                              <div
-                                className="yv-reader-compare-verse-content"
-                                dangerouslySetInnerHTML={{ __html: stripVerseLabel(verse.html) }}
-                              />
-                            </article>
-                          ))}
-                          {compareExtraSections.map((section) =>
-                            extractVerseBlocks(transformPassageForBrowser(section.comparePassage.content).html).map((verse) => (
-                              <article
-                                key={`compare-stack-${section.key}-${verse.verse}`}
-                                className="yv-reader-compare-verse-card"
-                              >
-                                <div className="yv-reader-compare-verse-number">{verse.verse}</div>
-                                <div
-                                  className="yv-reader-compare-verse-content"
-                                  dangerouslySetInnerHTML={{ __html: stripVerseLabel(verse.html) }}
-                                />
-                              </article>
-                            )),
-                          )}
-                        </div>
-                      )}
-                    </section>
-                  </div>
+                      <ReaderVersionSelector
+                        wrapperClassName="yv-reader-selector-shell yv-reader-compare-selector-shell"
+                        selectorClassName="yv-reader-compare-selector"
+                        buttonClassName="yv-reader-version-button yv-reader-compare-selector-button"
+                        menuOpen={compareVersionMenuOpen}
+                        onToggleMenu={() => setCompareVersionMenuOpen((current) => !current)}
+                        title={compareVersionLabel.title || 'Choose compare version'}
+                        subtitle={comparePassage?.reference || compareVersionLabel.subtitle || 'Select a translation'}
+                        chevronSize={16}
+                        menuRef={compareVersionMenuRef}
+                        menu={compareVersionMenuOpen ? renderVersionMenu('Compare Bible version selection', compareVersionId, (id) => {
+                          setCompareVersionId(id)
+                          setCompareVersionMenuOpen(false)
+                        }, 'yv-reader-compare-pane-menu') : null}
+                      />
+                    </div>
+
+                    <div className="yv-reader-compare-grid" aria-label="Split-screen Bible comparison">
+                      <ComparePaneFrame
+                        paneRef={compareCurrentPaneRef}
+                        onScroll={() => handleComparePaneScroll('current')}
+                      >
+                        {renderComparePaneContent('current')}
+                      </ComparePaneFrame>
+
+                      <ComparePaneFrame
+                        paneRef={compareComparePaneRef}
+                        onScroll={() => handleComparePaneScroll('compare')}
+                      >
+                        {renderComparePaneContent('compare')}
+                      </ComparePaneFrame>
+                    </div>
+                  </>
                 ) : (
                   <div className="empty yv-reader-compare-empty">Select a comparison version to see the passage side-by-side.</div>
                 )}
               </div>
             ) : (
-              <div className="yv-reader-passage-shell" ref={passageShellRef}>
+              <>
+                <ReaderVersionSelector
+                  wrapperClassName="yv-reader-selector-shell yv-reader-reader-selector-shell"
+                  selectorClassName="yv-reader-reader-selector"
+                  buttonClassName="yv-reader-version-button yv-reader-reader-selector-button"
+                  menuOpen={versionMenuOpen}
+                  onToggleMenu={() => setVersionMenuOpen((current) => !current)}
+                  title={versionTitle}
+                  subtitle={versionSubtitle || copyright || 'Select a version'}
+                  chevronSize={14}
+                  menuRef={versionMenuRef}
+                  menu={renderVersionMenu(
+                    'Bible version selection',
+                    resolvedVersionId,
+                    (id) => {
+                      setVersionId(id)
+                      setVersionMenuOpen(false)
+                    },
+                  )}
+                />
+                <div className="yv-reader-passage-shell" ref={passageShellRef}>
                 {sections.length ? (
                   <div className="yv-reader-passage-stack">
                     {chapterViewSections.map((entry) => (
@@ -1958,7 +1919,8 @@ export default function YouVersionReaderTab({
                 ) : (
                   <div className="empty">Select a passage to begin reading.</div>
                 )}
-              </div>
+                </div>
+              </>
             )}
 
             <div className="yv-reader-footer">

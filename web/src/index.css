@@ -1349,6 +1349,101 @@ button.secondary {
   text-align: left;
 }
 
+.yv-reader-selector-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.yv-reader-reader-selector-shell {
+  margin-bottom: 0.55rem;
+}
+
+.yv-reader-reader-selector {
+  position: relative;
+  overflow: visible;
+  gap: 0.22rem;
+}
+
+.yv-reader-reader-selector-button {
+  min-height: 2.9rem;
+}
+
+.yv-reader-passage-shell-selector-shell,
+.yv-reader-compare-pane-header-shell {
+  position: relative;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+  background: var(--surface);
+}
+
+.yv-reader-passage-shell-selector-shell {
+  margin-bottom: 0.15rem;
+}
+
+.yv-reader-compare-pane-header-shell {
+  margin-bottom: 0.15rem;
+}
+
+.yv-reader-passage-shell-selector,
+.yv-reader-compare-pane-header-selectable {
+  position: relative;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+}
+
+.yv-reader-selector-menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 100%;
+  min-width: 0;
+  max-height: min(18rem, 42vh);
+  overflow: auto;
+  padding: 0.25rem;
+  border: 1px solid var(--muted);
+  border-radius: 0.65rem;
+  background: var(--surface);
+  box-shadow: var(--shadow-lg, 0 20px 40px rgba(0, 0, 0, 0.18));
+}
+
+.yv-reader-selector-menu .yv-reader-version-menu-item {
+  flex: 0 0 auto;
+}
+
+.yv-reader-selector-menu .yv-reader-version-menu-item-primary {
+  width: 100%;
+}
+
+.yv-reader-compare-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.55rem;
+}
+
+.yv-reader-compare-selector-shell {
+  gap: 0.22rem;
+}
+
+.yv-reader-compare-selector-button {
+  min-height: 2.9rem;
+}
+
+.yv-reader-compare-selector,
+.yv-reader-reader-selector {
+  z-index: 1;
+}
+
 .yv-reader-compare-toggle {
   display: inline-flex;
   align-items: center;
@@ -2382,22 +2477,6 @@ button.secondary {
   color: var(--accent);
 }
 
-.yv-reader-version-menu {
-  position: absolute;
-  top: calc(100% + 0.5rem);
-  left: 0;
-  right: 0;
-  z-index: 40;
-  width: 100%;
-  max-height: min(18rem, 60vh);
-  overflow: auto;
-  padding: 0.25rem;
-  border: 1px solid var(--muted);
-  border-radius: 0.65rem;
-  background: var(--surface);
-  box-shadow: var(--shadow-lg, 0 20px 40px rgba(0, 0, 0, 0.18));
-}
-
 .yv-reader-compare-selector {
   position: relative;
   display: flex;
@@ -2423,71 +2502,19 @@ button.secondary {
 }
 
 .yv-reader-compare-menu {
-  position: static;
-  width: 100%;
-  min-width: 0;
-  box-shadow: var(--shadow-lg, 0 20px 40px rgba(0, 0, 0, 0.18));
-}
-
-.yv-reader-compare-pane-header-selectable {
-  position: relative;
-}
-
-.yv-reader-compare-pane-header-button {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  width: 100%;
-  padding: 0.4rem 0.5rem;
-  border: 1px solid var(--muted);
-  border-radius: 0.6rem;
-  background: var(--bg);
-  color: var(--text);
-  text-align: left;
-}
-
-.yv-reader-compare-pane-header-button span {
-  display: flex;
-  flex-direction: column;
-  gap: 0.08rem;
-  min-width: 0;
-}
-
-.yv-reader-compare-pane-header-button strong {
-  font-size: 0.86rem;
-}
-
-.yv-reader-compare-pane-header-button small {
-  color: var(--text-muted);
-  font-size: 0.64rem;
-}
-
-.yv-reader-compare-pane-header-button span {
-  gap: 0.15rem;
-}
-
-.yv-reader-compare-pane-header-selectable .yv-reader-compare-pane-header-button strong {
-  font-size: 0.86rem;
-  line-height: 1.2;
-}
-
-.yv-reader-compare-pane-header-selectable .yv-reader-compare-pane-header-button small {
-  font-size: 0.64rem;
-  line-height: 1.15;
-}
-
-.yv-reader-compare-pane-header-selectable .yv-reader-compare-pane-header-button span {
-  gap: 0.15rem;
-}
-
-.yv-reader-compare-pane-menu {
   position: absolute;
-  top: calc(100% + 0.35rem);
+  top: calc(100% + 0.5rem);
   left: 0;
   right: 0;
   width: 100%;
-  z-index: 50;
+  min-width: 0;
+  max-height: min(18rem, 60vh);
+  overflow: auto;
+  padding: 0.25rem;
+  border: 1px solid var(--muted);
+  border-radius: 0.65rem;
+  background: var(--surface);
+  box-shadow: var(--shadow-lg, 0 20px 40px rgba(0, 0, 0, 0.18));
 }
 
 .yv-reader-version-menu,
@@ -2594,44 +2621,37 @@ button.secondary {
   justify-content: flex-start;
 }
 
-.yv-reader-filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
+.yv-reader-hint {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  line-height: 1.4;
 }
 
-.yv-reader-filter-label {
+.yv-reader-nav-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.yv-reader-chapter-container {
+  padding: 0.85rem 0.85rem 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--muted) 82%, transparent);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--bg) 30%, var(--surface));
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
+  margin-bottom: 0;
+}
+
+.yv-reader-nav-section-label {
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.yv-reader-filter-tabs {
-  display: flex;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-}
-
-.yv-reader-filter-tab {
-  padding: 0.45rem 0.7rem;
-  border: 1px solid var(--muted);
-  border-radius: 999px;
-  background: var(--bg);
-  color: var(--text);
-  font-size: 0.82rem;
-}
-
-.yv-reader-filter-tab.active {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.yv-reader-hint {
-  color: var(--text-muted);
-  font-size: 0.68rem;
-  line-height: 1.4;
+.yv-reader-chapter-section {
+  gap: 0.35rem;
 }
 
 .yv-reader-reference-row {
@@ -2764,7 +2784,7 @@ button.secondary {
   gap: 0.75rem;
   min-height: 0;
   max-height: none;
-  overflow: auto;
+  overflow: hidden;
   padding: 0.95rem;
   border: 1px solid var(--muted);
   border-radius: 1rem;
@@ -2816,6 +2836,39 @@ button.secondary {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+}
+
+.yv-reader-nav-stack {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+}
+
+.yv-reader-book-container {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--muted) 82%, transparent);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--bg) 30%, var(--surface));
+  overflow: hidden;
+}
+
+.yv-reader-book-container .yv-reader-nav-section {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.yv-reader-book-list-scroll {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+  padding-right: 0.1rem;
 }
 
 .yv-book-pill {
@@ -2887,10 +2940,11 @@ button.secondary {
 }
 
 .yv-reader-meta {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr) minmax(0, 1.1fr) auto;
+  display: flex;
+  justify-content: space-between;
   gap: 0.65rem;
   align-items: stretch;
+  flex-wrap: wrap;
   padding: 0.65rem 0.75rem;
   border: 1px solid var(--muted);
   border-radius: 0.9rem;
@@ -2911,41 +2965,6 @@ button.secondary {
   gap: 0.35rem;
 }
 
-.yv-reader-meta-block-center {
-  justify-self: center;
-  text-align: center;
-}
-
-.yv-reader-meta-compare {
-  grid-template-columns: 1fr 1fr;
-  grid-template-areas:
-    "version compare"
-    "current tools";
-  align-items: center;
-}
-
-.yv-reader-meta-compare .yv-reader-meta-block:nth-child(1) {
-  grid-area: version;
-  justify-self: start;
-}
-
-.yv-reader-meta-compare .yv-reader-meta-block:nth-child(2) {
-  grid-area: current;
-  justify-self: end;
-  text-align: right;
-}
-
-.yv-reader-meta-compare .yv-reader-meta-block:nth-child(3) {
-  grid-area: compare;
-  justify-self: start;
-  padding-left: 0.15rem;
-}
-
-.yv-reader-meta-compare .yv-reader-meta-tools {
-  grid-area: tools;
-  justify-self: end;
-}
-
 .yv-reader-flow-card .yv-reader-toggle-group {
   width: 100%;
 }
@@ -2962,7 +2981,7 @@ button.secondary {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  justify-self: end;
+  margin-left: auto;
   padding: 0.25rem;
   border: 1px solid var(--muted);
   border-radius: 999px;
@@ -2975,9 +2994,9 @@ button.secondary {
   justify-content: center;
   width: 2.1rem;
   height: 2.1rem;
-  border: 1px solid var(--muted);
+  border: 1px solid transparent;
   border-radius: 999px;
-  background: var(--bg);
+  background: transparent;
   color: var(--text);
   transition: border-color 120ms ease, color 120ms ease, background 120ms ease, transform 120ms ease;
 }
@@ -2991,12 +3010,12 @@ button.secondary {
 
 .yv-reader-meta-icon-button:hover:not(:disabled) {
   transform: translateY(-1px);
-  border-color: color-mix(in srgb, var(--accent) 30%, var(--muted));
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
   color: var(--accent);
 }
 
 .yv-reader-meta-icon-button.active {
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--muted));
+  border-color: var(--muted);
   background: color-mix(in srgb, var(--accent) 12%, transparent);
   color: var(--accent);
 }
@@ -3111,7 +3130,7 @@ button.secondary {
   flex-direction: column;
   gap: 0.8rem;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .yv-reader-compare-grid {
@@ -3120,34 +3139,28 @@ button.secondary {
   gap: 0.8rem;
   min-height: 0;
   flex: 1;
+  overflow: visible;
 }
 
 .yv-reader-compare-pane {
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  gap: 0.85rem;
   min-height: 0;
   overflow: auto;
   padding: 0.9rem;
-  border: 1px solid var(--muted);
   border-radius: 1rem;
   background: var(--surface);
   scroll-padding-top: 6rem;
   scroll-snap-type: y proximity;
 }
 
-.yv-reader-compare-pane-header,
-.yv-reader-compare-pane-header-selectable {
-  position: sticky;
-  top: 0;
-  z-index: 2;
+.yv-reader-compare-pane-header {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  padding: 0.6rem 0.9rem 0.6rem;
-  margin: -0.9rem -0.9rem 0;
+  padding-bottom: 0.8rem;
   border-bottom: 1px solid var(--muted);
-  background: var(--surface);
 }
 
 .yv-reader-compare-pane-header strong {
@@ -3159,30 +3172,20 @@ button.secondary {
   font-size: 0.78rem;
 }
 
-.yv-reader-compare-verse-indicator {
+.yv-reader-compare-pane-body {
   display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  color: var(--text-muted);
-  font-size: 0.68rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  flex-direction: column;
+  gap: 0.8rem;
+  padding-top: 0.7rem;
 }
 
-.yv-reader-compare-verse-indicator span {
-  flex: 1;
-  height: 1px;
-  background: color-mix(in srgb, var(--accent) 22%, var(--muted));
+.yv-reader-compare-pane > .yv-reader-passage-html:first-of-type {
+  margin-top: 0.15rem;
 }
 
-.yv-reader-compare-verse-indicator small {
-  flex: 0 0 auto;
-  padding: 0.12rem 0.45rem;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
-  color: var(--accent);
-  font-weight: 700;
-  white-space: nowrap;
+.yv-reader-compare-verse-flow,
+.yv-reader-compare-verse-stack {
+  margin-top: 0.1rem;
 }
 
 .yv-reader-compare-verse-stack {
@@ -3235,8 +3238,7 @@ button.secondary {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 1rem;
-  border: 1px solid var(--muted);
+  padding: 0.9rem 1rem 1rem;
   border-radius: 1rem;
   background: var(--surface);
 }
@@ -3922,13 +3924,9 @@ mark {
 
 .header-search input::-webkit-search-cancel-button,
 .header-search input::-webkit-search-decoration,
-.header-search input::-webkit-search-results-button,
-.header-search input::-webkit-search-results-decoration,
 .header-search input::-ms-clear,
 .header-search input::-ms-reveal {
-  -webkit-appearance: none;
-  appearance: none;
-  display: none !important;
+  display: none;
   width: 0;
   height: 0;
 }

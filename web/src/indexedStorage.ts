@@ -15,6 +15,7 @@ const STORE_NOTES = 'notes'
 const STORE_BOOKMARKS = 'bookmarks'
 const STORE_RECENT = 'recentSearches'
 const STORE_DATA_CACHE = 'dataCache'
+const DATA_CACHE_VERSION = '20260805b'
 
 let dbPromise: Promise<IDBDatabase> | null = null
 
@@ -162,11 +163,12 @@ export async function clearDataCache(): Promise<void> {
 }
 
 export async function fetchCachedJson<T = unknown>(url: string, key: string): Promise<T> {
-  const cached = await getCachedData<T>(key)
+  const cacheKey = `${key}@${DATA_CACHE_VERSION}`
+  const cached = await getCachedData<T>(cacheKey)
   if (cached) return cached
-  const response = await fetch(url)
+  const response = await fetch(url, { cache: 'no-store' })
   if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.statusText}`)
   const data = (await response.json()) as T
-  void setCachedData(key, data).catch(() => {})
+  void setCachedData(cacheKey, data).catch(() => {})
   return data
 }
