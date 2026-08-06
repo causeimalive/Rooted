@@ -67,6 +67,7 @@ type ComparePaneSide = 'current' | 'compare'
 type ComparePaneFrameProps = {
   paneRef: { current: HTMLDivElement | null }
   onScroll: () => void
+  header?: ReactNode
   children: ReactNode
 }
 
@@ -119,10 +120,12 @@ function ReaderVersionSelector({
 function ComparePaneFrame({
   paneRef,
   onScroll,
+  header,
   children,
 }: ComparePaneFrameProps) {
   return (
     <section className="yv-reader-compare-pane">
+      {header ? <div className="yv-reader-compare-pane-header">{header}</div> : null}
       <div ref={paneRef} className="yv-reader-compare-pane-body" onScroll={onScroll}>
         {children}
       </div>
@@ -584,17 +587,15 @@ export default function YouVersionReaderTab({
   const highlightCount = highlights?.data.length ?? 0
   const signedInLabel = userInfo?.name || userInfo?.email || 'YouVersion user'
   const currentPassageLabel = currentReference || passageLabel
+  const passageReferenceLabel = focusedReferenceLabel || currentPassageLabel
+  const currentVersionTitle = currentVersionLabel.title || versionTitle || 'Choose a version'
+  const currentVersionSubtitle = currentVersionLabel.subtitle || copyright || 'Select a version'
+  const compareVersionTitle = compareVersionLabel.title || 'Choose a compare version'
+  const compareVersionSubtitle = compareVersionLabel.subtitle || 'Select a version'
   const versionSelectionTitle = currentVersionLabel.title
   const versionSelectionSubtitle = compareOpen && compareVersion
     ? currentVersionLabel.subtitle || copyright || 'Select a version'
     : currentVersionLabel.subtitle || copyright || 'Select a version'
-  const currentVersionDetails = `${currentVersionLabel.title}${currentVersionLabel.subtitle ? ` · ${currentVersionLabel.subtitle}` : ''}`
-  const compareVersionDetails = compareVersion
-    ? `${compareVersionLabel.title}${compareVersionLabel.subtitle ? ` · ${compareVersionLabel.subtitle}` : ''}`
-    : 'Select a compare version'
-  const passageDetails = compareOpen
-    ? [`Current version: ${currentVersionDetails}`, `Compare version: ${compareVersionDetails}`]
-    : [`Version: ${versionTitle}${versionSubtitle ? ` · ${versionSubtitle}` : ''}`, copyright || 'Select a version']
 
   const versionSelectionCard = null
 
@@ -1695,74 +1696,79 @@ export default function YouVersionReaderTab({
 
           <section className="yv-reader-reader">
             <div className="yv-reader-meta">
-              <div className="yv-reader-meta-block yv-reader-meta-block-passages">
+              <div className="yv-reader-meta-panel yv-reader-meta-panel-primary">
                 <span className="yv-reader-meta-label">Passage</span>
                 <strong>{focusedPassageTitle}</strong>
-                <span>{focusedReferenceLabel || currentPassageLabel}</span>
-                {passageDetails.map((line) => (
-                  <small key={line}>{line}</small>
-                ))}
+                <span>{passageReferenceLabel}</span>
               </div>
-              <div className="yv-reader-meta-tools" role="group" aria-label="Reading tools">
-                <button
-                  type="button"
-                  className={`yv-reader-meta-icon-button ${readerView === 'html' ? 'active' : ''}`}
-                  aria-pressed={readerView === 'html'}
-                  aria-label="Full reading flow"
-                  title="Full reading flow"
-                  onClick={() => setReaderView('html')}
-                >
-                  <Type size={15} />
-                </button>
-                <button
-                  type="button"
-                  className={`yv-reader-meta-icon-button ${readerView === 'chapter' ? 'active' : ''}`}
-                  aria-pressed={readerView === 'chapter'}
-                  aria-label="Chapter reading flow"
-                  title="Chapter reading flow"
-                  onClick={() => setReaderView('chapter')}
-                >
-                  <BookOpen size={15} />
-                </button>
-                <button
-                  type="button"
-                  className={`yv-reader-meta-icon-button ${readerView === 'verse' ? 'active' : ''}`}
-                  aria-pressed={readerView === 'verse'}
-                  aria-label="Verse reading flow"
-                  title="Verse reading flow"
-                  onClick={() => setReaderView('verse')}
-                >
-                  <AlignJustify size={15} />
-                </button>
-                <button
-                  type="button"
-                  className={`yv-reader-meta-icon-button ${compareOpen ? 'active' : ''}`}
-                  aria-pressed={compareOpen}
-                  aria-label={compareOpen ? 'Turn compare mode off' : 'Turn compare mode on'}
-                  title={compareOpen ? 'Compare on' : 'Compare off'}
-                  onClick={() => {
-                    setCompareOpen((current) => {
-                      const next = !current
-                      if (!next) setCompareVersionMenuOpen(false)
-                      return next
-                    })
-                  }}
-                >
-                  <ArrowLeftRight size={15} />
-                </button>
-                <button
-                  type="button"
-                  className="yv-reader-meta-icon-button"
-                  aria-label="Highlight selected verse"
-                  title="Highlight selected verse"
-                  onClick={() => {
-                    const verse = selectedVerse
-                    if (verse) onSelect(verse.id)
-                  }}
-                  disabled={!selectedVerse}
-                >
-                  <Bookmark size={15} />
-                </button>
+              <div className="yv-reader-meta-panel yv-reader-meta-panel-version">
+                <span className="yv-reader-meta-label">Version</span>
+                <strong>{currentVersionTitle}</strong>
+                <span>{currentVersionSubtitle}</span>
+                {compareOpen ? <small>Compare mode is on</small> : <small>{copyright || 'Select a version'}</small>}
+              </div>
+              <div className="yv-reader-meta-panel yv-reader-meta-panel-tools">
+                <div className="yv-reader-meta-tools" role="group" aria-label="Reading tools">
+                  <button
+                    type="button"
+                    className={`yv-reader-meta-icon-button ${readerView === 'html' ? 'active' : ''}`}
+                    aria-pressed={readerView === 'html'}
+                    aria-label="Full reading flow"
+                    title="Full reading flow"
+                    onClick={() => setReaderView('html')}
+                  >
+                    <Type size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    className={`yv-reader-meta-icon-button ${readerView === 'chapter' ? 'active' : ''}`}
+                    aria-pressed={readerView === 'chapter'}
+                    aria-label="Chapter reading flow"
+                    title="Chapter reading flow"
+                    onClick={() => setReaderView('chapter')}
+                  >
+                    <BookOpen size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    className={`yv-reader-meta-icon-button ${readerView === 'verse' ? 'active' : ''}`}
+                    aria-pressed={readerView === 'verse'}
+                    aria-label="Verse reading flow"
+                    title="Verse reading flow"
+                    onClick={() => setReaderView('verse')}
+                  >
+                    <AlignJustify size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    className={`yv-reader-meta-icon-button ${compareOpen ? 'active' : ''}`}
+                    aria-pressed={compareOpen}
+                    aria-label={compareOpen ? 'Turn compare mode off' : 'Turn compare mode on'}
+                    title={compareOpen ? 'Compare on' : 'Compare off'}
+                    onClick={() => {
+                      setCompareOpen((current) => {
+                        const next = !current
+                        if (!next) setCompareVersionMenuOpen(false)
+                        return next
+                      })
+                    }}
+                  >
+                    <ArrowLeftRight size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    className="yv-reader-meta-icon-button"
+                    aria-label="Highlight selected verse"
+                    title="Highlight selected verse"
+                    onClick={() => {
+                      const verse = selectedVerse
+                      if (verse) onSelect(verse.id)
+                    }}
+                    disabled={!selectedVerse}
+                  >
+                    <Bookmark size={15} />
+                  </button>
+                </div>
               </div>
 
             </div>
@@ -1815,6 +1821,14 @@ export default function YouVersionReaderTab({
                       <ComparePaneFrame
                         paneRef={compareCurrentPaneRef}
                         onScroll={() => handleComparePaneScroll('current')}
+                        header={(
+                          <>
+                            <span className="yv-reader-compare-pane-eyebrow">Current version</span>
+                            <strong>{currentVersionTitle}</strong>
+                            <span>{currentVersionSubtitle}</span>
+                            <small>{compareCurrentPassage?.reference || currentPassageLabel}</small>
+                          </>
+                        )}
                       >
                         {renderComparePaneContent('current')}
                       </ComparePaneFrame>
@@ -1822,6 +1836,14 @@ export default function YouVersionReaderTab({
                       <ComparePaneFrame
                         paneRef={compareComparePaneRef}
                         onScroll={() => handleComparePaneScroll('compare')}
+                        header={(
+                          <>
+                            <span className="yv-reader-compare-pane-eyebrow">Compare version</span>
+                            <strong>{compareVersionTitle}</strong>
+                            <span>{compareVersionSubtitle}</span>
+                            <small>{comparePassage?.reference || currentPassageLabel}</small>
+                          </>
+                        )}
                       >
                         {renderComparePaneContent('compare')}
                       </ComparePaneFrame>

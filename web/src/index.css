@@ -2940,33 +2940,57 @@ button.secondary {
 }
 
 .yv-reader-meta {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.65rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(240px, 0.9fr);
+  gap: 0.75rem;
   align-items: stretch;
-  flex-wrap: wrap;
-  padding: 0.65rem 0.75rem;
+  padding: 0.75rem;
   border: 1px solid var(--muted);
-  border-radius: 0.9rem;
+  border-radius: 1rem;
   background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 96%, transparent), var(--surface));
 }
 
-.yv-reader-meta-block {
+.yv-reader-meta-panel {
   display: flex;
   flex-direction: column;
-  gap: 0.18rem;
+  justify-content: center;
+  gap: 0.16rem;
   min-width: 0;
-  flex: 1 1 180px;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--muted) 78%, transparent);
+  border-radius: 0.95rem;
+  background: color-mix(in srgb, var(--bg) 20%, var(--surface));
 }
 
-.yv-reader-flow-card {
-  flex: 1 1 240px;
-  min-width: 0;
-  gap: 0.35rem;
+.yv-reader-meta-panel strong {
+  display: block;
+  font-size: 1.02rem;
+  line-height: 1.25;
 }
 
-.yv-reader-flow-card .yv-reader-toggle-group {
+.yv-reader-meta-panel span {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.yv-reader-meta-panel small {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.yv-reader-meta-panel-version {
+  gap: 0.12rem;
+}
+
+.yv-reader-meta-panel-tools {
+  align-items: stretch;
+}
+
+.yv-reader-meta-panel-tools .yv-reader-meta-tools {
   width: 100%;
+  margin-left: 0;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 .yv-reader-meta-label {
@@ -3025,21 +3049,10 @@ button.secondary {
   cursor: not-allowed;
 }
 
-.yv-reader-meta-block strong {
-  display: block;
-  font-size: 1.02rem;
-  line-height: 1.25;
-}
-
 .yv-reader-focused-marker {
   color: var(--text-muted);
   font-size: 0.82em;
   font-weight: 600;
-}
-
-.yv-reader-meta-block span {
-  color: var(--text-muted);
-  font-size: 0.82rem;
 }
 
 .yv-reader-selection-card {
@@ -3158,9 +3171,19 @@ button.secondary {
 .yv-reader-compare-pane-header {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
-  padding-bottom: 0.8rem;
-  border-bottom: 1px solid var(--muted);
+  gap: 0.12rem;
+  padding: 0.85rem 0.9rem 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--muted) 80%, transparent);
+  border-radius: 1rem;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 96%, transparent), var(--surface));
+}
+
+.yv-reader-compare-pane-eyebrow {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .yv-reader-compare-pane-header strong {
@@ -3170,6 +3193,11 @@ button.secondary {
 .yv-reader-compare-pane-header span {
   color: var(--text-muted);
   font-size: 0.78rem;
+}
+
+.yv-reader-compare-pane-header small {
+  color: var(--text-muted);
+  font-size: 0.72rem;
 }
 
 .yv-reader-compare-pane-body {
