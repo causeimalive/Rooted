@@ -1,11 +1,17 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { BookOpen, ChevronLeft, ChevronRight, GripVertical, Loader2 } from 'lucide-react'
 import { findVerse, getAllVerses } from './bible'
+import { 
+  fetchYouVersionPassage, 
+  fetchYouVersionSearch, 
+  type YouVersionBook, 
+  type YouVersionPassage, 
+  type YouVersionVersion, 
+  type YouVersionSearchHit, 
+} from './youversion'
 import { useBibleClient, useBooks, useChapters, useHighlights, useVersion, useVersions, useYVAuth } from '@youversion/platform-react-hooks'
 import { transformBibleHtml, type BiblePassage } from '@youversion/platform-core'
 import { getTestamentForBook, type Testament } from './bookTaxonomy'
-import { type YouVersionBook } from './youversion'
-import { useI18n } from './i18n'
 import { getYouVersionRedirectUrl } from './youversionRedirect'
 import ComparePaneFrame from './ComparePaneFrame'
 import ReaderBookList from './ReaderBookList'
@@ -13,6 +19,7 @@ import ReaderChapterList from './ReaderChapterList'
 import ReaderPassageStack from './ReaderPassageStack'
 import ReaderToolButtons from './ReaderToolButtons'
 import ReaderVersionSelector from './ReaderVersionSelector'
+import { useI18n } from './i18n'
 import type { ReaderView } from './types'
 
 const READER_VERSION_KEY = 'bible-study-yv-version'
@@ -23,6 +30,7 @@ const READER_VIEW_KEY = 'bible-study-yv-view'
 const READER_INPUT_KEY = 'bible-study-yv-input'
 const READER_COMMITTED_KEY = 'bible-study-yv-committed'
 const READER_NAV_WIDTH_KEY = 'bible-study-yv-nav-width'
+const READER_AUTOSCROLL_KEY = 'bible-study-yv-autoscroll'
 const DEFAULT_NAV_WIDTH = 300
 const MIN_NAV_WIDTH = 220
 const MAX_NAV_WIDTH = 460
@@ -172,18 +180,20 @@ function getCompareScrollTop(pane: HTMLElement, target: HTMLElement, focusLine =
   return Math.max(0, Math.min(maxScrollTop, targetTop))
 }
 
-function getCompareScrollTopByTop(pane: HTMLElement, target: HTMLElement, desiredTop: number): number {
-  const paneRect = pane.getBoundingClientRect()
-  const targetRect = target.getBoundingClientRect()
-  const targetTop = pane.scrollTop + (targetRect.top - paneRect.top) - desiredTop
-  const maxScrollTop = Math.max(0, pane.scrollHeight - pane.clientHeight)
-  return Math.max(0, Math.min(maxScrollTop, targetTop))
-}
-
 function splitVerseKey(activeKey: string): { section: string; verse: string } | null {
   const idx = activeKey.lastIndexOf(':')
   if (idx <= 0) return null
   return { section: activeKey.slice(0, idx), verse: activeKey.slice(idx + 1) }
+}
+
+type VersionMenuEntry = {
+  id: number
+  title: string
+  localized_title?: string
+  abbreviation?: string
+  localized_abbreviation?: string
+  language_tag?: string | null
+  copyright?: string | null
 }
 
 function findCompareTarget(pane: HTMLElement, section: string, verse: string): HTMLElement | null {
@@ -286,14 +296,16 @@ function chapterNumbers(book: YouVersionBook | undefined): number[] {
     .filter((value) => Number.isFinite(value))
 }
 
-function formatVersionLabel(version: { title: string; localized_title?: string; abbreviation?: string; localized_abbreviation?: string; language_tag?: string } | undefined): { title: string; subtitle: string } {
+function formatVersionLabel(version: { title: string; localized_title?: string; abbreviation?: string; localized_abbreviation?: string; language_tag?: string | null } | undefined): { title: string; subtitle: string } {
   if (!version) {
     return { title: 'Choose a Bible version', subtitle: 'Open the menu to switch translations' }
   }
 
+  const subtitleParts = [version.localized_abbreviation || version.abbreviation || '', version.language_tag || ''].filter(Boolean)
+
   return {
     title: version.localized_title || version.title,
-    subtitle: version.localized_abbreviation || version.abbreviation || version.language_tag || '',
+    subtitle: subtitleParts.join(' · '),
   }
 }
 
@@ -415,6 +427,10 @@ export default function YouVersionReaderTab({
   })
   const [versionMenuOpen, setVersionMenuOpen] = useState(false)
   const [compareOpen, setCompareOpen] = useState(false)
+  const [autoScrollEnabled, setAutoScrollEnabled] = useState(() => {
+    const saved = window.localStorage.getItem(READER_AUTOSCROLL_KEY)
+    return saved === null ? !compareOpen : saved === 'true'
+  })
   const [compareVersionMenuOpen, setCompareVersionMenuOpen] = useState(false)
   const [compareVersionId, setCompareVersionId] = useState<number | null>(() => {
     const saved = Number(window.localStorage.getItem(READER_COMPARE_KEY))
@@ -429,19 +445,8 @@ export default function YouVersionReaderTab({
   const compareComparePaneRef = useRef<HTMLElement | null>(null)
   const compareVersionMenuRef = useRef<HTMLDivElement | null>(null)
   const compareLoadingMoreRef = useRef(false)
-  const compareScrollLockRef = useRef<ComparePaneSide | null>(null)
-  const compareLastActiveKeyRef = useRef('')
-  const compareSyncDisabledUntilRef = useRef<number>(0)
-  const compareScrollTimeoutRef = useRef<number | null>(null)
-  const [compareActiveVerse, setCompareActiveVerse] = useState('')
-  const [compareSelectedKey, setCompareSelectedKey] = useState('')
-  const [compareScrollSync, setCompareScrollSync] = useState(true)
-
-  useEffect(() => {
-    if (!compareScrollSync) {
-      compareScrollLockRef.current = null
-    }
-  }, [compareScrollSync])
+  const readerSelectionSourceRef = useRef<'reader' | null>(null)
+  const compareSelectionScrollKeyRef = useRef('')
 
   const bibleClient = useBibleClient()
   const { auth, signIn, signOut, processCallback, userInfo } = useYVAuth()
@@ -451,16 +456,17 @@ export default function YouVersionReaderTab({
   const sectionRefs = useRef<Map<string, HTMLElement | null>>(new Map())
   const loadingMoreRef = useRef(false)
   const hasPrimedScrollRef = useRef(false)
-  const skipScrollToTopRef = useRef(false)
   const [sections, setSections] = useState<ReaderSection[]>([])
   const [focusedSectionKey, setFocusedSectionKey] = useState('')
   const [focusedVerseLabel, setFocusedVerseLabel] = useState('')
   const [isLoadingSections, setIsLoadingSections] = useState(false)
   const [targetVerse, setTargetVerse] = useState<{ bookId: string; chapter: number; verse: number } | null>(null)
-
   const versionLanguageRanges = language === 'es' ? 'es' : 'en'
   const { versions: versionCollection, loading: versionsLoading, error: versionsError } = useVersions(versionLanguageRanges)
   const availableVersions = versionCollection?.data ?? []
+  const compareVersionLanguageRanges = language === 'es' ? 'es,en' : 'en,es'
+  const { versions: compareVersionCollection } = useVersions(compareVersionLanguageRanges)
+  const compareAvailableVersions = compareVersionCollection?.data ?? []
 
   useEffect(() => {
     if (!versionMenuOpen) return
@@ -530,8 +536,8 @@ export default function YouVersionReaderTab({
     [availableVersions, resolvedVersionId],
   )
   const compareVersion = useMemo(
-    () => availableVersions.find((entry) => entry.id === compareVersionId),
-    [availableVersions, compareVersionId],
+    () => compareAvailableVersions.find((entry) => entry.id === compareVersionId),
+    [compareAvailableVersions, compareVersionId],
   )
   const { version, loading: versionLoading, error: versionError } = useVersion(resolvedVersionId ?? 1, {
     enabled: resolvedVersionId !== null,
@@ -639,9 +645,6 @@ export default function YouVersionReaderTab({
   const compareVersionSubtitle = compareVersionLabel.subtitle || 'Select a version'
   const comparePassageLabel = compareCurrentPassage?.reference || currentPassageLabel
   const handleSetReaderView = useCallback((view: ReaderView) => {
-    if (view !== readerView) {
-      compareSyncDisabledUntilRef.current = Date.now() + 350
-    }
     setReaderView(view)
   }, [readerView])
   const handleToggleCompare = useCallback(() => {
@@ -688,22 +691,22 @@ export default function YouVersionReaderTab({
   }, [compareVersionId])
 
   useEffect(() => {
-    if (!compareOpen || compareVersionId !== null || !availableVersions.length || resolvedVersionId === null) return
-    const fallbackCompare = availableVersions.find((entry) => entry.id !== resolvedVersionId)
+    if (!compareOpen || compareVersionId === null || !compareAvailableVersions.length || resolvedVersionId === null) return
+    const fallbackCompare = compareAvailableVersions.find((entry) => entry.id !== resolvedVersionId)
     if (fallbackCompare) {
       setCompareVersionId(fallbackCompare.id)
     }
-  }, [availableVersions, compareOpen, compareVersionId, resolvedVersionId])
+  }, [availableVersions, compareAvailableVersions, compareOpen, compareVersionId, resolvedVersionId])
 
   useEffect(() => {
     if (!compareOpen || compareVersionId === null || resolvedVersionId === null) return
     if (compareVersionId !== resolvedVersionId) return
 
-    const fallbackCompare = availableVersions.find((entry) => entry.id !== resolvedVersionId)
+    const fallbackCompare = compareAvailableVersions.find((entry) => entry.id !== resolvedVersionId)
     if (fallbackCompare) {
       setCompareVersionId(fallbackCompare.id)
     }
-  }, [availableVersions, compareOpen, compareVersionId, resolvedVersionId])
+  }, [compareAvailableVersions, compareOpen, compareVersionId, resolvedVersionId])
 
   useEffect(() => {
     const search = new URLSearchParams(window.location.search)
@@ -999,7 +1002,7 @@ export default function YouVersionReaderTab({
   }, [books, compareSections, compareVersionId, loadCompareSection, resolveChapterNumbers, resolvedVersionId])
 
   useEffect(() => {
-    if (!resolvedVersionId || !currentIndexBook || !anchorReference) {
+    if (!resolvedVersionId || !currentIndexBook) {
       setSections([])
       setFocusedSectionKey('')
       setFocusedVerseLabel('')
@@ -1062,10 +1065,10 @@ export default function YouVersionReaderTab({
     return () => {
       cancelled = true
     }
-  }, [anchorReference, books, currentChapter, currentIndexBook, loadSection, resolvedVersionId, resolveChapterNumbers])
+  }, [books, currentChapter, currentIndexBook, loadSection, resolvedVersionId, resolveChapterNumbers])
 
   useEffect(() => {
-    if (!compareOpen || !resolvedVersionId || !currentIndexBook || !anchorReference || compareVersionId === null) {
+    if (!compareOpen || !resolvedVersionId || !currentIndexBook || compareVersionId === null) {
       setCompareSections([])
       return
     }
@@ -1092,25 +1095,6 @@ export default function YouVersionReaderTab({
         if (cancelled) return
 
         setCompareSections(builtSections)
-        compareLastActiveKeyRef.current = ''
-        setCompareActiveVerse('')
-        window.requestAnimationFrame(() => {
-          const shell = compareCurrentPaneRef.current
-          if (shell && shell.scrollTop !== 0) {
-            compareScrollLockRef.current = 'current'
-            shell.scrollTop = 0
-          }
-          window.requestAnimationFrame(() => {
-            const compareShell = compareComparePaneRef.current
-            if (compareShell && compareShell.scrollTop !== 0) {
-              compareScrollLockRef.current = 'compare'
-              compareShell.scrollTop = 0
-            }
-            window.requestAnimationFrame(() => {
-              compareScrollLockRef.current = null
-            })
-          })
-        })
       } finally {
         compareLoadingMoreRef.current = false
         setIsLoadingSections(false)
@@ -1127,7 +1111,7 @@ export default function YouVersionReaderTab({
     return () => {
       cancelled = true
     }
-  }, [anchorReference, books, compareOpen, compareVersionId, currentChapter, currentIndexBook, loadCompareSection, resolvedVersionId, resolveChapterNumbers])
+  }, [books, compareOpen, compareVersionId, currentChapter, currentIndexBook, loadCompareSection, resolvedVersionId, resolveChapterNumbers])
 
   useEffect(() => {
     const shell = passageShellRef.current
@@ -1224,73 +1208,129 @@ export default function YouVersionReaderTab({
   }, [navWidth])
 
   useEffect(() => {
+    window.localStorage.setItem(READER_AUTOSCROLL_KEY, String(autoScrollEnabled))
+  }, [autoScrollEnabled])
+
+  useEffect(() => {
     if (!selectedVerse || !books.length) return
+    if (readerSelectionSourceRef.current === 'reader' && compareOpen) {
+      readerSelectionSourceRef.current = null
+      return
+    }
+    if (readerSelectionSourceRef.current === 'reader') {
+      readerSelectionSourceRef.current = null
+      setReferenceInput(`${selectedVerse.bookName} ${selectedVerse.chapter}:${selectedVerse.verse}`)
+      return
+    }
+    if (compareOpen) return
     const nextBook =
       books.find((book) => book.id === selectedVerse.book) || resolveBook(selectedVerse.bookName, books)
     if (!nextBook) return
-    skipScrollToTopRef.current = true
-    setBookAndChapter(nextBook.id, selectedVerse.chapter)
-    setReferenceInput(`${selectedVerse.bookName} ${selectedVerse.chapter}:${selectedVerse.verse}`)
-    if (readerView !== 'verse') {
-      setReaderView('chapter')
-    }
-    setTargetVerse({ bookId: nextBook.id, chapter: selectedVerse.chapter, verse: selectedVerse.verse })
-  }, [books, selectedVerse, setBookAndChapter, setReaderView])
+    const isSameLocation = nextBook.id === bookId && selectedVerse.chapter === chapter
 
-  useEffect(() => {
+    if (!isSameLocation) {
+      setBookAndChapter(nextBook.id, selectedVerse.chapter)
+      if (readerView !== 'verse') {
+        setReaderView('chapter')
+      }
+    }
+
+    setReferenceInput(`${selectedVerse.bookName} ${selectedVerse.chapter}:${selectedVerse.verse}`)
+    setTargetVerse({ bookId: nextBook.id, chapter: selectedVerse.chapter, verse: selectedVerse.verse })
+  }, [bookId, books, chapter, compareOpen, readerView, selectedVerse, setBookAndChapter, setReaderView])
+
+  const handleReaderVerseSelect = useCallback(
+    (verseId: string) => {
+      readerSelectionSourceRef.current = 'reader'
+      onSelect(verseId)
+    },
+    [onSelect],
+  )
+
+  useLayoutEffect(() => {
     if (!targetVerse) return
     const section = sections.find((s) => s.bookId === targetVerse.bookId && s.chapter === targetVerse.chapter)
     if (!section) return
+    const sectionEl = sectionRefs.current.get(section.key)
+    if (!sectionEl) return
     const shell = passageShellRef.current
     if (!shell) return
-    const verseEl = shell.querySelector(`[data-verse="${targetVerse.verse}"]`) as HTMLElement | null
+    const verseEl = sectionEl.querySelector(`[data-verse="${targetVerse.verse}"]`) as HTMLElement | null
     if (!verseEl) return
     const shellRect = shell.getBoundingClientRect()
     const verseRect = verseEl.getBoundingClientRect()
-    const alreadyInView = verseRect.top >= shellRect.top + 32 && verseRect.bottom <= shellRect.bottom - 32
+    const alreadyInView = Math.abs((verseRect.top - shellRect.top) - 32) < 8
     if (!alreadyInView) {
       const targetTop = verseRect.top - shellRect.top + shell.scrollTop - 32
-      shell.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' })
+      shell.scrollTo({ top: Math.max(0, targetTop), behavior: 'auto' })
     }
     setTargetVerse(null)
   }, [sections, targetVerse])
 
-  useEffect(() => {
+  const compareSelection = useMemo(() => {
+    if (!compareOpen || !selectedId) return null
+
+    const parts = selectedId.split('.')
+    const verse = parts.pop() ?? ''
+    const chapter = Number(parts.pop())
+    const bookCode = parts.join('.')
+    if (!verse || Number.isNaN(chapter)) return null
+
+    const section = compareSections.find((entry) => (bookCodeById[entry.bookId] ?? entry.bookId) === bookCode && entry.chapter === chapter)
+    if (!section) return null
+
+    return {
+      sectionKey: section.key,
+      verse,
+      key: `${section.key}:${verse}`,
+    }
+  }, [bookCodeById, compareOpen, compareSections, selectedId])
+
+  useLayoutEffect(() => {
     const panes = [compareCurrentPaneRef.current, compareComparePaneRef.current]
     for (const pane of panes) {
       pane?.querySelectorAll('.yv-reader-passage-html .yv-v.selected').forEach((el) => el.classList.remove('selected'))
     }
-    if (!compareOpen) return
-
-    let sectionKey = ''
-    let verse = ''
-    if (compareSelectedKey) {
-      const parsed = splitVerseKey(compareSelectedKey)
-      if (parsed) {
-        sectionKey = parsed.section
-        verse = parsed.verse
-      }
-    } else if (selectedId) {
-      const parts = selectedId.split('.')
-      verse = parts.pop() ?? ''
-      const chapter = Number(parts.pop())
-      const bookCode = parts.join('.')
-      if (!verse || Number.isNaN(chapter)) return
-      const section = compareSections.find(
-        (s) => (bookCodeById[s.bookId] ?? s.bookId) === bookCode && s.chapter === chapter,
-      )
-      if (section) sectionKey = section.key
-    }
-    if (!sectionKey || !verse) return
+    if (!compareOpen || !compareSelection) return
 
     for (const pane of panes) {
       if (!pane) continue
       const htmlVerse = pane.querySelector(
-        `article[data-section="${CSS.escape(sectionKey)}"] .yv-v[v="${CSS.escape(verse)}"]`,
+        `article[data-section="${CSS.escape(compareSelection.sectionKey)}"] .yv-v[v="${CSS.escape(compareSelection.verse)}"]`,
       )
       if (htmlVerse) htmlVerse.classList.add('selected')
     }
-  }, [compareOpen, selectedId, compareSelectedKey, compareSections, bookCodeById, compareCurrentPaneRef, compareComparePaneRef])
+  }, [compareOpen, compareSelection, compareCurrentPaneRef, compareComparePaneRef])
+
+  useLayoutEffect(() => {
+    if (!compareOpen || !autoScrollEnabled) {
+      compareSelectionScrollKeyRef.current = ''
+      return
+    }
+
+    if (!compareSelection) return
+
+    const { sectionKey, verse } = compareSelection
+
+    const selectionKey = `${sectionKey}:${verse}`
+    if (compareSelectionScrollKeyRef.current === selectionKey) return
+    compareSelectionScrollKeyRef.current = selectionKey
+
+    const panes = [compareCurrentPaneRef.current, compareComparePaneRef.current]
+    for (const pane of panes) {
+      if (!pane) continue
+      const target = findCompareTarget(pane, sectionKey, verse)
+      if (!target) continue
+
+      const paneRect = pane.getBoundingClientRect()
+      const targetRect = target.getBoundingClientRect()
+      const alreadyInView = Math.abs((targetRect.top + targetRect.height / 2 - paneRect.top) - COMPARE_FOCUS_LINE) < 8
+      if (!alreadyInView) {
+        pane.scrollTo({ top: getCompareScrollTop(pane, target), behavior: 'auto' })
+      }
+    }
+  }, [autoScrollEnabled, compareOpen, compareSelection, compareCurrentPaneRef, compareComparePaneRef])
+
 
   const navBook = useMemo(
     () => visibleBooks.find((book) => book.id === activeBookId) ?? visibleBooks[0] ?? currentIndexBook,
@@ -1330,15 +1370,9 @@ export default function YouVersionReaderTab({
   }, [books, chapterNavigationBookId, chapterNavigationChapter, currentIndexBook])
 
   const goToReference = useCallback((reference: ReaderReference) => {
-    skipScrollToTopRef.current = false
     setFocusedSectionKey('')
     setBookAndChapter(reference.bookId, reference.chapter)
     setReferenceInput(formatReference(reference.bookId, reference.chapter, reference.verse, reference.verseEnd))
-    window.requestAnimationFrame(() => {
-      const shell = passageShellRef.current
-      if (!shell) return
-      shell.scrollTop = 0
-    })
   }, [])
 
   const handleSelectBook = useCallback(
@@ -1451,141 +1485,8 @@ export default function YouVersionReaderTab({
     return rows
   }, [compareCurrentVerses, comparePassageVerses])
 
-  useEffect(() => {
-    if (!compareOpen) {
-      compareScrollLockRef.current = null
-      setCompareActiveVerse('')
-      setCompareSelectedKey('')
-      return
-    }
-
-    const firstVerseNumber = compareVerseRows[0]?.verse ?? ''
-    const firstKey = firstVerseNumber && compareCurrentSectionKey ? `${compareCurrentSectionKey}:${firstVerseNumber}` : ''
-    compareLastActiveKeyRef.current = firstKey
-    setCompareActiveVerse(firstKey)
-
-    window.requestAnimationFrame(() => {
-      const currentPane = compareCurrentPaneRef.current
-      if (currentPane && currentPane.scrollTop !== 0) {
-        compareScrollLockRef.current = 'current'
-        currentPane.scrollTop = 0
-      }
-      window.requestAnimationFrame(() => {
-        const comparePane = compareComparePaneRef.current
-        if (comparePane && comparePane.scrollTop !== 0) {
-          compareScrollLockRef.current = 'compare'
-          comparePane.scrollTop = 0
-        }
-        window.requestAnimationFrame(() => {
-          compareScrollLockRef.current = null
-        })
-      })
-    })
-  }, [compareOpen, compareCurrentSectionKey, compareVerseRows])
-
-  const updateCompareActiveVerse = useCallback(
-    (side: ComparePaneSide) => {
-      if (compareScrollLockRef.current === side) return
-      if (Date.now() < compareSyncDisabledUntilRef.current) return
-
-      const pane = side === 'current' ? compareCurrentPaneRef.current : compareComparePaneRef.current
-      const otherSide = side === 'current' ? 'compare' : 'current'
-      const otherPane = otherSide === 'current' ? compareCurrentPaneRef.current : compareComparePaneRef.current
-      if (!pane || !otherPane) return
-
-      const paneRect = pane.getBoundingClientRect()
-      const focusX = paneRect.left + paneRect.width / 2
-      const focusY = paneRect.top + COMPARE_FOCUS_LINE
-      const element = document.elementFromPoint(focusX, focusY)
-      const card = element?.closest('[data-verse]') as HTMLElement | null
-
-      let verseEl: HTMLElement | null = null
-      if (!card) {
-        const labelX = Math.min(paneRect.right - 4, paneRect.left + 24)
-        for (let y = focusY; y >= paneRect.top; y -= 10) {
-          const el = document.elementFromPoint(labelX, y)
-          const v = el?.closest('.yv-v[v]') as HTMLElement | null
-          if (v) {
-            verseEl = v
-            break
-          }
-        }
-      }
-
-      let syncTop: number | null = null
-      let shouldSync = false
-
-      const isInView = (el: HTMLElement, container: HTMLElement) => {
-        const rect = el.getBoundingClientRect()
-        const cRect = container.getBoundingClientRect()
-        return rect.top >= cRect.top && rect.bottom <= cRect.bottom
-      }
-
-      if (card) {
-        const section = card.dataset.section
-        const verse = card.dataset.verse
-        if (section && verse) {
-          const activeKey = `${section}:${verse}`
-          if (compareLastActiveKeyRef.current !== activeKey) {
-            compareLastActiveKeyRef.current = activeKey
-            setCompareActiveVerse(activeKey)
-          }
-
-          const target = findCompareTarget(otherPane, section, verse)
-          if (target && !isInView(target, otherPane)) {
-            const sourceOffset = card.getBoundingClientRect().top - paneRect.top
-            syncTop = getCompareScrollTopByTop(otherPane, target, sourceOffset)
-            shouldSync = true
-          }
-        }
-      } else if (verseEl) {
-        const section = verseEl.closest('article[data-section]')?.getAttribute('data-section')
-        const verse = verseEl.getAttribute('v')
-        if (section && verse) {
-          const activeKey = `${section}:${verse}`
-          if (compareLastActiveKeyRef.current !== activeKey) {
-            compareLastActiveKeyRef.current = activeKey
-            setCompareActiveVerse(activeKey)
-          }
-
-          const target = findVerseTarget(otherPane, section, verse)
-          if (target && !isInView(target, otherPane)) {
-            const sourceOffset = verseEl.getBoundingClientRect().top - paneRect.top
-            syncTop = getCompareScrollTopByTop(otherPane, target, sourceOffset)
-            shouldSync = true
-          }
-        }
-      } else {
-        const sourceRatio = pane.scrollTop / Math.max(1, pane.scrollHeight - pane.clientHeight)
-        syncTop = sourceRatio * Math.max(1, otherPane.scrollHeight - otherPane.clientHeight)
-        shouldSync = true
-      }
-
-      if (shouldSync && syncTop !== null && Math.abs(syncTop - otherPane.scrollTop) > 1) {
-        compareScrollLockRef.current = otherSide
-        compareSyncDisabledUntilRef.current = Math.max(compareSyncDisabledUntilRef.current, Date.now() + 80)
-        otherPane.scrollTop = syncTop
-      }
-    },
-    [],
-  )
-
   const handleComparePaneScroll = useCallback(
     (side: ComparePaneSide) => {
-      if (compareScrollLockRef.current === side) {
-        compareScrollLockRef.current = null
-        return
-      }
-
-      if (compareScrollSync && Date.now() >= compareSyncDisabledUntilRef.current) {
-        if (compareScrollTimeoutRef.current) {
-          window.clearTimeout(compareScrollTimeoutRef.current)
-        }
-        compareScrollTimeoutRef.current = window.setTimeout(() => {
-          updateCompareActiveVerse(side)
-        }, 120)
-      }
-
       const pane = side === 'current' ? compareCurrentPaneRef.current : compareComparePaneRef.current
       if (!pane || !compareOpen || !compareSections.length || compareLoadingMoreRef.current) return
 
@@ -1598,7 +1499,7 @@ export default function YouVersionReaderTab({
         void appendNextCompareSection()
       }
     },
-    [appendNextCompareSection, compareOpen, compareScrollSync, compareSections.length, prependPreviousCompareSection, updateCompareActiveVerse],
+    [appendNextCompareSection, compareOpen, compareSections.length, prependPreviousCompareSection],
   )
 
   const handleCurrentPaneScroll = useCallback(
@@ -1612,10 +1513,6 @@ export default function YouVersionReaderTab({
 
   const handleCompareVerseClick = useCallback(
     (activeKey: string) => {
-      compareLastActiveKeyRef.current = activeKey
-      setCompareActiveVerse(activeKey)
-      setCompareSelectedKey(activeKey)
-
       const parsed = splitVerseKey(activeKey)
       if (!parsed) return
       const { section, verse } = parsed
@@ -1624,43 +1521,11 @@ export default function YouVersionReaderTab({
       const rawBookId = chapterParts[0]
       const chapter = chapterParts[1]
       if (rawBookId && chapter) {
+        readerSelectionSourceRef.current = 'reader'
         const bookCode = bookCodeById[rawBookId] ?? rawBookId
         onSelect(`${bookCode}.${chapter}.${verse}`)
+        setReferenceInput(`${bookCode} ${chapter}:${verse}`)
       }
-
-      compareSyncDisabledUntilRef.current = Date.now() + 800
-
-      const currentPane = compareCurrentPaneRef.current
-      if (currentPane) {
-        const currentTarget = findCompareTarget(currentPane, section, verse)
-        if (currentTarget) {
-          const currentPaneRect = currentPane.getBoundingClientRect()
-          const currentTargetRect = currentTarget.getBoundingClientRect()
-          const currentInView = currentTargetRect.top >= currentPaneRect.top && currentTargetRect.bottom <= currentPaneRect.bottom
-          if (!currentInView) {
-            compareScrollLockRef.current = 'current'
-            currentPane.scrollTo({ top: getCompareScrollTop(currentPane, currentTarget), behavior: 'smooth' })
-          }
-        }
-      }
-
-      const comparePane = compareComparePaneRef.current
-      if (comparePane) {
-        const compareTarget = findCompareTarget(comparePane, section, verse)
-        if (compareTarget) {
-          const comparePaneRect = comparePane.getBoundingClientRect()
-          const compareTargetRect = compareTarget.getBoundingClientRect()
-          const compareInView = compareTargetRect.top >= comparePaneRect.top && compareTargetRect.bottom <= comparePaneRect.bottom
-          if (!compareInView) {
-            compareScrollLockRef.current = 'compare'
-            comparePane.scrollTo({ top: getCompareScrollTop(comparePane, compareTarget), behavior: 'smooth' })
-          }
-        }
-      }
-
-      window.setTimeout(() => {
-        compareScrollLockRef.current = null
-      }, 800)
     },
     [bookCodeById, onSelect],
   )
@@ -1703,7 +1568,7 @@ export default function YouVersionReaderTab({
           <div className={isFlow ? 'yv-reader-verse-flow yv-reader-compare-verse-flow' : 'yv-reader-compare-verse-stack'}>
             {verses.map((verse) => {
               const activeKey = `${firstSectionKey}:${verse.verse}`
-              const isSelected = compareSelectedKey === activeKey
+              const isSelected = compareSelection?.key === activeKey
               const articleClass = isFlow
                 ? `yv-reader-verse-flow-item yv-reader-compare-verse-flow-item ${isSelected ? 'selected' : ''}`
                 : `yv-reader-compare-verse-card ${isSelected ? 'selected' : ''}`
@@ -1728,7 +1593,7 @@ export default function YouVersionReaderTab({
               const sectionVerses = isCurrent ? section.currentVerses : section.compareVerses
               return sectionVerses.map((verse) => {
                 const activeKey = `${section.key}:${verse.verse}`
-                const isSelected = compareSelectedKey === activeKey
+                const isSelected = compareSelection?.key === activeKey
                 const articleClass = isFlow
                   ? `yv-reader-verse-flow-item yv-reader-compare-verse-flow-item ${isSelected ? 'selected' : ''}`
                   : `yv-reader-compare-verse-card ${isSelected ? 'selected' : ''}`
@@ -1761,7 +1626,7 @@ export default function YouVersionReaderTab({
       compareExtraSections,
       comparePassageHtml,
       comparePassageVerses,
-      compareSelectedKey,
+      compareSelection,
       handleCompareVerseClick,
       readerView,
     ],
@@ -1786,10 +1651,11 @@ export default function YouVersionReaderTab({
       ariaLabel: string,
       activeVersionId: number | null,
       onSelect: (id: number) => void,
+      versions: readonly VersionMenuEntry[],
       menuClassName = '',
     ) => (
       <div className={`yv-reader-selector-menu ${menuClassName}`.trim()} role="menu" aria-label={ariaLabel}>
-        {availableVersions.map((entry) => {
+        {versions.map((entry) => {
           const entryLabel = formatVersionLabel(entry)
           const isActive = entry.id === activeVersionId
           return (
@@ -1809,7 +1675,7 @@ export default function YouVersionReaderTab({
         })}
       </div>
     ),
-    [availableVersions],
+    [],
   )
 
   const startResize = useCallback(
@@ -1946,7 +1812,7 @@ export default function YouVersionReaderTab({
                           subtitle={compareCurrentPassage?.reference ?? currentChapterLabel}
                           chevronSize={14}
                           menuRef={versionMenuRef}
-                          menu={versionMenuOpen ? renderVersionMenu('Bible version selection', resolvedVersionId, handleSelectCurrentVersion, 'yv-reader-current-pane-menu') : null}
+                          menu={versionMenuOpen ? renderVersionMenu('Bible version selection', resolvedVersionId, handleSelectCurrentVersion, availableVersions, 'yv-reader-current-pane-menu') : null}
                         />
 
                         <ReaderVersionSelector
@@ -1959,16 +1825,16 @@ export default function YouVersionReaderTab({
                           subtitle={comparePassage?.reference || compareVersionLabel.subtitle || 'Select a translation'}
                           chevronSize={16}
                           menuRef={compareVersionMenuRef}
-                          menu={compareVersionMenuOpen ? renderVersionMenu('Compare Bible version selection', compareVersionId, handleSelectCompareVersion, 'yv-reader-compare-pane-menu') : null}
+                          menu={compareVersionMenuOpen ? renderVersionMenu('Compare Bible version selection', compareVersionId, handleSelectCompareVersion, compareAvailableVersions, 'yv-reader-compare-pane-menu') : null}
                         />
 
                         <button
                           type="button"
-                          className={`yv-reader-compare-sync-toggle ${compareScrollSync ? 'active' : ''}`}
-                          onClick={() => setCompareScrollSync((sync) => !sync)}
-                          aria-pressed={compareScrollSync}
+                          className={`yv-reader-compare-sync-toggle ${autoScrollEnabled ? 'active' : ''}`}
+                          onClick={() => setAutoScrollEnabled((current) => !current)}
+                          aria-pressed={autoScrollEnabled}
                         >
-                          {compareScrollSync ? 'Sync: on' : 'Sync: off'}
+                          {autoScrollEnabled ? 'Auto: on' : 'Auto: off'}
                         </button>
                       </div>
                     </div>
@@ -1991,7 +1857,7 @@ export default function YouVersionReaderTab({
                     subtitle={versionSubtitle || copyright || 'Select a version'}
                     chevronSize={14}
                     menuRef={versionMenuRef}
-                    menu={renderVersionMenu('Bible version selection', resolvedVersionId, handleSelectCurrentVersion)}
+                    menu={renderVersionMenu('Bible version selection', resolvedVersionId, handleSelectCurrentVersion, availableVersions)}
                   />
                 </div>
                 <ReaderPassageStack
@@ -2002,7 +1868,7 @@ export default function YouVersionReaderTab({
                   focusedSectionKey={focusedSectionKey}
                   isLoadingSections={isLoadingSections}
                   selectedId={selectedId}
-                  onSelectVerse={onSelect}
+                  onSelectVerse={handleReaderVerseSelect}
                   bookCodeById={bookCodeById}
                 />
               </>

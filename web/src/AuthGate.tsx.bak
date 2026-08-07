@@ -152,7 +152,7 @@ function LoginScreen({
           <div style={{ color: 'var(--danger)', fontSize: '0.85rem' }}>{error}</div>
         )}
         <button type="submit" disabled={submitting}>
-          {submitting ? 'Signing in�' : 'Sign In'}
+          {submitting ? 'Signing in…' : 'Sign In'}
         </button>
         {onYouVersionLogin ? (
           <>
@@ -175,16 +175,11 @@ function LoginScreen({
 }
 
 export function AuthSignOutButton() {
-  const { signOut: yvSignOut } = useYVAuth()
-
   return (
     <button
       type="button"
       className="secondary"
-      onClick={async () => {
-        await signOut(auth)
-        await yvSignOut()
-      }}
+      onClick={() => signOut(auth)}
       title="Sign out"
       aria-label="Sign out"
       style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0.55rem' }}
@@ -194,7 +189,7 @@ export function AuthSignOutButton() {
   )
 }
 
-function AuthGateNoProvider({ children }: { children: ReactNode }) {
+export default function AuthGate({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<FirebaseUser | null | undefined>(undefined)
   const [showLogin, setShowLogin] = useState(false)
   const [theme, setTheme] = useState<Theme>(getInitialTheme)
@@ -214,6 +209,14 @@ function AuthGateNoProvider({ children }: { children: ReactNode }) {
 
   const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
 
+  const loginScreen = (
+    <LoginScreen onBack={() => setShowLogin(false)} theme={theme} onToggleTheme={toggleTheme} />
+  )
+
+  const landingScreen = (
+    <Landing onLogin={() => setShowLogin(true)} theme={theme} onToggleTheme={toggleTheme} />
+  )
+
   if (user === undefined) {
     return (
       <div
@@ -226,71 +229,26 @@ function AuthGateNoProvider({ children }: { children: ReactNode }) {
           color: 'var(--text-muted)',
         }}
       >
-        Loading�
+        Loading…
       </div>
     )
   }
 
   if (!user) {
-    return showLogin ? (
-      <LoginScreen onBack={() => setShowLogin(false)} theme={theme} onToggleTheme={toggleTheme} />
-    ) : (
-      <Landing onLogin={() => setShowLogin(true)} theme={theme} onToggleTheme={toggleTheme} />
-    )
-  }
+    if (!YOUVERSION_APP_KEY) {
+      return showLogin ? loginScreen : landingScreen
+    }
 
-  return <>{children}</>
-}
-
-function AuthGateContent({
-  children,
-  theme,
-  onToggleTheme,
-}: {
-  children: ReactNode
-  theme: Theme
-  onToggleTheme: () => void
-}) {
-  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null | undefined>(undefined)
-  const [showLogin, setShowLogin] = useState(false)
-  const { auth: yvAuth } = useYVAuth()
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
-      setFirebaseUser(nextUser)
-      if (!nextUser) setShowLogin(false)
-    })
-    return unsubscribe
-  }, [])
-
-  if (firebaseUser === undefined) {
     return (
-      <div
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'var(--bg)',
-          color: 'var(--text-muted)',
-        }}
-      >
-        Loading�
-      </div>
-    )
-  }
-
-  const isAuthenticated = Boolean(firebaseUser) || yvAuth.isAuthenticated
-
-  if (!isAuthenticated) {
-    return (
-      <AuthEntryScreen
-        showLogin={showLogin}
-        theme={theme}
-        onToggleTheme={onToggleTheme}
-        onLogin={() => setShowLogin(true)}
-        onBack={() => setShowLogin(false)}
-      />
+      <YouVersionProvider appKey={YOUVERSION_APP_KEY} theme={theme} includeAuth={true} authRedirectUrl={getYouVersionRedirectUrl()}>
+        <AuthEntryScreen
+          showLogin={showLogin}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          onLogin={() => setShowLogin(true)}
+          onBack={() => setShowLogin(false)}
+        />
+      </YouVersionProvider>
     )
   }
 
@@ -344,28 +302,5 @@ function AuthEntryScreen({
       onToggleTheme={onToggleTheme}
       onYouVersionLogin={handleYouVersionLogin}
     />
-  )
-}
-
-export default function AuthGate({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(getInitialTheme)
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme
-    localStorage.setItem('bible-study-theme', theme)
-  }, [theme])
-
-  const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
-
-  if (!YOUVERSION_APP_KEY) {
-    return <AuthGateNoProvider>{children}</AuthGateNoProvider>
-  }
-
-  return (
-    <YouVersionProvider appKey={YOUVERSION_APP_KEY} theme={theme} includeAuth={true} authRedirectUrl={getYouVersionRedirectUrl()}>
-      <AuthGateContent theme={theme} onToggleTheme={toggleTheme}>
-        {children}
-      </AuthGateContent>
-    </YouVersionProvider>
   )
 }

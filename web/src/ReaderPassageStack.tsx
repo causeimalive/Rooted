@@ -1,4 +1,4 @@
-import { Fragment, memo, useEffect, type RefObject } from 'react'
+import { Fragment, memo, useLayoutEffect, type RefObject } from 'react'
 
 type ReaderSection = {
   key: string
@@ -43,7 +43,7 @@ function ReaderPassageStack({
   onSelectVerse,
   bookCodeById,
 }: ReaderPassageStackProps) {
-  useEffect(() => {
+  useLayoutEffect(() => {
     const shell = passageShellRef.current
     if (!shell) return
     const previous = shell.querySelectorAll('.yv-reader-passage-html .yv-v.selected')
