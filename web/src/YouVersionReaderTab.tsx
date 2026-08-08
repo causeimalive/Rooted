@@ -521,6 +521,10 @@ export default function YouVersionReaderTab({
     const saved = getUserPreference(userId, READER_ENTITY_HIGHLIGHTS_KEY)
     return saved === null ? true : saved === 'true'
   })
+  useEffect(() => {
+    const saved = getUserPreference(userId, READER_ENTITY_HIGHLIGHTS_KEY)
+    setEntityHighlightsEnabled(saved === null ? true : saved === 'true')
+  }, [userId])
   const [hoverHighlightEnabled, setHoverHighlightEnabled] = useState(() => {
     const saved = getUserPreference(userId, READER_HOVER_HIGHLIGHT_KEY)
     return saved === 'true'
