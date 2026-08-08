@@ -13,7 +13,19 @@ function normalizeOrigin(origin: string): string {
 export function getYouVersionRedirectUrl() {
   const override = import.meta.env.VITE_YVP_REDIRECT_URL?.trim()
   if (override) {
-    return override
+    try {
+      const overrideUrl = new URL(override)
+      const currentUrl = new URL(normalizeOrigin(window.location.origin))
+      if (
+        overrideUrl.protocol === currentUrl.protocol &&
+        overrideUrl.hostname === currentUrl.hostname &&
+        overrideUrl.port === currentUrl.port
+      ) {
+        return override
+      }
+    } catch {
+      // fall through to current origin
+    }
   }
   return normalizeOrigin(window.location.origin)
 }
