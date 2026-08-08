@@ -21,11 +21,11 @@ export function getYouVersionRedirectUrl() {
         overrideUrl.hostname === currentUrl.hostname &&
         overrideUrl.port === currentUrl.port
       ) {
-        return override
+        return override.replace(/\/$/, '')
       }
     } catch {
       // fall through to current origin
     }
   }
-  return normalizeOrigin(window.location.origin)
+  return normalizeOrigin(window.location.origin).replace(/\/$/, '')
 }
