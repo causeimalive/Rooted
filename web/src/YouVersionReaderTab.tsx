@@ -476,6 +476,7 @@ export default function YouVersionReaderTab({
   }, [hasEntityData])
   const userId = userInfo?.userId
   const userIdRef = useRef<string | undefined>(userId)
+  const versionLanguage = useMemo(() => [language, 'eng'], [language])
 
   useEffect(() => {
     userIdRef.current = userInfo?.userId
@@ -561,7 +562,7 @@ export default function YouVersionReaderTab({
   const [focusedVerseLabel, setFocusedVerseLabel] = useState('')
   const [isLoadingSections, setIsLoadingSections] = useState(false)
   const [targetVerse, setTargetVerse] = useState<{ bookId: string; chapter: number; verse: number } | null>(null)
-  const { versions: versionCollection, loading: versionsLoading, error: versionsError } = useVersions(language, undefined, { all_available: true, page_size: 99 })
+  const { versions: versionCollection, loading: versionsLoading, error: versionsError } = useVersions(versionLanguage, undefined, { all_available: true, page_size: 99 })
   const [extraVersionPages, setExtraVersionPages] = useState<BibleVersion[]>([])
   useEffect(() => {
     setExtraVersionPages([])
@@ -570,7 +571,7 @@ export default function YouVersionReaderTab({
     let cancelled = false
     const fetchMore = async (nextToken: string) => {
       try {
-        const page = await bibleClient.getVersions(language, undefined, { all_available: true, page_size: 99, page_token: nextToken })
+        const page = await bibleClient.getVersions(versionLanguage, undefined, { all_available: true, page_size: 99, page_token: nextToken })
         if (cancelled) return
         setExtraVersionPages((prev) => [...prev, ...page.data])
         if (page.next_page_token) await fetchMore(page.next_page_token)
