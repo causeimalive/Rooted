@@ -149,6 +149,17 @@ function parsePassageId(passageId: string): { bookId: string; chapter: number } 
   return { bookId: match[1], chapter: Number(match[2]) }
 }
 
+const ACCESS_DENIED_MESSAGE =
+  'This translation requires a YouVersion account or is not available in your region. Sign in to read it.'
+
+function formatPassageError(error: unknown): string {
+  const text = error instanceof Error ? error.message : String(error)
+  if (text.includes('403') || /access denied/i.test(text) || /forbidden/i.test(text)) {
+    return ACCESS_DENIED_MESSAGE
+  }
+  return text
+}
+
 function transformPassageForBrowser(
   content: string,
   bookId?: string,
@@ -1076,7 +1087,7 @@ export default function YouVersionReaderTab({
       if (!section) return
       setSections((current) => (current.some((entry) => entry.key === section.key) ? current : [...current, section]))
     } catch (loadError) {
-      setLocalError(loadError instanceof Error ? loadError.message : String(loadError))
+      setLocalError(formatPassageError(loadError))
     } finally {
       loadingMoreRef.current = false
       setIsLoadingSections(false)
@@ -1106,7 +1117,7 @@ export default function YouVersionReaderTab({
         shell.scrollTop = previousScrollTop + (nextScrollHeight - previousScrollHeight)
       })
     } catch (loadError) {
-      setLocalError(loadError instanceof Error ? loadError.message : String(loadError))
+      setLocalError(formatPassageError(loadError))
     } finally {
       loadingMoreRef.current = false
       setIsLoadingSections(false)
@@ -1135,7 +1146,7 @@ export default function YouVersionReaderTab({
       if (!section) return
       setCompareSections((current) => (current.some((entry) => entry.key === section.key) ? current : [...current, section]))
     } catch (loadError) {
-      setLocalError(loadError instanceof Error ? loadError.message : String(loadError))
+      setLocalError(formatPassageError(loadError))
     } finally {
       compareLoadingMoreRef.current = false
       setCompareLoading(false)
@@ -1173,7 +1184,7 @@ export default function YouVersionReaderTab({
         shell.scrollTop = previousScrollTop + (nextScrollHeight - previousScrollHeight)
       })
     } catch (loadError) {
-      setLocalError(loadError instanceof Error ? loadError.message : String(loadError))
+      setLocalError(formatPassageError(loadError))
     } finally {
       compareLoadingMoreRef.current = false
       setCompareLoading(false)
@@ -1246,7 +1257,7 @@ export default function YouVersionReaderTab({
 
     void loadBufferedSections().catch((loadError) => {
       if (cancelled) return
-      setLocalError(loadError instanceof Error ? loadError.message : String(loadError))
+      setLocalError(formatPassageError(loadError))
       loadingMoreRef.current = false
       setIsLoadingSections(false)
     })
@@ -1296,7 +1307,7 @@ export default function YouVersionReaderTab({
 
     void loadBufferedCompareSections().catch((loadError) => {
       if (cancelled) return
-      const message = loadError instanceof Error ? loadError.message : String(loadError)
+      const message = formatPassageError(loadError)
       setLocalError(message)
       setCompareError(message)
       compareLoadingMoreRef.current = false
@@ -2048,6 +2059,11 @@ export default function YouVersionReaderTab({
   return (
     <div className="panel yv-reader-panel">
       <div className="yv-reader" style={readerStyle}>
+        {readerError && (
+          <div className="yv-reader-error-banner" role="alert" style={{ padding: '0.75rem 1rem', background: 'var(--danger-bg, rgba(239,68,68,0.15))', color: 'var(--danger, #ef4444)', textAlign: 'center', fontSize: '0.9rem' }}>
+            {readerError}
+          </div>
+        )}
         <div className="yv-reader-body" ref={readerBodyRef}>
           <aside className="yv-reader-nav">
             <div className="yv-reader-nav-header">
@@ -2147,7 +2163,19 @@ export default function YouVersionReaderTab({
             {compareOpen ? (
               <div className="yv-reader-compare-shell">
                 {compareError ? (
-                  <div className="empty yv-reader-error yv-reader-compare-empty">{compareError}</div>
+                  <div className="empty yv-reader-error yv-reader-compare-empty">
+                    {compareError}
+                    {compareError === ACCESS_DENIED_MESSAGE && !auth.isAuthenticated && (
+                      <button
+                        type="button"
+                        className="secondary"
+                        style={{ marginTop: '0.75rem' }}
+                        onClick={() => void handleYouVersionSignIn()}
+                      >
+                        Sign in with YouVersion
+                      </button>
+                    )}
+                  </div>
                 ) : !compareVerseRows.length ? (
                   <div className="empty yv-reader-compare-empty">Select a comparison version to see the passage side-by-side.</div>
                 ) : (
