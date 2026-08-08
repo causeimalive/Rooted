@@ -1,4 +1,4 @@
-import { FormEvent, ReactNode, useEffect, useState } from 'react'
+import { FormEvent, ReactNode, useEffect, useRef, useState } from 'react'
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
@@ -253,7 +253,9 @@ function AuthGateContent({
 }) {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null | undefined>(undefined)
   const [showLogin, setShowLogin] = useState(false)
-  const { auth: yvAuth } = useYVAuth()
+  const [isYvCallbackLoading, setIsYvCallbackLoading] = useState(false)
+  const { auth: yvAuth, processCallback } = useYVAuth()
+  const callbackProcessed = useRef(false)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
@@ -263,7 +265,16 @@ function AuthGateContent({
     return unsubscribe
   }, [])
 
-  if (firebaseUser === undefined) {
+  useEffect(() => {
+    if (callbackProcessed.current) return
+    const search = new URLSearchParams(window.location.search)
+    if (!search.has('code') && !search.has('error') && !search.has('state')) return
+    callbackProcessed.current = true
+    setIsYvCallbackLoading(true)
+    void processCallback().finally(() => setIsYvCallbackLoading(false))
+  }, [processCallback])
+
+  if (firebaseUser === undefined || isYvCallbackLoading) {
     return (
       <div
         style={{
@@ -275,7 +286,7 @@ function AuthGateContent({
           color: 'var(--text-muted)',
         }}
       >
-        Loading�
+        Loading…
       </div>
     )
   }
@@ -310,17 +321,7 @@ function AuthEntryScreen({
   onLogin: () => void
   onBack: () => void
 }) {
-  const { signIn, processCallback } = useYVAuth()
-
-  useEffect(() => {
-    const search = new URLSearchParams(window.location.search)
-    if (!search.has('code') && !search.has('error') && !search.has('state')) return
-
-    void processCallback().catch((error) => {
-      // eslint-disable-next-line no-console
-      console.error('YouVersion auth callback failed:', error)
-    })
-  }, [processCallback])
+  const { signIn } = useYVAuth()
 
   const handleYouVersionLogin = async () => {
     await signIn({
@@ -342,7 +343,6 @@ function AuthEntryScreen({
       onLogin={onLogin}
       theme={theme}
       onToggleTheme={onToggleTheme}
-      onYouVersionLogin={handleYouVersionLogin}
     />
   )
 }

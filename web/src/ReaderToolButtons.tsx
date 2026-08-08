@@ -1,27 +1,52 @@
 import { memo } from 'react'
-import { AlignJustify, ArrowLeftRight, Bookmark, BookOpen, Type } from 'lucide-react'
+import { AlignJustify, ArrowLeftRight, BookOpen, Highlighter, Quote, RefreshCw, Tag, Type } from 'lucide-react'
 import type { ReaderView, Verse } from './types'
 
 type ReaderToolButtonsProps = {
   readerView: ReaderView
   compareOpen: boolean
-  selectedVerse?: Verse
+  autoScrollEnabled: boolean
+  redLetterEnabled: boolean
+  hoverHighlightEnabled: boolean
+  entityHighlightsEnabled: boolean
   onSetReaderView: (view: ReaderView) => void
   onToggleCompare: () => void
-  onSelectVerse: (verseId: string) => void
+  onToggleAutoScroll: () => void
+  onToggleRedLetter: () => void
+  onToggleHoverHighlight: () => void
+  onToggleEntityHighlights: () => void
 }
+
+type LegendItem = {
+  tag: string
+  label: string
+  color: string
+}
+
+const LEGEND: LegendItem[] = [
+  { tag: 'div', label: 'Divine', color: '#c4a35a' },
+  { tag: 'dq', label: 'Direct quote', color: '#d15a5a' },
+  { tag: 'ndq', label: 'Indirect quote', color: '#b8a8e0' },
+  { tag: 'per', label: 'Person', color: '#5a9fd1' },
+  { tag: 'geo', label: 'Place', color: '#5ad18b' },
+  { tag: 'grp', label: 'Group', color: '#d19c5a' },
+]
 
 function ReaderToolButtons({
   readerView,
   compareOpen,
-  selectedVerse,
+  autoScrollEnabled,
+  redLetterEnabled,
+  hoverHighlightEnabled,
+  entityHighlightsEnabled,
   onSetReaderView,
   onToggleCompare,
-  onSelectVerse,
+  onToggleAutoScroll,
+  onToggleRedLetter,
+  onToggleHoverHighlight,
+  onToggleEntityHighlights,
 }: ReaderToolButtonsProps) {
-  const handleSelectVerse = () => {
-    if (selectedVerse) onSelectVerse(selectedVerse.id)
-  }
+  const legendOpen = entityHighlightsEnabled
 
   return (
     <div className="yv-reader-nav-tools" role="group" aria-label="Reading tools">
@@ -67,14 +92,43 @@ function ReaderToolButtons({
       </button>
       <button
         type="button"
-        className="yv-reader-meta-icon-button"
-        aria-label="Highlight selected verse"
-        title="Highlight selected verse"
-        onClick={handleSelectVerse}
-        disabled={!selectedVerse}
+        className={`yv-reader-meta-icon-button ${autoScrollEnabled ? 'active' : ''}`}
+        aria-pressed={autoScrollEnabled}
+        aria-label={autoScrollEnabled ? 'Turn auto sync off' : 'Turn auto sync on'}
+        title={autoScrollEnabled ? 'Auto sync on' : 'Auto sync off'}
+        onClick={onToggleAutoScroll}
       >
-        <Bookmark size={15} />
+        <RefreshCw size={15} />
       </button>
+      <button
+        type="button"
+        className={`yv-reader-meta-icon-button ${redLetterEnabled ? 'active' : ''}`}
+        aria-pressed={redLetterEnabled}
+        aria-label={redLetterEnabled ? 'Turn red letter off' : 'Turn red letter on'}
+        title={redLetterEnabled ? 'Red letter on' : 'Red letter off'}
+        onClick={onToggleRedLetter}
+      >
+        <Quote size={15} />
+      </button>
+      <button
+        type="button"
+        className={`yv-reader-meta-icon-button ${entityHighlightsEnabled ? 'active' : ''}`}
+        aria-pressed={entityHighlightsEnabled}
+        aria-label={entityHighlightsEnabled ? 'Turn named-entity highlights off' : 'Turn named-entity highlights on'}
+        title={entityHighlightsEnabled ? 'Named-entity highlights on' : 'Named-entity highlights off'}
+        onClick={onToggleEntityHighlights}
+      >
+        <Tag size={15} />
+      </button>
+
+      <div className={`yv-reader-entity-legend ${legendOpen ? 'open' : ''}`} aria-hidden={!legendOpen}>
+        {LEGEND.map((item) => (
+          <div key={item.tag} className="yv-reader-legend-item">
+            <span className="yv-reader-legend-swatch" style={{ backgroundColor: item.color, borderColor: item.color }} />
+            <span className="yv-reader-legend-label">{item.label}</span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

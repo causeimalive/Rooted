@@ -1,10 +1,20 @@
 import { useEffect, useState } from 'react'
 
+export interface WikiImage {
+  title: string
+  url: string
+  thumbUrl: string
+  width?: number
+  height?: number
+}
+
 export interface WikiSummary {
   title: string
   extract: string
   thumbnailUrl?: string
+  imageUrl?: string
   pageUrl: string
+  images: WikiImage[]
 }
 
 // Manual overrides for places/characters whose plain name is ambiguous or
@@ -36,6 +46,8 @@ export const WIKI_TITLE_OVERRIDES: Record<string, string> = {
 
 const cache = new Map<string, WikiSummary | null>()
 const inflight = new Map<string, Promise<WikiSummary | null>>()
+const imageCache = new Map<string, WikiImage[] | null>()
+const imageInflight = new Map<string, Promise<WikiImage[] | null>>()
 
 function wikipediaPageUrl(title: string): string {
   return `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, '_'))}`
@@ -59,7 +71,13 @@ export async function fetchWikiSummary(title: string): Promise<WikiSummary | nul
         title: data.title ?? title,
         extract: data.extract,
         thumbnailUrl: data.thumbnail?.source ?? data.originalimage?.source,
+        imageUrl: data.originalimage?.source ?? data.thumbnail?.source,
         pageUrl: data.content_urls?.desktop?.page ?? wikipediaPageUrl(title),
+        images: data.originalimage?.source
+          ? [{ title: data.title ?? title, url: data.originalimage.source, thumbUrl: data.thumbnail?.source ?? data.originalimage.source }]
+          : data.thumbnail?.source
+            ? [{ title: data.title ?? title, url: data.thumbnail.source, thumbUrl: data.thumbnail.source }]
+            : [],
       }
       cache.set(title, summary)
       return summary
@@ -100,6 +118,91 @@ export function useWikiSummary(id: string | undefined, fallbackTitle: string | u
     setState({ loading: true, data: null })
     fetchWikiSummary(title).then((data) => {
       if (!cancelled) setState({ loading: false, data })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [title])
+
+  return state
+}
+
+async function fetchWikiImagesForTitle(title: string): Promise<WikiImage[] | null> {
+  const encodedTitle = encodeURIComponent(title.replace(/ /g, '_'))
+  try {
+    const res = await fetch(
+      `https://en.wikipedia.org/w/api.php?action=query&prop=images&titles=${encodedTitle}&format=json&origin=*`,
+      { headers: { Accept: 'application/json' } },
+    )
+    if (!res.ok) return null
+    const data = await res.json()
+    const pages = data.query?.pages ?? {}
+    const page = Object.values(pages)[0] as { images?: Array<{ title: string; ns: number }> } | undefined
+    const imageFiles = (page?.images ?? [])
+      .filter((image) => image.ns === 6 && image.title.startsWith('File:'))
+      .slice(0, 12)
+    if (!imageFiles.length) return null
+
+    const fileTitles = imageFiles.map((image) => image.title).join('|')
+    const infoRes = await fetch(
+      `https://en.wikipedia.org/w/api.php?action=query&prop=imageinfo&titles=${encodeURIComponent(fileTitles)}&iiprop=url|size|mime&iiurlwidth=600&format=json&origin=*`,
+      { headers: { Accept: 'application/json' } },
+    )
+    if (!infoRes.ok) return null
+    const infoData = await infoRes.json()
+    const infoPages = infoData.query?.pages ?? {}
+    const images: WikiImage[] = []
+    for (const infoPage of Object.values(infoPages) as Array<{
+      title: string
+      imageinfo?: Array<{ url: string; thumburl?: string; width: number; height: number; mime: string }>
+    }>) {
+      const info = infoPage.imageinfo?.[0]
+      if (!info || !info.mime.startsWith('image/')) continue
+      images.push({
+        title: infoPage.title,
+        url: info.url,
+        thumbUrl: info.thumburl ?? info.url,
+        width: info.width,
+        height: info.height,
+      })
+    }
+    return images
+  } catch {
+    return null
+  }
+}
+
+export function useWikiImages(title: string | undefined): { loading: boolean; images: WikiImage[] } {
+  const [state, setState] = useState<{ loading: boolean; images: WikiImage[] }>({ loading: Boolean(title), images: [] })
+
+  useEffect(() => {
+    if (!title) {
+      setState({ loading: false, images: [] })
+      return
+    }
+    let cancelled = false
+    const normalized = title.replace(/ /g, '_')
+    const cached = imageCache.get(normalized)
+    if (cached) {
+      setState({ loading: false, images: cached })
+      return
+    }
+    const inflight = imageInflight.get(normalized)
+    if (inflight) {
+      inflight.then((images) => {
+        if (!cancelled) setState({ loading: false, images: images ?? [] })
+      })
+      return
+    }
+    setState({ loading: true, images: [] })
+    const promise = fetchWikiImagesForTitle(title).then((images) => {
+      imageCache.set(normalized, images)
+      imageInflight.delete(normalized)
+      return images ?? []
+    })
+    imageInflight.set(normalized, promise)
+    promise.then((images) => {
+      if (!cancelled) setState({ loading: false, images })
     })
     return () => {
       cancelled = true

@@ -1,4 +1,6 @@
 import { Fragment, memo, useLayoutEffect, type RefObject } from 'react'
+import { Bookmark } from 'lucide-react'
+import { useI18n } from './i18n'
 
 type ReaderSection = {
   key: string
@@ -29,6 +31,8 @@ type ReaderPassageStackProps = {
   isLoadingSections: boolean
   selectedId?: string | null
   onSelectVerse?: (verseId: string) => void
+  onToggleBookmark?: (verseId: string) => void
+  bookmarkedVerseIds?: Set<string>
   bookCodeById?: Record<string, string>
 }
 
@@ -41,8 +45,11 @@ function ReaderPassageStack({
   isLoadingSections,
   selectedId,
   onSelectVerse,
+  onToggleBookmark,
+  bookmarkedVerseIds,
   bookCodeById,
 }: ReaderPassageStackProps) {
+  const { t } = useI18n()
   useLayoutEffect(() => {
     const shell = passageShellRef.current
     if (!shell) return
@@ -99,10 +106,12 @@ function ReaderPassageStack({
                       const bookCode = bookCodeById?.[section.bookId] ?? section.bookId
                       const verseId = `${bookCode}.${section.chapter}.${verse.verse}`
                       const selected = selectedId === verseId
+                      const isBookmarked = bookmarkedVerseIds?.has(verseId) ?? false
+                      const label = isBookmarked ? t('unbookmark') : t('bookmark')
                       return (
                         <article
                           key={`${section.key}-${verse.verse}`}
-                          className={`yv-reader-verse-card ${selected ? 'selected' : ''}`}
+                          className={`yv-reader-verse-card ${selected ? 'selected' : ''} ${isBookmarked ? 'bookmarked' : ''}`}
                           data-verse={verse.verse}
                           onClick={() => onSelectVerse?.(verseId)}
                         >
@@ -111,6 +120,20 @@ function ReaderPassageStack({
                             className="yv-reader-verse-content"
                             dangerouslySetInnerHTML={{ __html: verse.strippedHtml }}
                           />
+                          {selected && (
+                            <button
+                              type="button"
+                              className="yv-reader-verse-bookmark"
+                              title={label}
+                              aria-label={label}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onToggleBookmark?.(verseId)
+                              }}
+                            >
+                              <Bookmark size={14} fill={isBookmarked ? 'currentColor' : 'none'} />
+                            </button>
+                          )}
                         </article>
                       )
                     })}
@@ -125,14 +148,30 @@ function ReaderPassageStack({
                       const bookCode = bookCodeById?.[section.bookId] ?? section.bookId
                       const verseId = `${bookCode}.${section.chapter}.${verse.verse}`
                       const selected = selectedId === verseId
+                      const isBookmarked = bookmarkedVerseIds?.has(verseId) ?? false
+                      const label = isBookmarked ? t('unbookmark') : t('bookmark')
                       return (
                         <article
                           key={`${section.key}-${verse.verse}`}
-                          className={`yv-reader-verse-flow-item ${selected ? 'selected' : ''}`}
+                          className={`yv-reader-verse-flow-item ${selected ? 'selected' : ''} ${isBookmarked ? 'bookmarked' : ''}`}
                           data-verse={verse.verse}
                           onClick={() => onSelectVerse?.(verseId)}
                         >
                           <div className="yv-reader-verse-flow-content" dangerouslySetInnerHTML={{ __html: verse.html }} />
+                          {selected && (
+                            <button
+                              type="button"
+                              className="yv-reader-verse-bookmark"
+                              title={label}
+                              aria-label={label}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onToggleBookmark?.(verseId)
+                              }}
+                            >
+                              <Bookmark size={14} fill={isBookmarked ? 'currentColor' : 'none'} />
+                            </button>
+                          )}
                         </article>
                       )
                     })}

@@ -33,7 +33,17 @@ function ReaderVersionSelector({
           type="button"
           className={buttonClassName ?? 'yv-reader-version-button'}
           aria-expanded={menuOpen}
-          onClick={onToggleMenu}
+          onPointerDown={(event) => {
+            if (event.button !== 0) return
+            event.preventDefault()
+            onToggleMenu()
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault()
+              onToggleMenu()
+            }
+          }}
         >
           <span>
             <strong>{title}</strong>
@@ -47,4 +57,4 @@ function ReaderVersionSelector({
   )
 }
 
-export default memo(ReaderVersionSelector)
+export default ReaderVersionSelector

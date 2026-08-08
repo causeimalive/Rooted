@@ -37,12 +37,10 @@ export default function Landing({
   onLogin,
   theme,
   onToggleTheme,
-  onYouVersionLogin,
 }: {
   onLogin: () => void
   theme: 'dark' | 'light'
   onToggleTheme: () => void
-  onYouVersionLogin?: () => void | Promise<void>
 }) {
   const brandingVersion = '20260803g'
   const backdropLogo = theme === 'dark'
@@ -71,11 +69,6 @@ export default function Landing({
           <button className="landing-login-btn" onClick={onLogin}>
             <LogIn size={16} /> Log In
           </button>
-          {onYouVersionLogin ? (
-            <button className="landing-login-btn" onClick={() => void onYouVersionLogin()}>
-              <LogIn size={16} /> Sign in with YouVersion
-            </button>
-          ) : null}
         </div>
       </header>
 

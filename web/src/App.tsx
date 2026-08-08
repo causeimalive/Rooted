@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from 'react'
 import { onAuthStateChanged } from 'firebase/auth'
 import { Capacitor } from '@capacitor/core'
 import {
@@ -11,6 +11,9 @@ import {
   Bookmark,
   Loader2,
   X,
+  ChevronLeft,
+  ChevronRight,
+  Maximize2,
   Moon,
   Sun,
   Globe,
@@ -37,6 +40,8 @@ import {
   type NetworkTheme,
   type VerseMatch,
 } from './bible'
+import { redLetterVerseHtml } from './redLetter'
+import { useEntityData } from './useEntityData'
 import {
   fetchYouVersionAudioChapter,
   fetchYouVersionPassage,
@@ -67,7 +72,7 @@ import { getMapStyle } from './mapStyles'
 import WikiMediaCard from './WikiMediaCard'
 import LexiconTab from './LexiconTab'
 import YouVersionReaderTab from './YouVersionReaderTab'
-import NetworkScene from './NetworkScene'
+import RootedNetwork3DScene from './RootedNetwork3DScene'
 import { AuthSignOutButton } from './AuthGate'
 import {
   addRecentSearch,
@@ -82,7 +87,7 @@ import { auth } from './firebase'
 import { Bookmark as BookmarkType, Verse, type Place, type RecentSearch } from './types'
 import type { Character } from './types'
 import { useI18n } from './i18n'
-import { getWikipediaLink, useWikiSummary } from './wikipedia'
+import { getWikipediaLink, useWikiImages, useWikiSummary, type WikiImage } from './wikipedia'
 import { useBibleClient, useBooks, useChapters, useHighlights, useVersion, useVersions, useYVAuth } from '@youversion/platform-react-hooks'
 import { getYouVersionRedirectUrl } from './youversionRedirect'
 
@@ -438,7 +443,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <audio ref={audioRef} src={audioUrl} onEnded={() => setAudioPlaying(false)} onPause={() => setAudioPlaying(false)} onPlay={() => setAudioPlaying(true)} />
+      <audio ref={audioRef} src={audioUrl || undefined} onEnded={() => setAudioPlaying(false)} onPause={() => setAudioPlaying(false)} onPlay={() => setAudioPlaying(true)} />
       <header>
         <h1>
           <img
@@ -559,10 +564,17 @@ export default function App() {
           )}
           {tab === 'reader' && (
             YOUVERSION_APP_KEY ? (
-              <YouVersionProvider appKey={YOUVERSION_APP_KEY} theme={theme} includeAuth={true} authRedirectUrl={getYouVersionRedirectUrl()}>
+              <YouVersionProvider
+                appKey={YOUVERSION_APP_KEY}
+                theme={theme}
+                includeAuth={true}
+                authRedirectUrl={getYouVersionRedirectUrl()}
+              >
                 <YouVersionReaderTab
                   selectedId={selectedId}
                   onSelect={setSelectedId}
+                  bookmarks={bookmarks}
+                  onToggleBookmark={handleBookmark}
                 />
               </YouVersionProvider>
             ) : (
@@ -952,7 +964,7 @@ function SearchTab({
               <div
                 key={verse.id}
                 className={`verse-card ${selectedId === verse.id ? 'active' : ''}`}
-                onClick={() => onSelect(verse.id)}
+                onClick={() => onSelectResult(verse.id, `${verse.bookName} ${verse.chapter}:${verse.verse}`)}
                 onPointerEnter={() => onHoverVerse(verse.id)}
                 onFocus={() => onHoverVerse(verse.id)}
               >
@@ -966,7 +978,12 @@ function SearchTab({
                     <Bookmark size={14} fill="currentColor" />
                   </button>
                 </div>
-                <div className="verse-text">{verse.text}</div>
+                <div
+                  className="verse-text"
+                  dangerouslySetInnerHTML={{
+                    __html: redLetterVerseHtml(verse.text, verse.book, verse.chapter, verse.verse),
+                  }}
+                />
               </div>
             ))
           )
@@ -1000,7 +1017,12 @@ function SearchTab({
                           {bookmarked.has(verse.id) ? <Bookmark size={14} fill="currentColor" /> : <Bookmark size={14} />}
                         </button>
                       </div>
-                      <div className="verse-text">{verse.text}</div>
+                      <div
+                        className="verse-text"
+                        dangerouslySetInnerHTML={{
+                          __html: redLetterVerseHtml(verse.text, verse.book, verse.chapter, verse.verse),
+                        }}
+                      />
                     </div>
                   )
                 })}
@@ -1462,9 +1484,9 @@ function buildBibleHierarchyNodes(allVerses: Verse[]): NetworkNode[] {
   versesByBookChapter.forEach((verses) => verses.sort((a, b) => a.verse - b.verse))
 
   const nodes: NetworkNode[] = []
-  const bookRadius = 800
-  const chapterRadius = 150
-  const verseRadius = 42
+  const bookRadius = 480
+  const chapterRadius = 90
+  const verseRadius = 26
 
   bookOrder.forEach((book, bookIndex) => {
     const bookPos = fibonacciSpherePoint(bookIndex, bookOrder.length, bookRadius)
@@ -1548,13 +1570,30 @@ function NetworkTab({
 }) {
   const { t } = useI18n()
   const all = getAllVerses()
-  const centerVerse = selectedVerse ?? fallbackVerse
+  const { tagsByVerseId } = useEntityData()
+  const bookNumberByCode = useMemo(() => {
+    const map = new Map<string, number>()
+    const seen = new Set<string>()
+    for (const v of all) {
+      if (seen.has(v.book)) continue
+      seen.add(v.book)
+      map.set(v.book, map.size + 1)
+    }
+    return map
+  }, [all])
   // Drill-down state for the book -> chapter -> verse hierarchy. Books are
   // always visible; chapters only appear for the focused book (narrowed to
   // the previous/next chapter once a specific chapter is focused); verses
   // only appear for the focused chapter.
+  const [networkSelectedVerse, setNetworkSelectedVerse] = useState<Verse | null>(null)
   const [mapFocusBookId, setMapFocusBookId] = useState<string | null>(null)
   const [mapFocusChapter, setMapFocusChapter] = useState<number | null>(null)
+  const sidebarOpen = Boolean(networkSelectedVerse)
+  const networkLayoutStyle = {
+    '--network-sidebar-width': sidebarOpen ? 'clamp(360px, 34vw, 520px)' : '0px',
+    '--network-sidebar-gap': sidebarOpen ? '1.25rem' : '0px',
+  } as CSSProperties
+  const centerVerse = networkSelectedVerse ?? selectedVerse ?? fallbackVerse
   useEffect(() => {
     if (centerVerse) {
       setMapFocusBookId(centerVerse.book)
@@ -1729,6 +1768,13 @@ function NetworkTab({
     [centerNode, focusedNodeId, hoveredNodeId, sceneNodeById, selectedNode]
   )
   const focusedVerse = focusedNode?.verse ?? centerVerse
+  const focusedVerseTags = useMemo(() => {
+    if (!focusedVerse) return null
+    const bookNumber = bookNumberByCode.get(focusedVerse.book)
+    if (!bookNumber) return null
+    const key = `${String(bookNumber).padStart(2, '0')}${String(focusedVerse.chapter).padStart(3, '0')}${String(focusedVerse.verse).padStart(3, '0')}`
+    return tagsByVerseId[key] ?? null
+  }, [focusedVerse, bookNumberByCode, tagsByVerseId])
   const focusedMatch = focusedVerse ? relatedMatches.find((match) => match.verse.id === focusedVerse.id) : undefined
   const focusedTheme = focusedNode?.kind === 'theme' ? themes.find((theme) => theme.label === focusedNode.label) : undefined
   const themeMatches = focusedTheme ? relatedMatches.filter((match) => match.sharedTerms.includes(focusedTheme.label)) : []
@@ -1995,20 +2041,18 @@ function NetworkTab({
         </div>
       </div>
 
-      <div className="bubble-grid network-grid">
+      <div className="network-grid" style={networkLayoutStyle}>
         <section className="bubble-canvas-card network-stage-card">
-          <NetworkScene
-            nodes={sceneNodes}
-            edges={edges}
-            focus={graphFocus}
-            selectedId={selectedId}
+          <RootedNetwork3DScene
             theme={theme}
-            onSelect={handleSceneSelect}
-            onHoverNode={setHoveredNodeId}
+            onVerseSelect={(verse: Verse | null) => {
+              setNetworkSelectedVerse(verse)
+              if (verse) onSelect(verse.id)
+            }}
           />
         </section>
 
-        <aside className="bubble-sidebar network-sidebar">
+        <aside className={`network-sidebar ${sidebarOpen ? 'open' : ''}`}>
           <div className="bubble-card network-focus-card">
             <div className="network-focus-topline">
               <span className="network-focus-badge">{focusedNode?.kind === 'theme' ? t('networkThemeFocus') : hoveredNodeId ? t('networkPreview') : t('networkVerseFocus')}</span>
@@ -2127,6 +2171,19 @@ function NetworkTab({
             </div>
           )}
 
+          {focusedVerseTags && Object.keys(focusedVerseTags).length > 0 && (
+            <div className="bubble-card network-entities-card">
+              <h3>Named entities</h3>
+              <div className="network-entity-list">
+                {Object.entries(focusedVerseTags).map(([tag, count]) => (
+                  <span key={tag} className={`network-entity-chip entity-${tag}`} title={`${count} word${count === 1 ? '' : 's'}`}>
+                    {tag.toUpperCase()} <small>{count}</small>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="bubble-card">
             <h3>{t('networkRelated')}</h3>
             <div className="bubble-list network-related-list">
@@ -2168,6 +2225,27 @@ function NetworkTab({
 
 const MAP_LIBRARIES: 'places'[] = []
 const DEFAULT_MAP_CENTER = { lat: 31.5, lng: 35.2 }
+
+const MAP_THEME_PALETTE = {
+  dark: {
+    fallbackBackdrop: 'linear-gradient(180deg, #241b10 0%, #19140d 100%)',
+    route: '#b88b3e',
+    markerDefault: '#a86f3a',
+    markerRelevant: '#cbb56f',
+    markerActive: '#f0d57b',
+    markerStroke: '#2d2215',
+    markerActiveStroke: '#fff7e2',
+  },
+  light: {
+    fallbackBackdrop: 'linear-gradient(180deg, #f4ead7 0%, #e8ddc9 100%)',
+    route: '#9f7236',
+    markerDefault: '#a86f3a',
+    markerRelevant: '#c9b16a',
+    markerActive: '#f0d57b',
+    markerStroke: '#2d2215',
+    markerActiveStroke: '#fff7e2',
+  },
+} as const
 
 interface FallbackMapPoint {
   place: Place
@@ -2285,6 +2363,7 @@ function FallbackMapView({
   theme: 'dark' | 'light'
 }) {
   const [containerRef, viewport] = useElementSize<HTMLDivElement>()
+  const palette = MAP_THEME_PALETTE[theme]
   const centerWorld = useMemo(() => latLngToWorld(center.lat, center.lng, FALLBACK_MAP_ZOOM), [center])
   const tileCount = 2 ** FALLBACK_MAP_ZOOM
   const topLeft = {
@@ -2344,22 +2423,13 @@ function FallbackMapView({
       .filter((point) => point.x >= -32 && point.x <= viewport.width + 32 && point.y >= -32 && point.y <= viewport.height + 32)
   }, [pathPoints, topLeft.x, topLeft.y, viewport.height, viewport.width])
 
-  const backdrop =
-    theme === 'dark'
-      ? { background: 'linear-gradient(180deg, #2a2213 0%, #241b10 100%)' }
-      : { background: 'linear-gradient(180deg, #f4ead7 0%, #e8ddc9 100%)' }
-
-  const water = theme === 'dark' ? '#8f7a5b' : '#a4bcc3'
-  const land = theme === 'dark' ? '#3a3419' : '#ecdcc2'
-  const route = '#8a6d3b'
-
   return (
-    <div ref={containerRef} className="map-canvas map-canvas-fallback" style={backdrop}>
+    <div ref={containerRef} className="map-canvas map-canvas-fallback" style={{ background: palette.fallbackBackdrop }}>
       {viewport.width > 0 && viewport.height > 0 && tiles.map((tile) => (
         <img
           key={`${tile.src}-${tile.x}-${tile.y}`}
           className="map-tile"
-          src={tile.src}
+          src={tile.src || undefined}
           alt=""
           aria-hidden="true"
           draggable={false}
@@ -2372,7 +2442,7 @@ function FallbackMapView({
           <polyline
             points={pathPixels.map((point) => `${point.x},${point.y}`).join(' ')}
             fill="none"
-            stroke={route}
+            stroke={palette.route}
             strokeOpacity="0.95"
             strokeWidth="3"
             strokeLinecap="round"
@@ -2411,56 +2481,209 @@ function MapPlacePopup({
 }) {
   const { t } = useI18n()
   const { loading, data } = useWikiSummary(place.id, place.name)
+  const { images: extraImages } = useWikiImages(data?.title)
   const wikiLink = data?.pageUrl ?? getWikipediaLink(place.id, place.name)
   const highlightedPassages = useMemo(() => place.passages.slice(0, 6), [place.passages])
 
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [activeImageIndex, setActiveImageIndex] = useState(0)
+
+  const allImages = useMemo<WikiImage[]>(() => {
+    const images: WikiImage[] = []
+    if (data?.imageUrl) {
+      images.push({
+        title: data.title,
+        url: data.imageUrl,
+        thumbUrl: data.thumbnailUrl ?? data.imageUrl,
+      })
+    } else if (data?.thumbnailUrl) {
+      images.push({
+        title: data.title,
+        url: data.thumbnailUrl,
+        thumbUrl: data.thumbnailUrl,
+      })
+    }
+    for (const image of extraImages) {
+      if (images.some((existing) => existing.url === image.url)) continue
+      images.push(image)
+    }
+    return images
+  }, [data, extraImages])
+
+  const openLightbox = useCallback(() => {
+    setLightboxOpen(true)
+  }, [])
+
+  const closeLightbox = useCallback(() => setLightboxOpen(false), [])
+
+  const nextImage = useCallback(() => {
+    setActiveImageIndex((current) => (current + 1) % allImages.length)
+  }, [allImages.length])
+
+  const previousImage = useCallback(() => {
+    setActiveImageIndex((current) => (current - 1 + allImages.length) % allImages.length)
+  }, [allImages.length])
+
+  useEffect(() => {
+    if (lightboxOpen) return
+    setActiveImageIndex(0)
+  }, [lightboxOpen, place.id])
+
+  const popupImage = allImages[activeImageIndex] ?? {
+    thumbUrl: data?.thumbnailUrl,
+    url: data?.imageUrl ?? data?.thumbnailUrl,
+    title: data?.title ?? place.name,
+  }
+
+  useEffect(() => {
+    if (!lightboxOpen) return
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeLightbox()
+      if (event.key === 'ArrowRight') nextImage()
+      if (event.key === 'ArrowLeft') previousImage()
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [lightboxOpen, closeLightbox, nextImage, previousImage])
+
+  const activeImage = allImages[activeImageIndex]
+
   return (
-    <div className="map-place-popup" role="dialog" aria-label={place.name} aria-live="polite">
-      <button type="button" className="map-place-popup-close" onClick={onClose} aria-label={t('close')}>
-        <X size={14} />
-      </button>
+    <>
+      <div className="map-place-popup" role="dialog" aria-label={place.name} aria-live="polite">
+        <button type="button" className="map-place-popup-close" onClick={onClose} aria-label={t('close')}>
+          <X size={20} />
+        </button>
 
-      <div className="map-place-popup-media">
-        {loading ? (
-          <div className="map-place-popup-media-loading">
-            <Loader2 className="spin" size={16} /> {t('loading')}
-          </div>
-        ) : data?.thumbnailUrl ? (
-          <img className="map-place-popup-image" src={data.thumbnailUrl} alt={place.name} loading="lazy" />
-        ) : (
-          <div className="map-place-popup-placeholder">
-            <MapIcon size={18} />
-            <span>{place.region}</span>
-          </div>
-        )}
-      </div>
+        <div className="map-place-popup-media">
+          {loading ? (
+            <div className="map-place-popup-media-loading">
+              <Loader2 className="spin" size={16} /> {t('loading')}
+            </div>
+          ) : popupImage?.thumbUrl ? (
+            <div className="map-place-popup-image-frame">
+              <img className="map-place-popup-image" src={popupImage.thumbUrl || undefined} alt={popupImage.title ?? place.name} loading="lazy" />
 
-      <div className="map-place-popup-body">
-        <div className="map-location-region">{place.region}</div>
-        <h3>{place.name}</h3>
-        <p>{place.description}</p>
-        {data?.extract ? <p className="map-place-popup-extract">{data.extract}</p> : null}
+              {allImages.length > 1 && (
+                <button
+                  type="button"
+                  className="map-place-popup-image-zone map-place-popup-image-zone-left"
+                  onClick={previousImage}
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft size={22} />
+                </button>
+              )}
 
-        <div className="map-place-popup-meta">
-          <span>{place.passages.length} {t('relatedPassages')}</span>
-          <span>{place.lat.toFixed(2)}, {place.lng.toFixed(2)}</span>
+              <button
+                type="button"
+                className="map-place-popup-image-zone map-place-popup-image-zone-center"
+                onClick={openLightbox}
+                aria-label={`View fullscreen image of ${place.name}`}
+              >
+                <span className="map-place-popup-image-overlay">
+                  <Maximize2 size={18} />
+                </span>
+              </button>
+
+              {allImages.length > 1 && (
+                <button
+                  type="button"
+                  className="map-place-popup-image-zone map-place-popup-image-zone-right"
+                  onClick={nextImage}
+                  aria-label="Next image"
+                >
+                  <ChevronRight size={22} />
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="map-place-popup-placeholder">
+              <MapIcon size={18} />
+              <span>{place.region}</span>
+            </div>
+          )}
+          {allImages.length > 1 && (
+            <div className="map-place-popup-image-count">
+              {allImages.length} images
+            </div>
+          )}
         </div>
 
-        {highlightedPassages.length > 0 && (
-          <div className="map-passage-list">
-            {highlightedPassages.map((passage, index) => (
-              <span key={`${place.id}-${index}`} className="map-passage-tag">
-                {formatPassage(passage)}
-              </span>
-            ))}
-          </div>
-        )}
+        <div className="map-place-popup-body">
+          <div className="map-location-region">{place.region}</div>
+          <h3>{place.name}</h3>
+          <p>{place.description}</p>
+          {data?.extract ? <p className="map-place-popup-extract">{data.extract}</p> : null}
 
-        <a className="wiki-link map-place-popup-link" href={wikiLink} target="_blank" rel="noreferrer">
-          <ExternalLink size={12} /> {t('readOnWikipedia')}
-        </a>
+          <div className="map-place-popup-meta">
+            <span>{place.passages.length} {t('relatedPassages')}</span>
+            <span>{place.lat.toFixed(2)}, {place.lng.toFixed(2)}</span>
+          </div>
+
+          {highlightedPassages.length > 0 && (
+            <div className="map-passage-list">
+              {highlightedPassages.map((passage, index) => (
+                <span key={`${place.id}-${index}`} className="map-passage-tag">
+                  {formatPassage(passage)}
+                </span>
+              ))}
+            </div>
+          )}
+
+          <a className="wiki-link map-place-popup-link" href={wikiLink} target="_blank" rel="noreferrer">
+            <ExternalLink size={12} /> {t('readOnWikipedia')}
+          </a>
+        </div>
       </div>
-    </div>
+
+      {lightboxOpen && activeImage && (
+        <div className="map-place-lightbox" role="dialog" aria-modal="true" aria-label={`Image ${activeImageIndex + 1} of ${allImages.length}`}>
+          <button type="button" className="map-place-lightbox-close" onClick={closeLightbox} aria-label={t('close')}>
+            <X size={20} />
+          </button>
+
+          {allImages.length > 1 && (
+            <button
+              type="button"
+              className="map-place-lightbox-zone map-place-lightbox-zone-left"
+              onClick={previousImage}
+              aria-label="Previous image"
+            >
+              <ChevronLeft size={28} />
+            </button>
+          )}
+
+          <div className="map-place-lightbox-content">
+            <img src={activeImage.url || undefined} alt={activeImage.title} loading="lazy" />
+            {allImages.length > 1 && (
+              <div className="map-place-lightbox-dots">
+                {allImages.map((_, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    className={`map-place-lightbox-dot ${index === activeImageIndex ? 'active' : ''}`}
+                    onClick={() => setActiveImageIndex(index)}
+                    aria-label={`Go to image ${index + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {allImages.length > 1 && (
+            <button
+              type="button"
+              className="map-place-lightbox-zone map-place-lightbox-zone-right"
+              onClick={nextImage}
+              aria-label="Next image"
+            >
+              <ChevronRight size={28} />
+            </button>
+          )}
+        </div>
+      )}
+    </>
   )
 }
 
@@ -2489,49 +2712,51 @@ function MapTab({
   const relevantPlaces = useMemo(() => getPlacesForVerse(selectedVerse, 6), [selectedVerse])
   const relevantIds = useMemo(() => new Set(relevantPlaces.map((p) => p.id)), [relevantPlaces])
   const relevantCharacters = useMemo(() => getCharactersForVerse(selectedVerse, 4), [selectedVerse])
+  const palette = MAP_THEME_PALETTE[theme]
 
   const [query, setQueryLocal] = useState('')
   const placeResults = useMemo(() => searchPlaces(query), [query])
   const characterResults = useMemo(() => searchCharacters(query), [query])
 
-  const [activePlaceId, setActivePlaceId] = useState<string>(relevantPlaces[0]?.id ?? allPlaces[0]?.id ?? '')
+  const [mapActivePlaceId, setMapActivePlaceId] = useState<string>(relevantPlaces[0]?.id ?? allPlaces[0]?.id ?? '')
+  const [sidebarPlaceId, setSidebarPlaceId] = useState<string>(relevantPlaces[0]?.id ?? allPlaces[0]?.id ?? '')
   const [activeCharacter, setActiveCharacter] = useState<Character | null>(null)
   const [showPlacePopup, setShowPlacePopup] = useState(false)
   const [selectionSource, setSelectionSource] = useState<'map' | 'search'>('map')
-  const [animateSearchSidebar, setAnimateSearchSidebar] = useState(false)
-  const sidebarWasVisibleRef = useRef(false)
 
   useEffect(() => {
     if (!activeCharacter) {
-      setActivePlaceId(relevantPlaces[0]?.id ?? allPlaces[0]?.id ?? '')
-    }
-    if (!activeCharacter) {
+      const defaultId = relevantPlaces[0]?.id ?? allPlaces[0]?.id ?? ''
+      setMapActivePlaceId(defaultId)
+      setSidebarPlaceId(defaultId)
       setSelectionSource('map')
     }
     setShowPlacePopup(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedVerse])
+  }, [selectedVerse, activeCharacter])
 
-  const showSearchSidebarDetails = selectionSource === 'search' || Boolean(activeCharacter)
+
+  const mapActivePlace = getPlace(mapActivePlaceId) ?? allPlaces[0]
+  const sidebarPlace = getPlace(sidebarPlaceId) ?? allPlaces[0]
+  const sidebarOpen = selectionSource === 'search' && Boolean(activeCharacter || sidebarPlaceId)
+  const [sidebarRevealing, setSidebarRevealing] = useState(false)
+  const sidebarPreviouslyOpenRef = useRef(false)
 
   useEffect(() => {
-    if (showSearchSidebarDetails) {
-      if (!sidebarWasVisibleRef.current && selectionSource === 'search') {
-        setAnimateSearchSidebar(true)
-        const handle = window.setTimeout(() => setAnimateSearchSidebar(false), 220)
-        sidebarWasVisibleRef.current = true
-        return () => window.clearTimeout(handle)
-      }
-      sidebarWasVisibleRef.current = true
-      return
+    if (sidebarOpen && !sidebarPreviouslyOpenRef.current) {
+      setSidebarRevealing(true)
+      const hideReveal = window.setTimeout(() => setSidebarRevealing(false), 280)
+      sidebarPreviouslyOpenRef.current = sidebarOpen
+      return () => window.clearTimeout(hideReveal)
     }
+    sidebarPreviouslyOpenRef.current = sidebarOpen
+  }, [sidebarOpen])
 
-    sidebarWasVisibleRef.current = false
-    setAnimateSearchSidebar(false)
-  }, [selectionSource, showSearchSidebarDetails])
-
-  const activePlace = getPlace(activePlaceId) ?? allPlaces[0]
-  const popupPlace = showPlacePopup ? activePlace : undefined
+  const mapLayoutStyle = {
+    '--map-sidebar-width': sidebarOpen ? 'clamp(360px, 34vw, 520px)' : '0px',
+    '--map-sidebar-gap': sidebarOpen ? '1.25rem' : '0px',
+  } as CSSProperties
+  const popupPlace = showPlacePopup ? mapActivePlace : undefined
   const [bounceId, setBounceId] = useState<string | null>(null)
 
   const path = useMemo(() => (activeCharacter ? getCharacterPath(activeCharacter) : []), [activeCharacter])
@@ -2587,7 +2812,7 @@ function MapTab({
   }
 
   const selectPlace = (id: string) => {
-    setActivePlaceId(id)
+    setMapActivePlaceId(id)
     setActiveCharacter(null)
     setQueryLocal('')
     setSelectionSource('map')
@@ -2596,7 +2821,18 @@ function MapTab({
   }
 
   const selectPlaceFromSearch = (id: string) => {
-    setActivePlaceId(id)
+    setMapActivePlaceId(id)
+    setSidebarPlaceId(id)
+    setActiveCharacter(null)
+    setQueryLocal('')
+    setSelectionSource('search')
+    setShowPlacePopup(false)
+    bouncePlace(id)
+  }
+
+  const selectSidebarPlace = (id: string) => {
+    setMapActivePlaceId(id)
+    setSidebarPlaceId(id)
     setActiveCharacter(null)
     setQueryLocal('')
     setSelectionSource('search')
@@ -2611,13 +2847,14 @@ function MapTab({
     setQueryLocal('')
     const first = getCharacterPath(character)[0]
     if (first?.place) {
-      setActivePlaceId(first.place.id)
+      setMapActivePlaceId(first.place.id)
+      setSidebarPlaceId(first.place.id)
       bouncePlace(first.place.id)
     }
   }
 
-  const visiblePassages = activePlace ? getPassagesForPlace(activePlace, all, 8) : []
-  const nearbyPlaces = allPlaces.filter((p) => p.id !== activePlace?.id).slice(0, 10)
+  const visiblePassages = sidebarPlace ? getPassagesForPlace(sidebarPlace, all, 8) : []
+  const nearbyPlaces = allPlaces.filter((p) => p.id !== sidebarPlace?.id).slice(0, 10)
   const center = mapCenter
   const pathCoords = path
     .slice(0, stopIndex + 1)
@@ -2626,61 +2863,63 @@ function MapTab({
   const useFallbackMap = isNativePlatform || loadError || !isLoaded
 
   return (
-    <div className="panel map-layout">
-      <div className="map-search-row">
-        <div className="map-search-input-wrap">
-          <Search size={16} />
-          <input
-            className="map-search-input"
-            placeholder={t('searchPlacesAndPeople')}
-            value={query}
-            onChange={(e) => setQueryLocal(e.target.value)}
-          />
-          {query.trim() && (
-            <button type="button" className="map-search-clear" onClick={() => setQueryLocal('')} aria-label={t('delete')}>
-              <X size={14} />
-            </button>
-          )}
-        </div>
-        {query.trim() && (
-          <div className="map-search-results">
-            {characterResults.length > 0 && (
-              <div className="map-search-group">
-                <div className="map-search-group-label"><Users size={12} /> {t('characters')}</div>
-                {characterResults.map((c) => (
-                  <button key={c.id} type="button" className="map-search-result" onClick={() => selectCharacter(c, 'search')}>
-                    <span>{c.name}</span>
-                    <small>{c.era}</small>
-                  </button>
-                ))}
-              </div>
-            )}
-            {placeResults.length > 0 && (
-              <div className="map-search-group">
-                <div className="map-search-group-label"><MapIcon size={12} /> {t('places')}</div>
-                {placeResults.map((p) => (
-                  <button key={p.id} type="button" className="map-search-result" onClick={() => selectPlaceFromSearch(p.id)}>
-                    <span>{p.name}</span>
-                    <small>{p.region}</small>
-                  </button>
-                ))}
-              </div>
-            )}
-            {!characterResults.length && !placeResults.length && (
-              <div className="map-search-empty">{t('noCharacterResults')}</div>
-            )}
-          </div>
-        )}
-      </div>
-
+    <div className={`panel map-layout ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`} style={mapLayoutStyle}>
       <div className="map-grid">
         <section className="map-canvas-card">
+          <div className="map-search-overlay">
+            <div className="map-search-row">
+              <div className="map-search-input-wrap">
+                <Search size={16} />
+                <input
+                  className="map-search-input"
+                  placeholder={t('searchPlacesAndPeople')}
+                  value={query}
+                  onChange={(e) => setQueryLocal(e.target.value)}
+                />
+                {query.trim() && (
+                  <button type="button" className="map-search-clear" onClick={() => setQueryLocal('')} aria-label={t('delete')}>
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+              {query.trim() && (
+                <div className="map-search-results">
+                  {characterResults.length > 0 && (
+                    <div className="map-search-group">
+                      <div className="map-search-group-label"><Users size={12} /> {t('characters')}</div>
+                      {characterResults.map((c) => (
+                        <button key={c.id} type="button" className="map-search-result" onClick={() => selectCharacter(c, 'search')}>
+                          <span>{c.name}</span>
+                          <small>{c.era}</small>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {placeResults.length > 0 && (
+                    <div className="map-search-group">
+                      <div className="map-search-group-label"><MapIcon size={12} /> {t('places')}</div>
+                      {placeResults.map((p) => (
+                        <button key={p.id} type="button" className="map-search-result" onClick={() => selectPlaceFromSearch(p.id)}>
+                          <span>{p.name}</span>
+                          <small>{p.region}</small>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {!characterResults.length && !placeResults.length && (
+                    <div className="map-search-empty">{t('noCharacterResults')}</div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="map-canvas map-canvas-google">
             {popupPlace ? <MapPlacePopup place={popupPlace} onClose={() => setShowPlacePopup(false)} /> : null}
             {useFallbackMap ? (
               <FallbackMapView
                 places={visiblePlaces}
-                activePlaceId={activePlace?.id}
+                activePlaceId={mapActivePlace?.id}
                 relevantIds={relevantIds}
                 pathPoints={pathCoords}
                 center={center}
@@ -2716,7 +2955,7 @@ function MapTab({
                 }}
               >
                 {visiblePlaces.map((place) => {
-                  const active = place.id === activePlace?.id
+                  const active = place.id === mapActivePlace?.id
                   const relevant = relevantIds.has(place.id)
                   return (
                     <Marker
@@ -2728,9 +2967,9 @@ function MapTab({
                       icon={{
                         path: google.maps.SymbolPath.CIRCLE,
                         scale: active ? 13 : relevant ? 10 : 8,
-                        fillColor: active ? '#f0d57b' : relevant ? '#cbb56f' : '#a86f3a',
+                        fillColor: active ? palette.markerActive : relevant ? palette.markerRelevant : palette.markerDefault,
                         fillOpacity: 1,
-                        strokeColor: active ? '#fff7e2' : '#2d2215',
+                        strokeColor: active ? palette.markerActiveStroke : palette.markerStroke,
                         strokeWeight: active ? 3 : 1.5,
                       }}
                     />
@@ -2739,7 +2978,7 @@ function MapTab({
                 {pathCoords.length > 1 && (
                   <Polyline
                     path={pathCoords}
-                    options={{ strokeColor: '#b58a44', strokeOpacity: 0.9, strokeWeight: 3 }}
+                    options={{ strokeColor: palette.route, strokeOpacity: 0.9, strokeWeight: 3 }}
                   />
                 )}
               </GoogleMap>
@@ -2747,134 +2986,134 @@ function MapTab({
           </div>
         </section>
 
-        {showSearchSidebarDetails ? (
-          <aside className={`map-sidebar ${animateSearchSidebar ? 'search-open' : ''}`}>
-            {activeCharacter ? (
-            <>
-              <div key={`char-${activeCharacter.id}`} className="map-location-card map-card-pop">
-                <div className="map-location-region">{activeCharacter.era}</div>
-                <h3>{activeCharacter.name}</h3>
-                <p>{activeCharacter.summary}</p>
-                {activeCharacter.approxDateRange && (
-                  <div className="map-passage-list">
-                    <span className="map-passage-tag">{activeCharacter.approxDateRange}</span>
-                  </div>
-                )}
-                <button className="secondary" style={{ marginTop: '0.75rem' }} onClick={() => setActiveCharacter(null)}>
-                  <X size={14} /> {t('clearCharacter')}
-                </button>
-              </div>
-
-              <WikiMediaCard
-                key={`char-wiki-${activeCharacter.id}`}
-                id={activeCharacter.id}
-                title={activeCharacter.name}
-                passages={activeCharacter.events.flatMap((event) => event.passages).slice(0, 4)}
-              />
-
-              <div className="map-list-card character-timeline-card">
-                <h4>{t('characterTimeline')}</h4>
-                <div className="timeline-controls">
-                  <button type="button" onClick={() => setPlaying((p) => !p)} disabled={path.length < 2}>
-                    {playing ? <Pause size={16} /> : <Play size={16} />} {playing ? t('pausePath') : t('playPath')}
-                  </button>
-                </div>
-                <div className="timeline-track">
-                  {path.map((stop, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      className={`timeline-stop ${i === stopIndex ? 'active' : ''} ${i <= stopIndex ? 'visited' : ''}`}
-                      onClick={() => jumpToStop(i)}
-                    >
-                      <span className="timeline-stop-index">{i + 1}</span>
-                      <span className="timeline-stop-body">
-                        <span className="timeline-stop-label">{stop.event.label}</span>
-                        <small>{stop.place?.name}{stop.event.approxDate ? ` \u2022 ${stop.event.approxDate}` : ''}</small>
-                        {stop.event.dateViews && stop.event.dateViews.length > 0 && (
-                          <span className="timeline-date-views">
-                            {stop.event.dateViews.map((view, viewIndex) => (
-                              <span key={viewIndex} className="timeline-date-view" title={view.notes}>
-                                {view.label}: {view.approxDate}
-                              </span>
-                            ))}
-                          </span>
-                        )}
-                      </span>
+          <aside className={`map-sidebar ${sidebarOpen ? 'open' : 'closed'} ${sidebarRevealing ? 'revealing' : ''}`} aria-hidden={!sidebarOpen}>
+            <div className="map-sidebar-inner">
+              {activeCharacter ? (
+                <>
+                  <div key={`char-${activeCharacter.id}`} className="map-location-card map-card-pop">
+                    <div className="map-location-region">{activeCharacter.era}</div>
+                    <h3>{activeCharacter.name}</h3>
+                    <p>{activeCharacter.summary}</p>
+                    {activeCharacter.approxDateRange && (
+                      <div className="map-passage-list">
+                        <span className="map-passage-tag">{activeCharacter.approxDateRange}</span>
+                      </div>
+                    )}
+                    <button className="secondary" style={{ marginTop: '0.75rem' }} onClick={() => setActiveCharacter(null)}>
+                      <X size={14} /> {t('clearCharacter')}
                     </button>
-                  ))}
-                </div>
-                <div className="map-disclaimer">{t('dateDisclaimer')}</div>
-              </div>
-            </>
-            ) : activePlace ? (
-            <>
-              <div key={`place-${activePlace.id}`} className="map-location-card map-card-pop">
-                <div className="map-location-region">{activePlace.region}</div>
-                <h3>{activePlace.name}</h3>
-                <p>{activePlace.description}</p>
-                {visiblePassages.length === 0 && (
-                  <div className="map-passage-list">
-                    {activePlace.passages.slice(0, 4).map((passage, i) => (
-                      <span key={i} className="map-passage-tag">{passage.book} {passage.startChapter}</span>
-                    ))}
                   </div>
-                )}
-                {selectedVerse && relevantIds.has(activePlace.id) ? (
-                  <div className="map-location-context">{selectedVerse.bookName} {selectedVerse.chapter}:{selectedVerse.verse}</div>
-                ) : (
-                  <div className="map-location-context">{t('tapAPlace')}</div>
-                )}
-              </div>
 
-              <WikiMediaCard
-                key={`place-wiki-${activePlace.id}`}
-                id={activePlace.id}
-                title={activePlace.name}
-                passages={activePlace.passages.slice(0, 4)}
-              />
+                  <WikiMediaCard
+                    key={`char-wiki-${activeCharacter.id}`}
+                    id={activeCharacter.id}
+                    title={activeCharacter.name}
+                    passages={activeCharacter.events.flatMap((event) => event.passages).slice(0, 4)}
+                  />
 
-              {relevantCharacters.length > 0 && (
-                <div className="map-list-card">
-                  <h4><Users size={14} /> {t('characters')}</h4>
-                  <div className="map-place-list">
-                    {relevantCharacters.map((c) => (
-                      <button key={c.id} className="map-place-chip" onClick={() => selectCharacter(c, 'search')}>
-                        <span>{c.name}</span>
-                        <small>{c.era}</small>
+                  <div className="map-list-card character-timeline-card">
+                    <h4>{t('characterTimeline')}</h4>
+                    <div className="timeline-controls">
+                      <button type="button" onClick={() => setPlaying((p) => !p)} disabled={path.length < 2}>
+                        {playing ? <Pause size={16} /> : <Play size={16} />} {playing ? t('pausePath') : t('playPath')}
                       </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="map-list-card">
-                <h4>{t('relatedPassages')}</h4>
-                <div className="map-verse-list">
-                  {visiblePassages.length ? visiblePassages.map((verse) => (
-                    <div key={verse.id} className={`map-verse-card ${selectedId === verse.id ? 'active' : ''}`} onClick={() => onSelect(verse.id)}>
-                      <div className="verse-ref">{verse.bookName} {verse.chapter}:{verse.verse}</div>
-                      <div className="verse-text">{verse.text}</div>
                     </div>
-                  )) : <div className="empty">{t('readerEmpty')}</div>}
-                </div>
-              </div>
+                    <div className="timeline-track">
+                      {path.map((stop, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          className={`timeline-stop ${i === stopIndex ? 'active' : ''} ${i <= stopIndex ? 'visited' : ''}`}
+                          onClick={() => jumpToStop(i)}
+                        >
+                          <span className="timeline-stop-index">{i + 1}</span>
+                          <span className="timeline-stop-body">
+                            <span className="timeline-stop-label">{stop.event.label}</span>
+                            <small>{stop.place?.name}{stop.event.approxDate ? ` \u2022 ${stop.event.approxDate}` : ''}</small>
+                            {stop.event.dateViews && stop.event.dateViews.length > 0 && (
+                              <span className="timeline-date-views">
+                                {stop.event.dateViews.map((view, viewIndex) => (
+                                  <span key={viewIndex} className="timeline-date-view" title={view.notes}>
+                                    {view.label}: {view.approxDate}
+                                  </span>
+                                ))}
+                              </span>
+                            )}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="map-disclaimer">{t('dateDisclaimer')}</div>
+                  </div>
+                </>
+              ) : sidebarPlace ? (
+                <>
+                  <div key={`place-${sidebarPlace.id}`} className="map-location-card map-card-pop">
+                    <div className="map-location-region">{sidebarPlace.region}</div>
+                    <h3>{sidebarPlace.name}</h3>
+                    <p>{sidebarPlace.description}</p>
+                    {visiblePassages.length === 0 && (
+                      <div className="map-passage-list">
+                        {sidebarPlace.passages.slice(0, 4).map((passage, i) => (
+                          <span key={i} className="map-passage-tag">{passage.book} {passage.startChapter}</span>
+                        ))}
+                      </div>
+                    )}
+                    {selectedVerse && relevantIds.has(sidebarPlace.id) ? (
+                      <div className="map-location-context">{selectedVerse.bookName} {selectedVerse.chapter}:{selectedVerse.verse}</div>
+                    ) : (
+                      <div className="map-location-context">{t('tapAPlace')}</div>
+                    )}
+                  </div>
 
-              <div className="map-list-card">
-                <h4>{t('featuredPlaces')}</h4>
-                <div className="map-place-list">
-                  {nearbyPlaces.map((place) => (
-                    <button key={place.id} className={`map-place-chip ${place.id === activePlace?.id ? 'active' : ''}`} onClick={() => selectPlace(place.id)}>
-                      <span>{place.name}</span>
-                      <small>{place.region}</small>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </>
-            ) : null}
+                  <WikiMediaCard
+                    key={`place-wiki-${sidebarPlace.id}`}
+                    id={sidebarPlace.id}
+                    title={sidebarPlace.name}
+                    passages={sidebarPlace.passages.slice(0, 4)}
+                  />
+
+                  {relevantCharacters.length > 0 && (
+                    <div className="map-list-card">
+                      <h4><Users size={14} /> {t('characters')}</h4>
+                      <div className="map-place-list">
+                        {relevantCharacters.map((c) => (
+                          <button key={c.id} className="map-place-chip" onClick={() => selectCharacter(c, 'search')}>
+                            <span>{c.name}</span>
+                            <small>{c.era}</small>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="map-list-card">
+                    <h4>{t('relatedPassages')}</h4>
+                    <div className="map-verse-list">
+                      {visiblePassages.length ? visiblePassages.map((verse) => (
+                        <div key={verse.id} className={`map-verse-card ${selectedId === verse.id ? 'active' : ''}`} onClick={() => onSelect(verse.id)}>
+                          <div className="verse-ref">{verse.bookName} {verse.chapter}:{verse.verse}</div>
+                          <div className="verse-text">{verse.text}</div>
+                        </div>
+                      )) : <div className="empty">{t('readerEmpty')}</div>}
+                    </div>
+                  </div>
+
+                  <div className="map-list-card">
+                    <h4>{t('featuredPlaces')}</h4>
+                    <div className="map-place-list">
+                      {nearbyPlaces.map((place) => (
+                        <button key={place.id} className={`map-place-chip ${place.id === sidebarPlace?.id ? 'active' : ''}`} onClick={() => selectSidebarPlace(place.id)}>
+                          <span>{place.name}</span>
+                          <small>{place.region}</small>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              ) : null}
+            </div>
           </aside>
-        ) : null}
       </div>
     </div>
   )

@@ -40,6 +40,7 @@ type NetworkSceneProps = {
   selectedId: string | null
   onSelect: (id: string) => void
   onHoverNode?: (id: string | null) => void
+  onCameraChange?: (camera: { yaw: number; pitch: number; distance: number }) => void
   theme: 'dark' | 'light'
 }
 
@@ -68,8 +69,8 @@ type ScenePalette = {
 
 const SCENE_PALETTE: Record<'dark' | 'light', ScenePalette> = {
   dark: {
-    clearColor: [0.05, 0.06, 0.05, 1],
-    fogColor: [22 / 255, 18 / 255, 12 / 255],
+    clearColor: [0.089, 0.107, 0.13, 1],
+    fogColor: [0.089, 0.107, 0.13],
     nodeColors: {
       center: [232, 198, 126],
       theme: [220, 193, 134],
@@ -88,8 +89,8 @@ const SCENE_PALETTE: Record<'dark' | 'light', ScenePalette> = {
     },
   },
   light: {
-    clearColor: [0.976, 0.95, 0.89, 1],
-    fogColor: [0.976, 0.95, 0.89],
+    clearColor: [0.993, 0.973, 0.938, 1],
+    fogColor: [0.993, 0.973, 0.938],
     nodeColors: {
       center: [72, 43, 8],
       theme: [78, 54, 18],
@@ -152,8 +153,8 @@ type LabelState = {
 
 const CAMERA_DEFAULT = {
   yaw: 0.95,
-  pitch: 0.38,
-  distance: 760,
+  pitch: 0,
+  distance: 3000,
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -407,6 +408,7 @@ export default function NetworkScene({
   selectedId,
   onSelect,
   onHoverNode,
+  onCameraChange,
   theme,
 }: NetworkSceneProps) {
   const palette = SCENE_PALETTE[theme]
@@ -699,7 +701,9 @@ export default function NetworkScene({
       camera.target.y += (camera.goalTarget.y - camera.target.y) * 0.08
       camera.target.z += (camera.goalTarget.z - camera.target.z) * 0.08
       camera.pitch = clamp(camera.pitch, -1.2, 1.1)
-      camera.distance = clamp(camera.distance, 240, 1500)
+      camera.distance = clamp(camera.distance, 240, 5000)
+
+      onCameraChange?.({ yaw: camera.yaw, pitch: camera.pitch, distance: camera.distance })
 
       const eye = {
         x: camera.target.x + Math.cos(camera.pitch) * Math.sin(camera.yaw) * camera.distance,
@@ -708,7 +712,7 @@ export default function NetworkScene({
       }
 
       const view = mat4LookAt(eye, camera.target, { x: 0, y: 1, z: 0 })
-      const projection = mat4Perspective(Math.PI / 3.2, aspect, 10, 3000)
+      const projection = mat4Perspective(Math.PI / 3.2, aspect, 10, 12000)
       const viewProj = mat4Multiply(projection, view)
 
       gl.clearColor(palette.clearColor[0], palette.clearColor[1], palette.clearColor[2], palette.clearColor[3])
@@ -812,7 +816,7 @@ export default function NetworkScene({
       if (lineUniforms.viewProj) gl.uniformMatrix4fv(lineUniforms.viewProj, false, viewProj)
       if (lineUniforms.cameraPos) gl.uniform3f(lineUniforms.cameraPos, eye.x, eye.y, eye.z)
       if (lineUniforms.fogNear) gl.uniform1f(lineUniforms.fogNear, 260)
-      if (lineUniforms.fogFar) gl.uniform1f(lineUniforms.fogFar, 1500)
+      if (lineUniforms.fogFar) gl.uniform1f(lineUniforms.fogFar, 9000)
       if (lineUniforms.fogColor) gl.uniform3f(lineUniforms.fogColor, palette.fogColor[0], palette.fogColor[1], palette.fogColor[2])
       gl.drawArrays(gl.LINES, 0, worldEdges.length * 2)
 
@@ -845,7 +849,7 @@ export default function NetworkScene({
       if (nodeUniforms.cameraPos) gl.uniform3f(nodeUniforms.cameraPos, eye.x, eye.y, eye.z)
       if (nodeUniforms.multiplier) gl.uniform1f(nodeUniforms.multiplier, 2.05)
       if (nodeUniforms.fogNear) gl.uniform1f(nodeUniforms.fogNear, 260)
-      if (nodeUniforms.fogFar) gl.uniform1f(nodeUniforms.fogFar, 1500)
+      if (nodeUniforms.fogFar) gl.uniform1f(nodeUniforms.fogFar, 9000)
       if (nodeUniforms.fogColor) gl.uniform3f(nodeUniforms.fogColor, palette.fogColor[0], palette.fogColor[1], palette.fogColor[2])
       if (nodeUniforms.time) gl.uniform1f(nodeUniforms.time, timestampMs / 1000)
       gl.drawArrays(gl.POINTS, 0, worldNodes.length)
@@ -992,7 +996,7 @@ export default function NetworkScene({
     event.preventDefault()
     const camera = cameraRef.current
     const factor = Math.exp(event.deltaY * 0.0012)
-    camera.goalDistance = clamp(camera.goalDistance * factor, 240, 1500)
+    camera.goalDistance = clamp(camera.goalDistance * factor, 240, 5000)
   }
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLCanvasElement>) => {
@@ -1051,12 +1055,12 @@ export default function NetworkScene({
         break
       case '+':
       case '=':
-        camera.goalDistance = clamp(camera.goalDistance * 0.9, 240, 1500)
+        camera.goalDistance = clamp(camera.goalDistance * 0.9, 240, 5000)
         event.preventDefault()
         break
       case '-':
       case '_':
-        camera.goalDistance = clamp(camera.goalDistance * 1.1, 240, 1500)
+        camera.goalDistance = clamp(camera.goalDistance * 1.1, 240, 5000)
         event.preventDefault()
         break
       case 'Home':

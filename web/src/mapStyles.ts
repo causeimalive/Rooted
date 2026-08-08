@@ -21,30 +21,31 @@ export const STANDARD_LIGHT_MAP_STYLE: google.maps.MapTypeStyle[] = [
   { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#506b72' }] },
 ]
 
-// A dark map tuned to sit alongside the app's dark (olive/charcoal) theme rather
-// than the generic Google "night mode" blue-grays.
+// A dark map tuned to match the app's dark-mode header search bar, which uses
+// color-mix(in srgb, var(--bg) 28%, var(--surface)) ≈ #161a20.
+// All map colors are derived from that same neutral gray family.
 export const STANDARD_DARK_MAP_STYLE: google.maps.MapTypeStyle[] = [
-  { elementType: 'geometry', stylers: [{ color: '#0f1418' }] },
+  { elementType: 'geometry', stylers: [{ color: '#161a20' }] },
   { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#0f1418' }, { weight: 2.4 }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#d8ccb0' }] },
-  { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#746040' }] },
-  { featureType: 'administrative.country', elementType: 'labels.text.fill', stylers: [{ color: '#dbc07e' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#161a20' }, { weight: 2.4 }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#bcc2c9' }] },
+  { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#3a4148' }] },
+  { featureType: 'administrative.country', elementType: 'labels.text.fill', stylers: [{ color: '#c8ced5' }] },
   { featureType: 'administrative.land_parcel', stylers: [{ visibility: 'off' }] },
   { featureType: 'administrative.neighborhood', stylers: [{ visibility: 'off' }] },
-  { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#b3aa95' }] },
-  { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#171d22' }] },
-  { featureType: 'landscape.natural', elementType: 'geometry', stylers: [{ color: '#22302a' }] },
-  { featureType: 'landscape.man_made', elementType: 'geometry', stylers: [{ color: '#14191d' }] },
+  { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#aeb4bc' }] },
+  { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#181c22' }] },
+  { featureType: 'landscape.natural', elementType: 'geometry', stylers: [{ color: '#1a1f26' }] },
+  { featureType: 'landscape.man_made', elementType: 'geometry', stylers: [{ color: '#13171d' }] },
   { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#23301f' }, { visibility: 'on' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#233039' }] },
-  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#cdb88d' }] },
-  { featureType: 'road.arterial', elementType: 'geometry', stylers: [{ color: '#222c33' }] },
-  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#334150' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#181d24' }, { visibility: 'on' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#222830' }] },
+  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#b2b8c0' }] },
+  { featureType: 'road.arterial', elementType: 'geometry', stylers: [{ color: '#1c2229' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#282e36' }] },
   { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#091115' }] },
-  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#7a8a90' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0e1216' }] },
+  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#6e747c' }] },
 ]
 
 export type ThemeMode = 'dark' | 'light'
