@@ -1237,6 +1237,7 @@ export default function YouVersionReaderTab({
       compareLoadingMoreRef.current = true
       setIsLoadingSections(true)
       setLocalError('')
+      setCompareError('')
 
       const builtSections: CompareSection[] = []
       const bufferSize = INITIAL_BUFFER_SIZE
@@ -1253,6 +1254,9 @@ export default function YouVersionReaderTab({
         if (cancelled) return
 
         setCompareSections(builtSections)
+        if (builtSections[0] && !builtSections[0].compareHtml.trim()) {
+          setCompareError('This version does not contain this passage.')
+        }
       } finally {
         compareLoadingMoreRef.current = false
         setIsLoadingSections(false)
@@ -1261,7 +1265,9 @@ export default function YouVersionReaderTab({
 
     void loadBufferedCompareSections().catch((loadError) => {
       if (cancelled) return
-      setLocalError(loadError instanceof Error ? loadError.message : String(loadError))
+      const message = loadError instanceof Error ? loadError.message : String(loadError)
+      setLocalError(message)
+      setCompareError(message)
       compareLoadingMoreRef.current = false
       setIsLoadingSections(false)
     })
