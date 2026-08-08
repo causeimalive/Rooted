@@ -266,13 +266,25 @@ function AuthGateContent({
   }, [])
 
   useEffect(() => {
-    if (callbackProcessed.current) return
+    if (callbackProcessed.current || yvAuth.isAuthenticated) return
     const search = new URLSearchParams(window.location.search)
     if (!search.has('code') && !search.has('error') && !search.has('state')) return
     callbackProcessed.current = true
     setIsYvCallbackLoading(true)
-    void processCallback().finally(() => setIsYvCallbackLoading(false))
-  }, [processCallback])
+    void processCallback()
+      .catch((error) => {
+        console.error('YouVersion callback error:', error)
+      })
+      .finally(() => {
+        setIsYvCallbackLoading(false)
+        const url = new URL(window.location.href)
+        url.searchParams.delete('code')
+        url.searchParams.delete('state')
+        url.searchParams.delete('error')
+        url.searchParams.delete('error_description')
+        window.history.replaceState({}, '', url.toString())
+      })
+  }, [processCallback, yvAuth.isAuthenticated])
 
   if (firebaseUser === undefined || isYvCallbackLoading) {
     return (
