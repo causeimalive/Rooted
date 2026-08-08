@@ -157,6 +157,12 @@ function transformPassageForBrowser(
   bookNumberById: Record<string, number> = {},
   entityHighlightsEnabled = true,
 ): { html: string; text: string } {
+  if (/^\s*Access denied/i.test(content)) {
+    return {
+      html: '<p style="padding: 1.5rem; text-align: center; color: var(--text-muted);">This translation requires a YouVersion account or is not available in your region. Sign in to read it.</p>',
+      text: 'This translation requires a YouVersion account or is not available in your region. Sign in to read it.',
+    }
+  }
   const html = transformBibleHtml(content, {
     parseHtml: (value) => new DOMParser().parseFromString(value, 'text/html'),
     serializeHtml: (doc) => doc.body.innerHTML,
@@ -467,7 +473,7 @@ export default function YouVersionReaderTab({
   const { t, language } = useI18n()
   const { tagPositionsByVerseId } = useEntityData()
   const hasEntityData = Object.keys(tagPositionsByVerseId).length > 0
-  const { auth, signIn, signOut, processCallback, userInfo } = useYVAuth()
+  const { auth, signIn, signOut, userInfo } = useYVAuth()
 
   useEffect(() => {
     if (hasEntityData) {
@@ -889,15 +895,6 @@ export default function YouVersionReaderTab({
       setCompareVersionId(fallbackCompare.id)
     }
   }, [compareAvailableVersions, compareOpen, compareVersionId, resolvedVersionId])
-
-  useEffect(() => {
-    const search = new URLSearchParams(window.location.search)
-    if (!search.has('code') && !search.has('error') && !search.has('state')) return
-
-    void processCallback().catch((error) => {
-      setLocalError(error instanceof Error ? error.message : String(error))
-    })
-  }, [processCallback])
 
   const handleYouVersionSignIn = useCallback(async () => {
     await signIn({
