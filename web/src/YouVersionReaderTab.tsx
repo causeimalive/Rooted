@@ -535,6 +535,40 @@ export default function YouVersionReaderTab({
     const saved = Number(getUserPreference(userId, READER_COMPARE_KEY))
     return Number.isFinite(saved) && saved > 0 ? saved : null
   })
+
+  useEffect(() => {
+    const savedVersion = Number(getUserPreference(userId, READER_VERSION_KEY))
+    setVersionId(Number.isFinite(savedVersion) && savedVersion > 0 ? savedVersion : null)
+    setBookId(getUserPreference(userId, READER_BOOK_KEY) ?? '')
+    const savedChapter = Number(getUserPreference(userId, READER_CHAPTER_KEY))
+    setChapter(Number.isFinite(savedChapter) && savedChapter > 0 ? savedChapter : 1)
+    const savedView = getUserPreference(userId, READER_VIEW_KEY) ?? getUserPreference(userId, 'bible-study-yv-mode')
+    setReaderView(
+      savedView === 'html' || savedView === 'chapter' || savedView === 'verse'
+        ? savedView
+        : savedView === 'verseFlow'
+          ? 'verse'
+          : savedView === 'text'
+            ? 'chapter'
+            : 'html',
+    )
+    setReferenceInput(getUserPreference(userId, READER_INPUT_KEY) ?? '')
+    const savedNavWidth = Number(getUserPreference(userId, READER_NAV_WIDTH_KEY))
+    setNavWidth(Number.isFinite(savedNavWidth) && savedNavWidth >= MIN_NAV_WIDTH ? savedNavWidth : DEFAULT_NAV_WIDTH)
+    const savedCompareOpen = getUserPreference(userId, READER_COMPARE_OPEN_KEY) === 'true'
+    setCompareOpen(savedCompareOpen)
+    const savedAutoScroll = getUserPreference(userId, READER_AUTOSCROLL_KEY)
+    setAutoScrollEnabled(savedAutoScroll === null ? !savedCompareOpen : savedAutoScroll === 'true')
+    const savedRedLetter = getUserPreference(userId, READER_RED_LETTER_KEY)
+    setRedLetterEnabled(savedRedLetter === null ? true : savedRedLetter === 'true')
+    const savedEntity = getUserPreference(userId, READER_ENTITY_HIGHLIGHTS_KEY)
+    setEntityHighlightsEnabled(savedEntity === null ? true : savedEntity === 'true')
+    const savedHover = getUserPreference(userId, READER_HOVER_HIGHLIGHT_KEY)
+    setHoverHighlightEnabled(savedHover === 'true')
+    const savedCompareVersion = Number(getUserPreference(userId, READER_COMPARE_KEY))
+    setCompareVersionId(Number.isFinite(savedCompareVersion) && savedCompareVersion > 0 ? savedCompareVersion : null)
+  }, [userId])
+
   const [compareSections, setCompareSections] = useState<CompareSection[]>([])
   const compareCurrentPassage = useMemo(() => compareSections[0]?.currentPassage ?? null, [compareSections])
   const comparePassage = useMemo(() => compareSections[0]?.comparePassage ?? null, [compareSections])
