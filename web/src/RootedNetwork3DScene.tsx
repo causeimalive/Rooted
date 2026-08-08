@@ -147,10 +147,10 @@ export default function RootedNetwork3DScene({ theme, onVerseSelect }: RootedNet
     const h = d3.hierarchy<TreeNode>(root, (d) => d.children)
     const layout = d3
       .tree<TreeNode>()
-      .nodeSize([32, 40])
-      .separation((a, b) => (a.parent === b.parent ? 1.5 : 2.2))(h)
+      .nodeSize([48, 65])
+      .separation((a, b) => 2)(h)
 
-    const spread = Math.PI * 0.92
+    const spread = Math.PI * 0.65
     const all = layout.descendants()
     let minX = Infinity
     let maxX = -Infinity
@@ -165,7 +165,7 @@ export default function RootedNetwork3DScene({ theme, onVerseSelect }: RootedNet
       const r = Math.max(0, d.y)
       const newX = r * Math.sin(angle)
       const newY = r * Math.cos(angle)
-      const newZ = Math.sin(newX * 0.025) * r * 0.12 + (d.depth - 1) * 18
+      const newZ = (d.depth - 1) * 50 + Math.sin(angle * 1.6) * r * 0.35
       d.x = newX
       d.y = -newY
       ;(d as any).z = newZ
@@ -196,7 +196,7 @@ export default function RootedNetwork3DScene({ theme, onVerseSelect }: RootedNet
       .filter((l) => l.source.data.id !== 'root')
       .map((l) => {
         const sourceType = l.source.data.type
-        const weight = sourceType === 'version' ? 40 : sourceType === 'book' ? 30 : sourceType === 'chapter' ? 18 : 10
+        const weight = sourceType === 'version' ? 24 : sourceType === 'book' ? 18 : sourceType === 'chapter' ? 10 : 6
         return {
           id: `${l.source.data.id}-${l.target.data.id}`,
           source: l.source.data.id,

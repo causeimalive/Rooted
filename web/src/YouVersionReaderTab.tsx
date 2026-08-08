@@ -582,11 +582,8 @@ export default function YouVersionReaderTab({
     return () => { cancelled = true }
   }, [bibleClient, language, versionCollection])
   const availableVersions = useMemo(
-    () =>
-      [...(versionCollection?.data ?? []), ...extraVersionPages].filter(
-        (v) => !v.language_tag || v.language_tag.toLowerCase().startsWith(language),
-      ),
-    [versionCollection, extraVersionPages, language],
+    () => [...(versionCollection?.data ?? []), ...extraVersionPages],
+    [versionCollection, extraVersionPages],
   )
   const compareAvailableVersions = availableVersions
 
@@ -614,13 +611,8 @@ export default function YouVersionReaderTab({
   useEffect(() => {
     if (!compareOpen) {
       setCompareVersionMenuOpen(false)
-      return
     }
-
-    if (compareVersionId === null) {
-      setCompareVersionMenuOpen(true)
-    }
-  }, [compareOpen, compareVersionId])
+  }, [compareOpen])
 
   useEffect(() => {
     if (!compareVersionMenuOpen) return
@@ -1693,7 +1685,7 @@ export default function YouVersionReaderTab({
     if (!compareCurrentPassage) return ''
     const ref = parsePassageId(compareCurrentPassage.id)
     return transformPassageForBrowser(compareCurrentPassage.content, ref?.bookId, ref?.chapter, tagPositionsByVerseId, bookNumberById, entityHighlightsEnabled).html
-  }, [compareCurrentPassage, tagPositionsByVerseId, bookNumberById, entityHighlightsEnabled])
+  }, [compareCurrentPassage, tagPositionsByVerseId, bookNumberById, entityHighlightsEnabled, compareVersionId])
   const compareCurrentVerses = useMemo(
     () => (compareCurrentPassageHtml ? extractVerseBlocks(compareCurrentPassageHtml) : []),
     [compareCurrentPassageHtml],
@@ -1702,7 +1694,7 @@ export default function YouVersionReaderTab({
     if (!comparePassage) return ''
     const ref = parsePassageId(comparePassage.id)
     return transformPassageForBrowser(comparePassage.content, ref?.bookId, ref?.chapter, tagPositionsByVerseId, bookNumberById, entityHighlightsEnabled).html
-  }, [comparePassage, tagPositionsByVerseId, bookNumberById, entityHighlightsEnabled])
+  }, [comparePassage, tagPositionsByVerseId, bookNumberById, entityHighlightsEnabled, compareVersionId])
   const comparePassageVerses = useMemo(
     () => (comparePassageHtml ? extractVerseBlocks(comparePassageHtml) : []),
     [comparePassageHtml],
