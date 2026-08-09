@@ -40,6 +40,7 @@ export type VerseMatch = {
   verse: Verse
   score: number
   sharedTerms: string[]
+  source?: 'curated' | 'heuristic'
 }
 
 export type NetworkTheme = {
@@ -310,6 +311,7 @@ export function getCrossReferenceMatches(verse: Verse, all: Verse[] = verses, li
       verse: candidate,
       score: curated.votes,
       sharedTerms: sharedNetworkTerms(verse.text, candidate.text),
+      source: 'curated',
     })
   }
 
@@ -331,7 +333,7 @@ export function getCrossReferenceMatches(verse: Verse, all: Verse[] = verses, li
     if (sharedTerms.some((term) => term.length >= 8)) score += 2
     if (sharedTerms.length >= 4) score += 3
 
-    scored.set(candidate.id, { verse: candidate, score, sharedTerms })
+    scored.set(candidate.id, { verse: candidate, score, sharedTerms, source: 'heuristic' })
   }
 
   return Array.from(scored.values())

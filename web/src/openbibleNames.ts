@@ -36,14 +36,28 @@ let loadPromise: Promise<OpenBibleNameEntry[]> | null = null
 let entries: OpenBibleNameEntry[] = []
 let fuse: Fuse<OpenBibleNameEntry> | null = null
 
-function getTextContent(parent: ParentNode, selector: string): string {
-  return parent.querySelector(selector)?.textContent?.trim() ?? ''
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-function getTextContents(parent: ParentNode, selector: string): string[] {
-  return Array.from(parent.querySelectorAll(selector))
-    .map((node) => node.textContent?.trim() ?? '')
-    .filter(Boolean)
+function decodeXmlEntities(value: string): string {
+  return value
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(Number.parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(Number.parseInt(dec, 10)))
+}
+
+function extractTagValues(block: string, tag: string): string[] {
+  const pattern = new RegExp(`<${escapeRegex(tag)}>([\\s\\S]*?)<\/${escapeRegex(tag)}>`, 'g')
+  return Array.from(block.matchAll(pattern), (match) => decodeXmlEntities(match[1].trim())).filter(Boolean)
+}
+
+function extractTagValue(block: string, tag: string): string {
+  return extractTagValues(block, tag)[0] ?? ''
 }
 
 function buildBookMaps() {
@@ -78,33 +92,31 @@ function decodeReference(raw: string, bookCodeByNumber: Map<number, string>, boo
 }
 
 function parseXml(text: string, source: OpenBibleNameSource): OpenBibleNameEntry[] {
-  const xml = new DOMParser().parseFromString(text, 'application/xml')
-  const parserError = xml.querySelector('parsererror')
-  if (parserError) {
-    throw new Error(`Failed to parse ${source} UBS names XML`)
-  }
-
   const { bookCodeByNumber, bookNameByCode } = buildBookMaps()
   const parsed: OpenBibleNameEntry[] = []
-  const entries = Array.from(xml.querySelectorAll('Entry'))
+  const entryPattern = /<Entry>([\s\S]*?)<\/Entry>/g
+  const entriesInXml = Array.from(text.matchAll(entryPattern))
 
-  for (const entry of entries) {
-    const baseId = getTextContent(entry, 'ID') || `${source}-${parsed.length + 1}`
-    const language = getTextContent(entry, 'Language')
-    const word = getTextContent(entry, 'Word')
-    const subentries = Array.from(entry.children).filter((child) => child.tagName === 'Subentry')
-    for (const [index, subentry] of subentries.entries()) {
-      const glosses = getTextContents(subentry, 'Gloss-EN')
-      const definition = getTextContent(subentry, 'Definition-EN')
-      const alternate = getTextContent(subentry, 'Alternate')
-      const form = getTextContent(subentry, 'Form')
-      const domain = getTextContent(subentry, 'Domain')
-      const references = getTextContents(subentry, 'References > Verse')
+  for (const [entryIndex, entryMatch] of entriesInXml.entries()) {
+    const entryBlock = entryMatch[1]
+    const baseId = extractTagValue(entryBlock, 'ID') || `${source}-${entryIndex + 1}`
+    const language = extractTagValue(entryBlock, 'Language')
+    const word = extractTagValue(entryBlock, 'Word')
+    const subentries = Array.from(entryBlock.matchAll(/<Subentry>([\s\S]*?)<\/Subentry>/g))
+
+    for (const [subIndex, subentryMatch] of subentries.entries()) {
+      const subBlock = subentryMatch[1]
+      const glosses = extractTagValues(subBlock, 'Gloss-EN')
+      const definition = extractTagValue(subBlock, 'Definition-EN')
+      const alternate = extractTagValue(subBlock, 'Alternate')
+      const form = extractTagValue(subBlock, 'Form')
+      const domain = extractTagValue(subBlock, 'Domain')
+      const references = extractTagValues(subBlock, 'Verse')
         .map((raw) => decodeReference(raw, bookCodeByNumber, bookNameByCode))
         .filter((ref): ref is OpenBibleReference => Boolean(ref))
 
       parsed.push({
-        id: `${source}:${baseId}:${index}`,
+        id: `${source}:${baseId}:${subIndex}`,
         source,
         language,
         word,
@@ -138,6 +150,16 @@ function buildIndex(value: OpenBibleNameEntry[]) {
   })
 }
 
+function scoreEntry(entry: OpenBibleNameEntry, query: string): number {
+  const normalized = query.toLowerCase().trim()
+  if (!normalized) return 0
+  const fields = [entry.word, ...entry.glosses, entry.definition, entry.alternate ?? '', entry.form ?? '', entry.domain ?? '']
+    .map((value) => value.toLowerCase())
+  if (entry.word.toLowerCase() === normalized) return 100
+  if (fields.some((value) => value.includes(normalized))) return 50
+  return 0
+}
+
 export async function loadOpenBibleNames(): Promise<OpenBibleNameEntry[]> {
   if (loadPromise) return loadPromise
 
@@ -163,11 +185,16 @@ export async function loadOpenBibleNames(): Promise<OpenBibleNameEntry[]> {
 
 export function searchOpenBibleNames(query: string, options: { limit?: number; testament?: 'all' | Testament } = {}): OpenBibleNameEntry[] {
   const trimmed = query.trim()
-  if (!trimmed || !fuse) return []
+  if (!trimmed || entries.length === 0) return []
+
   const limit = options.limit ?? MAX_RESULTS
-  return fuse
-    .search(trimmed)
-    .map((result) => result.item)
+  const candidateEntries = fuse
+    ? fuse.search(trimmed).map((result) => result.item)
+    : entries
+        .filter((entry) => scoreEntry(entry, trimmed) > 0)
+        .sort((a, b) => scoreEntry(b, trimmed) - scoreEntry(a, trimmed) || a.word.localeCompare(b.word))
+
+  return candidateEntries
     .filter((entry) => {
       if (options.testament === undefined || options.testament === 'all') return true
       return entry.references.some((reference) => getTestamentForBook(reference.bookCode) === options.testament)

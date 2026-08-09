@@ -30,14 +30,13 @@ export default function LexiconTab({ onSelect }: { onSelect: (verseId: string) =
     }
   }, [])
 
+  const trimmedQuery = debouncedQuery.trim()
   const entry = useMemo(() => lookupLexicon(debouncedQuery), [debouncedQuery])
-  const suggestions = useMemo(() => (debouncedQuery.trim() ? searchLexicon(debouncedQuery) : []), [debouncedQuery])
+  const suggestions = useMemo(() => (trimmedQuery ? searchLexicon(debouncedQuery) : []), [debouncedQuery, trimmedQuery])
   const nameResults = useMemo(
-    () => (namesLoaded && debouncedQuery.trim() ? searchOpenBibleNames(debouncedQuery, { testament: testamentFilter }) : []),
-    [debouncedQuery, namesLoaded, testamentFilter],
+    () => (namesLoaded && trimmedQuery ? searchOpenBibleNames(debouncedQuery, { testament: testamentFilter }) : []),
+    [debouncedQuery, namesLoaded, testamentFilter, trimmedQuery],
   )
-  // Search verses by whatever the user typed (not just when a curated
-  // dictionary entry exists), so any Bible word can be explored.
   const allVerses = useMemo(
     () => getVersesWithWord(entry ? entry.word : debouncedQuery),
     [entry, debouncedQuery],
@@ -46,13 +45,6 @@ export default function LexiconTab({ onSelect }: { onSelect: (verseId: string) =
     () => (testamentFilter === 'all' ? allVerses : allVerses.filter((v) => getTestamentForBook(v.book) === testamentFilter)),
     [allVerses, testamentFilter],
   )
-
-  const hasQuery = debouncedQuery.trim().length > 0
-  const showNameResults = nameResults.length > 0
-
-  const pick = (e: LexiconEntry) => {
-    setQuery(e.word)
-  }
 
   const renderTestamentButtons = () =>
     allVerses.length > 0 ? (
@@ -63,29 +55,54 @@ export default function LexiconTab({ onSelect }: { onSelect: (verseId: string) =
       </div>
     ) : null
 
+  const renderVerseList = (items: typeof verses) => (
+    <div className="verse-list">
+      {items.slice(0, 50).map((v) => (
+        <div key={v.id} className="verse-card" onClick={() => onSelect(v.id)}>
+          <div className="verse-ref">{v.bookName} {v.chapter}:{v.verse}</div>
+          <div className="verse-text">{v.text}</div>
+        </div>
+      ))}
+    </div>
+  )
+
   return (
-    <div className="panel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      <div className="search-bar">
-        <input
-          type="text"
-          placeholder={t('searchPlaceholder')}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        <button onClick={() => setQuery(query)}><Search size={16} /></button>
+    <div className="panel lexicon-panel">
+      <div className="lexicon-header-card">
+        <div className="search-bar lexicon-search">
+          <span className="search-icon"><Search size={14} /></span>
+          <input
+            type="text"
+            placeholder={t('searchPlaceholder')}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label={t('searchPlaceholder')}
+          />
+          {query && (
+            <button type="button" className="search-clear" onClick={() => setQuery('')} aria-label={t('delete')}>
+              ×
+            </button>
+          )}
+        </div>
+        <p className="lexicon-help">
+          Search a word to see KJV usage and UBS Bible-name entries, then jump into the verses.
+        </p>
       </div>
 
       {suggestions.length > 0 && (
         <div className="lexicon-suggestions">
           {suggestions.map((s) => (
-            <button key={s.word} className="suggestion" onClick={() => pick(s)}>{s.word}</button>
+            <button key={s.word} className="suggestion" onClick={() => setQuery(s.word)}>{s.word}</button>
           ))}
         </div>
       )}
 
       {entry && (
-        <div className="lexicon-card">
-          <h3>{entry.word}</h3>
+        <section className="lexicon-card">
+          <div className="lexicon-card-heading">
+            <h3>{entry.word}</h3>
+            <span className="source-badge">Local lexicon</span>
+          </div>
           <div className="meaning-box">
             <h4>{t('kjvSense')}</h4>
             <p>{entry.kjvMeaning}</p>
@@ -100,84 +117,69 @@ export default function LexiconTab({ onSelect }: { onSelect: (verseId: string) =
           </div>
           <h4 className="section-title">{t('versesUsing')} ({verses.length})</h4>
           {renderTestamentButtons()}
-          <div className="verse-list">
-            {verses.slice(0, 50).map((v) => (
-              <div key={v.id} className="verse-card" onClick={() => onSelect(v.id)}>
-                <div className="verse-ref">{v.bookName} {v.chapter}:{v.verse}</div>
-                <div className="verse-text">{v.text}</div>
-              </div>
-            ))}
-          </div>
-        </div>
+          {renderVerseList(verses)}
+        </section>
       )}
 
-      {showNameResults && (
-        <div className="lexicon-card">
-          <h4 className="section-title">Bible names ({nameResults.length})</h4>
+      {trimmedQuery && (
+        <section className="lexicon-card">
+          <div className="lexicon-card-heading">
+            <h4 className="section-title">Bible names</h4>
+            <span className="source-badge">UBS names</span>
+          </div>
+          <p className="lexicon-help lexicon-help-inline">
+            Hebrew and Greek name data from the UBS name database.
+          </p>
           {renderTestamentButtons()}
-          <div className="verse-list">
-            {nameResults.map((name) => {
-              const firstReference = name.references[0]
-              return (
-                <div key={name.id} className="verse-card" onClick={() => firstReference && onSelect(firstReference.verseId)}>
-                  <div className="verse-ref">
-                    <span>{name.word}</span>
-                    <small>{name.language}</small>
+          {!namesLoaded ? (
+            <div className="empty">Loading UBS names…</div>
+          ) : nameResults.length > 0 ? (
+            <div className="verse-list">
+              {nameResults.map((name) => {
+                const firstReference = name.references[0]
+                return (
+                  <div key={name.id} className="verse-card lexicon-name-card" onClick={() => firstReference && onSelect(firstReference.verseId)}>
+                    <div className="verse-ref">
+                      <span>{name.word}</span>
+                      <small>{name.language}</small>
+                    </div>
+                    <div className="verse-text">{name.definition}</div>
+                    {name.glosses.length > 0 && (
+                      <div className="lexicon-meta-line">{name.glosses.slice(0, 3).join(' • ')}</div>
+                    )}
+                    {name.references.length > 0 && (
+                      <div className="lexicon-chip-row">
+                        {name.references.slice(0, 4).map((ref) => (
+                          <span key={ref.verseId} className="lexicon-chip">{ref.label}</span>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <div className="verse-text">{name.definition}</div>
-                  {name.glosses.length > 0 && (
-                    <div style={{ marginTop: '0.45rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                      {name.glosses.slice(0, 3).join(' • ')}
-                    </div>
-                  )}
-                  {name.references.length > 0 && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.5rem' }}>
-                      {name.references.slice(0, 4).map((ref) => (
-                        <span
-                          key={ref.verseId}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            borderRadius: '999px',
-                            padding: '0.18rem 0.55rem',
-                            border: '1px solid var(--muted)',
-                            background: 'color-mix(in srgb, var(--surface) 88%, var(--bg))',
-                            color: 'var(--text-muted)',
-                            fontSize: '0.76rem',
-                          }}
-                        >
-                          {ref.label}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="empty">No UBS name match for “{debouncedQuery}”.</div>
+          )}
+        </section>
       )}
 
-      {hasQuery && !entry && !showNameResults && verses.length > 0 && (
-        <div className="lexicon-card">
-          <h4 className="section-title">{t('versesUsing')} ({verses.length})</h4>
+      {trimmedQuery && !entry && verses.length > 0 && (
+        <section className="lexicon-card">
+          <div className="lexicon-card-heading">
+            <h4 className="section-title">{t('versesUsing')} ({verses.length})</h4>
+            <span className="source-badge">KJV verses</span>
+          </div>
           {renderTestamentButtons()}
-          <div className="verse-list">
-            {verses.slice(0, 50).map((v) => (
-              <div key={v.id} className="verse-card" onClick={() => onSelect(v.id)}>
-                <div className="verse-ref">{v.bookName} {v.chapter}:{v.verse}</div>
-                <div className="verse-text">{v.text}</div>
-              </div>
-            ))}
-          </div>
-        </div>
+          {renderVerseList(verses)}
+        </section>
       )}
 
-      {hasQuery && !entry && !showNameResults && verses.length === 0 && (
+      {trimmedQuery && !entry && verses.length === 0 && (
         <div className="empty">{t('lexiconNotFound', { term: debouncedQuery })}</div>
       )}
 
-      {!hasQuery && <div className="empty">{t('lexiconEmpty')}</div>}
+      {!trimmedQuery && <div className="empty">{t('lexiconEmpty')}</div>}
     </div>
   )
 }

@@ -2185,7 +2185,10 @@ function NetworkTab({
           )}
 
           <div className="bubble-card">
-            <h3>{t('networkRelated')}</h3>
+            <div className="lexicon-card-heading" style={{ marginBottom: '0.65rem' }}>
+              <h3>{t('networkRelated')}</h3>
+              {relatedMatches.some((match) => match.source === 'curated') && <span className="source-badge">Curated OpenBible</span>}
+            </div>
             <div className="bubble-list network-related-list">
               {relatedMatches.map((match) => {
                 const verse = match.verse
@@ -2195,6 +2198,7 @@ function NetworkTab({
                     <span>
                       {verse.bookName} {verse.chapter}:{verse.verse}
                       <em className="network-score-inline">{t('networkStrength')} {Math.round(match.score)}</em>
+                      {match.source === 'curated' && <em className="network-source-inline">Curated</em>}
                     </span>
                     <small>{match.sharedTerms.slice(0, 3).join(' • ') || verse.text.slice(0, 90)}</small>
                   </button>
