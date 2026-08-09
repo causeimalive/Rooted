@@ -3,6 +3,7 @@ import { LexiconEntry, Verse } from './types'
 import { getAllCharacters } from './characters'
 import { matchesPassage } from './places'
 import { fetchCachedJson } from './indexedStorage'
+import { getCuratedCrossReferences, loadOpenBibleCrossReferences } from './openbibleCrossReferences'
 
 let verses: Verse[] = []
 let fuse: Fuse<Verse> | null = null
@@ -29,6 +30,12 @@ function uniqueNetworkTerms(text: string): Set<string> {
   return new Set(tokenizeNetworkTerms(text))
 }
 
+function sharedNetworkTerms(sourceText: string, candidateText: string): string[] {
+  const sourceTerms = uniqueNetworkTerms(sourceText)
+  const candidateTerms = uniqueNetworkTerms(candidateText)
+  return Array.from(sourceTerms).filter((term) => candidateTerms.has(term))
+}
+
 export type VerseMatch = {
   verse: Verse
   score: number
@@ -42,7 +49,7 @@ export type NetworkTheme = {
 }
 
 export async function loadBible(): Promise<Verse[]> {
-  await loadLexicon()
+  await Promise.all([loadLexicon(), loadOpenBibleCrossReferences()])
   try {
     verses = await fetchCachedJson<Verse[]>('/data/bible.json', 'bible')
   } catch (e) {
@@ -293,14 +300,23 @@ export function getCrossReferences(verse: Verse, all: Verse[] = verses, limit = 
 }
 
 export function getCrossReferenceMatches(verse: Verse, all: Verse[] = verses, limit = 15): VerseMatch[] {
-  const sourceTerms = uniqueNetworkTerms(verse.text)
-  const scored: VerseMatch[] = []
+  const scored = new Map<string, VerseMatch>()
+  const verseById = new Map(all.map((entry) => [entry.id, entry]))
+
+  for (const curated of getCuratedCrossReferences(verse.id)) {
+    const candidate = verseById.get(curated.verse)
+    if (!candidate || candidate.id === verse.id) continue
+    scored.set(candidate.id, {
+      verse: candidate,
+      score: curated.votes,
+      sharedTerms: sharedNetworkTerms(verse.text, candidate.text),
+    })
+  }
 
   for (const candidate of all) {
-    if (candidate.id === verse.id) continue
+    if (candidate.id === verse.id || scored.has(candidate.id)) continue
 
-    const candidateTerms = uniqueNetworkTerms(candidate.text)
-    const sharedTerms = Array.from(sourceTerms).filter((term) => candidateTerms.has(term))
+    const sharedTerms = sharedNetworkTerms(verse.text, candidate.text)
     if (!sharedTerms.length) continue
 
     const sameBook = verse.book === candidate.book
@@ -315,10 +331,10 @@ export function getCrossReferenceMatches(verse: Verse, all: Verse[] = verses, li
     if (sharedTerms.some((term) => term.length >= 8)) score += 2
     if (sharedTerms.length >= 4) score += 3
 
-    scored.push({ verse: candidate, score, sharedTerms })
+    scored.set(candidate.id, { verse: candidate, score, sharedTerms })
   }
 
-  return scored
+  return Array.from(scored.values())
     .sort((a, b) => b.score - a.score || a.verse.book.localeCompare(b.verse.book) || a.verse.chapter - b.verse.chapter || a.verse.verse - b.verse.verse)
     .slice(0, limit)
 }
