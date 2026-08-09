@@ -43,13 +43,6 @@ const cardStyle: CSSProperties = {
   boxShadow: '0 10px 26px rgba(15, 23, 42, 0.05)',
 }
 
-const headerCardStyle: CSSProperties = {
-  ...cardStyle,
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '0.65rem',
-}
-
 const badgeStyle: CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
@@ -62,17 +55,6 @@ const badgeStyle: CSSProperties = {
   fontSize: '0.72rem',
   letterSpacing: '0.03em',
   textTransform: 'uppercase',
-}
-
-const helpStyle: CSSProperties = {
-  margin: 0,
-  color: 'var(--text-muted)',
-  fontSize: '0.9rem',
-}
-
-const inlineHelpStyle: CSSProperties = {
-  ...helpStyle,
-  marginTop: '0.15rem',
 }
 
 const groupStyle: CSSProperties = {
@@ -222,15 +204,6 @@ export default function LexiconTab({ query, onQuery, onSelect }: LexiconTabProps
 
   return (
     <div className="panel" style={panelStyle}>
-      <section style={headerCardStyle}>
-        <div className="lexicon-card-heading" style={{ marginBottom: 0 }}>
-          <h3 style={{ margin: 0 }}>Words</h3>
-          <span style={badgeStyle}>Top search bar</span>
-        </div>
-        <p style={helpStyle}>Use the search bar above to look up KJV words and UBS Bible names. Results update here live.</p>
-        {trimmedQuery && <p style={inlineHelpStyle}>Showing results for “{debouncedQuery}”.</p>}
-      </section>
-
       {suggestions.length > 0 && (
         <div className="lexicon-suggestions">
           {suggestions.map((s) => (
@@ -275,7 +248,9 @@ export default function LexiconTab({ query, onQuery, onSelect }: LexiconTabProps
             </h4>
             <span style={badgeStyle}>UBS names</span>
           </div>
-          <p style={helpStyle}>Hebrew and Greek name data from the UBS name database, grouped by study category.</p>
+          <p style={{ margin: '0.15rem 0 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+            Hebrew and Greek name data from the UBS name database, grouped by study category.
+          </p>
           {renderTestamentButtons()}
           {!namesLoaded ? (
             <div className="empty">Loading UBS names…</div>
