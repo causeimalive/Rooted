@@ -444,7 +444,7 @@ export default function App() {
   return (
     <div className="app">
       <audio ref={audioRef} src={audioUrl || undefined} onEnded={() => setAudioPlaying(false)} onPause={() => setAudioPlaying(false)} onPlay={() => setAudioPlaying(true)} />
-      <header>
+      <header className="app-header">
         <h1>
           <img
             className="brand-wordmark"
@@ -485,6 +485,10 @@ export default function App() {
                 e.preventDefault()
                 const trimmed = headerQuery.trim()
                 if (!trimmed) return
+                if (tab === 'lexicon') {
+                  setQuery(trimmed)
+                  return
+                }
                 runSearch(trimmed)
               }}
             >
@@ -543,7 +547,7 @@ export default function App() {
       ) : error ? (
         <div className="panel empty">{error}</div>
       ) : (
-        <main>
+        <main className="app-main">
           {tab === 'search' && (
             <SearchTab
               query={query}
@@ -595,7 +599,14 @@ export default function App() {
           )}
 
           {tab === 'lexicon' && (
-            <LexiconTab onSelect={(id) => { setSelectedId(id); setTab('search') }} />
+            <LexiconTab
+              query={headerQuery}
+              onQuery={setHeaderQuery}
+              onSelect={(id) => {
+                setSelectedId(id)
+                setTab('search')
+              }}
+            />
           )}
 
           {tab === 'search' && (

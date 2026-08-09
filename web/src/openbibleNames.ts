@@ -5,6 +5,8 @@ import { getTestamentForBook, type Testament } from './bookTaxonomy'
 
 type OpenBibleNameSource = 'ot' | 'nt'
 
+export type OpenBibleNameCategory = 'people' | 'places' | 'divine' | 'uncertain'
+
 export type OpenBibleReference = {
   verseId: string
   label: string
@@ -21,6 +23,7 @@ export type OpenBibleNameEntry = {
   alternate?: string
   form?: string
   domain?: string
+  category: OpenBibleNameCategory
   references: OpenBibleReference[]
 }
 
@@ -91,6 +94,107 @@ function decodeReference(raw: string, bookCodeByNumber: Map<number, string>, boo
   }
 }
 
+function normalizedText(entry: {
+  word: string
+  glosses: string[]
+  definition: string
+  alternate?: string
+  form?: string
+  domain?: string
+}): string {
+  return [entry.word, ...entry.glosses, entry.definition, entry.alternate ?? '', entry.form ?? '', entry.domain ?? '']
+    .join(' ')
+    .toLowerCase()
+}
+
+function classifyEntry(entry: {
+  word: string
+  glosses: string[]
+  definition: string
+  alternate?: string
+  form?: string
+  domain?: string
+  references: OpenBibleReference[]
+}): OpenBibleNameCategory {
+  const text = normalizedText(entry)
+
+  const uncertainPatterns = [
+    /uncertain/,
+    /unknown/,
+    /possibly/,
+    /perhaps/,
+    /probably/,
+    /location uncertain/,
+    /uncertain location/,
+    /traditionally associated/,
+    /identifying name \(probably/,
+    /\?/, 
+  ]
+  if (uncertainPatterns.some((pattern) => pattern.test(text))) return 'uncertain'
+  if (entry.references.length === 0) return 'uncertain'
+
+  const divinePatterns = [
+    /\bgod\b/,
+    /\blord\b/,
+    /yahweh/,
+    /jehovah/,
+    /\bjesus\b/,
+    /\bchrist\b/,
+    /messiah/,
+    /holy spirit/,
+    /\bspirit\b/,
+    /\bsatan\b/,
+    /\bdevil\b/,
+    /\bbelial\b/,
+    /beelzeb/,
+    /\bangel\b/,
+    /\bdemon\b/,
+    /supernatural beings and powers/,
+    /ruling angel/,
+  ]
+  if (entry.domain?.toLowerCase().includes('supernatural beings and powers')) return 'divine'
+  if (divinePatterns.some((pattern) => pattern.test(text))) return 'divine'
+
+  const placePatterns = [
+    /\bcity\b/,
+    /\btown\b/,
+    /\bvillage\b/,
+    /\bterritory\b/,
+    /\bregion\b/,
+    /\bland\b/,
+    /\bmount\b/,
+    /\bmountain\b/,
+    /\bhill\b/,
+    /\bvalley\b/,
+    /\bsea\b/,
+    /\briver\b/,
+    /\blake\b/,
+    /\bisland\b/,
+    /\bcoast\b/,
+    /\bprovince\b/,
+    /\bdistrict\b/,
+    /\bwilderness\b/,
+    /\bdesert\b/,
+    /\bplain\b/,
+    /\bharbor\b/,
+    /\bport\b/,
+    /\broad\b/,
+    /\bspring\b/,
+    /\bwell\b/,
+    /\bplace\b/,
+    /\blocation\b/,
+    /\bpool\b/,
+    /\bgate\b/,
+    /\bfortress\b/,
+    /\btower\b/,
+    /\bfield\b/,
+    /\bgarden\b/,
+  ]
+  if (placePatterns.some((pattern) => pattern.test(text))) return 'places'
+
+  return 'people'
+}
+
 function parseXml(text: string, source: OpenBibleNameSource): OpenBibleNameEntry[] {
   const { bookCodeByNumber, bookNameByCode } = buildBookMaps()
   const parsed: OpenBibleNameEntry[] = []
@@ -115,6 +219,16 @@ function parseXml(text: string, source: OpenBibleNameSource): OpenBibleNameEntry
         .map((raw) => decodeReference(raw, bookCodeByNumber, bookNameByCode))
         .filter((ref): ref is OpenBibleReference => Boolean(ref))
 
+      const baseEntry = {
+        word,
+        glosses,
+        definition,
+        alternate,
+        form,
+        domain,
+        references,
+      }
+
       parsed.push({
         id: `${source}:${baseId}:${subIndex}`,
         source,
@@ -125,6 +239,7 @@ function parseXml(text: string, source: OpenBibleNameSource): OpenBibleNameEntry
         alternate: alternate || undefined,
         form: form || undefined,
         domain: domain || undefined,
+        category: classifyEntry(baseEntry),
         references,
       })
     }
