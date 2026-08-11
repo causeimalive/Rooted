@@ -10,7 +10,7 @@ import { YouVersionProvider } from '@youversion/platform-react-ui'
 import { useYVAuth } from '@youversion/platform-react-hooks'
 import { auth } from './firebase'
 import Landing from './Landing'
-import { YOUVERSION_API_BASE } from './youversion'
+const YOUVERSION_API_HOST = 'api.youversion.com'
 import { getYouVersionRedirectUrl } from './youversionRedirect'
 
 type Theme = 'dark' | 'light'
@@ -189,9 +189,11 @@ export function AuthSignInButton() {
       type="button"
       className="secondary header-signin"
       onClick={async () => {
+        const redirectUrl = getYouVersionRedirectUrl()
+        console.info('YouVersion sign-in redirectUrl:', redirectUrl)
         await signIn({
-          redirectUrl: getYouVersionRedirectUrl(),
-          scopes: ['profile', 'email'],
+          redirectUrl,
+          scopes: ['openid', 'profile'] as any,
           permissions: ['highlights'],
         })
       }}
@@ -309,6 +311,13 @@ function AuthGateContent({
   }, [])
 
   useEffect(() => {
+    const timeout = setTimeout(() => {
+      setFirebaseUser((u) => (u === undefined ? null : u))
+    }, 5000)
+    return () => clearTimeout(timeout)
+  }, [])
+
+  useEffect(() => {
     const search = new URLSearchParams(window.location.search)
     if (!search.has('code') && !search.has('error') && !search.has('state')) return
     void processCallback()
@@ -386,9 +395,11 @@ function AuthEntryScreen({
   const { signIn } = useYVAuth()
 
   const handleYouVersionLogin = async () => {
+    const redirectUrl = getYouVersionRedirectUrl()
+    console.info('YouVersion sign-in redirectUrl:', redirectUrl)
     await signIn({
-      redirectUrl: getYouVersionRedirectUrl(),
-      scopes: ['profile', 'email'],
+      redirectUrl,
+      scopes: ['openid', 'profile'] as any,
       permissions: ['highlights'],
     })
   }
@@ -425,7 +436,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   }
 
   return (
-    <YouVersionProvider appKey={YOUVERSION_APP_KEY} apiHost={YOUVERSION_API_BASE} theme={theme} includeAuth={true} authRedirectUrl={getYouVersionRedirectUrl()}>
+    <YouVersionProvider appKey={YOUVERSION_APP_KEY} apiHost={YOUVERSION_API_HOST} theme={theme} includeAuth={true} authRedirectUrl={getYouVersionRedirectUrl()}>
       <AuthGateContent theme={theme} onToggleTheme={toggleTheme}>
         {children}
       </AuthGateContent>

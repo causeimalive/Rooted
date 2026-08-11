@@ -1170,9 +1170,11 @@ export default function YouVersionReaderTab({
   }, [auth.isAuthenticated, bookmarkedIds, createHighlight, deleteHighlight, onToggleBookmark, refetchHighlights, resolvedVersionId, selectedVersion, selectedVersionLabel])
 
   const handleYouVersionSignIn = useCallback(async () => {
+    const redirectUrl = getYouVersionRedirectUrl()
+    console.info('YouVersion sign-in redirectUrl:', redirectUrl)
     await signIn({
-      redirectUrl: getYouVersionRedirectUrl(),
-      scopes: ['profile', 'email'],
+      redirectUrl,
+      scopes: ['openid', 'profile'] as any,
       permissions: ['highlights'],
     })
   }, [signIn])

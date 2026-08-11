@@ -2,6 +2,20 @@
   "appId": "com.cscla.biblestudy",
   "appName": "Rooted",
   "webDir": "dist",
+  "server": {
+    "url": "https://rootedinchrist-faith-2026.web.app",
+    "allowNavigation": [
+      "https://rootedinchrist.faith/*",
+      "https://*.rootedinchrist.faith/*",
+      "https://rootedinchrist-faith.web.app/*",
+      "https://rootedinchrist-faith-2026.web.app/*",
+      "https://rootedinchrist-faith.firebaseapp.com/*",
+      "https://rootedinchrist-faith-2026.firebaseapp.com/*",
+      "http://localhost:5173/*",
+      "https://*.youversion.com/*",
+      "https://*.firebaseapp.com/*"
+    ]
+  },
   "plugins": {
     "SplashScreen": {
       "launchShowDuration": 3000,

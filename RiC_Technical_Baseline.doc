@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="ProgId" content="Word.Document">
+<title>RiC Technical Baseline</title>
+<style>
+body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.4; color: #000; }
+h1 { font-size: 20pt; color: #1f2937; margin-top: 24pt; margin-bottom: 12pt; }
+h2 { font-size: 16pt; color: #374151; margin-top: 20pt; margin-bottom: 10pt; border-bottom: 1pt solid #d1d5db; padding-bottom: 4pt; }
+h3 { font-size: 13pt; color: #4b5563; margin-top: 16pt; margin-bottom: 8pt; }
+h4 { font-size: 12pt; color: #4b5563; margin-top: 12pt; margin-bottom: 6pt; }
+p { margin: 6pt 0; }
+ul, ol { margin: 6pt 0 6pt 24pt; }
+table { border-collapse: collapse; width: 100%; margin: 10pt 0; }
+th, td { border: 1pt solid #9ca3af; padding: 5pt; text-align: left; vertical-align: top; }
+th { background: #f3f4f6; font-weight: bold; }
+code { font-family: Consolas, monospace; background: #f3f4f6; padding: 1pt 3pt; }
+pre { font-family: Consolas, monospace; background: #f3f4f6; padding: 8pt; margin: 8pt 0; overflow-x: auto; }
+strong { font-weight: bold; }
+em { font-style: italic; }
+</style>
+</head>
+<body>
+
+<h1>Rooted in Christ (RiC) — Technical Baseline</h1>
+<p><em>Discovery pass only. No code was changed. No secrets are included.</em></p>
+
+<h2>Executive Summary</h2>
+<p>RiC today is a single <strong>Vite + React 19 SPA</strong> with all application logic in the browser. It ships a public-domain KJV corpus locally and layers YouVersion Platform content on top through a mix of the official <code>@youversion</code> SDK and a custom REST wrapper. User state lives in <code>localStorage</code> + <code>IndexedDB</code> and syncs to Firebase Auth + Firestore. A Capacitor Android wrapper exists but is a packaged WebView. The network graph, geography, and people/timeline features are implemented on hand-curated, hard-coded starter datasets and rule-based algorithms.</p>
+<p><strong>The honest bottom line:</strong> the prototype proves the product vision, but it is still a prototype. The KJV reader and search work today; the YouVersion reader works if the auth callback is fixed; the visual features are compelling demos; and the data layer is almost entirely local and hand-maintained.</p>
+
+<h2>PART 1 — Current Technology Stack</h2>
+<table>
+<tr><th>Layer</th><th>Technology</th><th>Status</th></tr>
+<tr><td>Frontend</td><td>React 19.2.8</td><td>Implemented</td></tr>
+<tr><td>Build</td><td>Vite 5.4.8</td><td>Implemented</td></tr>
+<tr><td>Language</td><td>TypeScript 5.6.2</td><td>Implemented</td></tr>
+<tr><td>Auth</td><td>Firebase Auth + YouVersion SDK</td><td>Implemented (redirect mismatch)</td></tr>
+<tr><td>Database/Backend</td><td>Firebase Firestore for user data; otherwise none</td><td>Implemented</td></tr>
+<tr><td>Hosting</td><td>Firebase Hosting (rootedinchrist-faith / rootedinchrist-faith-2026)</td><td>Implemented</td></tr>
+<tr><td>PWA</td><td>manifest.json, icons, theme colors</td><td>Scaffolded (no service worker)</td></tr>
+<tr><td>Mobile</td><td>Capacitor 8 Android</td><td>Scaffolded / packaged WebView</td></tr>
+<tr><td>Maps</td><td>Google Maps JS API</td><td>Implemented</td></tr>
+<tr><td>Search</td><td>fuse.js 7.0.0</td><td>Implemented</td></tr>
+<tr><td>Graph</td><td>D3 7.9.0 + custom WebGL canvas</td><td>Implemented</td></tr>
+<tr><td>YouVersion</td><td><code>@youversion/platform-react-ui/hooks/core</code> + custom REST</td><td>Implemented</td></tr>
+<tr><td>Icons</td><td>lucide-react</td><td>Implemented</td></tr>
+<tr><td>Image processing</td><td>sharp</td><td>Implemented</td></tr>
+</table>
+<p><strong>Installed but not used:</strong> <code>cytoscape</code> is in package.json but no import appears in current source; the graph is custom WebGL/D3.</p>
+
+<h2>PART 2 — Repository Structure</h2>
+<pre>
+bible-study-app/
+├── README.md
+├── web/
+│   ├── .env.local (VITE_GOOGLE_MAPS_API_KEY, VITE_YVP_APP_KEY, etc.)
+│   ├── .firebaserc
+│   ├── firebase.json
+│   ├── netlify.toml
+│   ├── capacitor.config.json
+│   ├── index.html
+│   ├── manifest.json
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── vite.config.ts
+│   ├── public/
+│   │   ├── manifest.json
+│   │   ├── branding/
+│   │   ├── data/
+│   │   │   ├── bible.json
+│   │   │   ├── kjv_raw.json
+│   │   │   ├── places.json
+│   │   │   ├── characters.json
+│   │   │   ├── lexicon.json
+│   │   │   ├── red_letter_verses.json
+│   │   │   └── sentences.tsv
+│   │   └── favicon*.png
+│   ├── scripts/
+│   │   ├── transform.mjs
+│   │   ├── generate-logos.mjs
+│   │   └── generate-rooted-icons.mjs
+│   ├── android/ (Capacitor project)
+│   └── src/
+│       ├── main.tsx
+│       ├── App.tsx (3,122 lines)
+│       ├── AuthGate.tsx
+│       ├── Landing.tsx
+│       ├── i18n.tsx
+│       ├── bible.ts
+│       ├── youversion.ts
+│       ├── youversionRedirect.ts
+│       ├── firebase.ts
+│       ├── storage.ts
+│       ├── indexedStorage.ts
+│       ├── cloudStorage.ts
+│       ├── userProfile.ts
+│       ├── places.ts
+│       ├── characters.ts
+│       ├── scriptureMap.ts
+│       ├── bookTaxonomy.ts
+│       ├── redLetter.ts
+│       ├── entityMarkup.ts
+│       ├── useEntityData.ts
+│       ├── mapStyles.ts
+│       ├── wikipedia.ts
+│       ├── WikiMediaCard.tsx
+│       ├── LexiconTab.tsx
+│       ├── YouVersionReaderTab.tsx (2,232 lines)
+│       ├── ReaderBookList.tsx
+│       ├── ReaderChapterList.tsx
+│       ├── ReaderPassageStack.tsx
+│       ├── ReaderToolButtons.tsx
+│       ├── ReaderVersionSelector.tsx
+│       ├── ComparePaneFrame.tsx
+│       ├── NetworkScene.tsx
+│       ├── RootedNetwork3DScene.tsx
+│       ├── NetworkVersePopup.tsx
+│       ├── useRootedNetwork.ts
+│       ├── types.ts
+│       └── index.css
+</pre>
+
+<h2>PART 3 — Current Bible Data Pipeline</h2>
+<ul>
+<li><strong>Source:</strong> <code>public/data/kjv_raw.json</code> is the structured KJV; <code>scripts/transform.mjs</code> flattens it to <code>public/data/bible.json</code> (31,102 verses).</li>
+<li><strong>Provenance:</strong> README states KJV was downloaded from <code>midvash/bible-data</code>; KJV is public domain in the US.</li>
+<li><strong>Loading:</strong> <code>bible.ts</code> fetches <code>/data/bible.json</code> via <code>fetchCachedJson</code> in <code>indexedStorage.ts</code>; <code>App.tsx</code> loads Bible, places, and characters on mount.</li>
+<li><strong>Indexing:</strong> <code>bible.ts</code> builds Fuse.js index for text, bookName, book; a <code>wordIndex</code> for instant single-word lookup; and <code>bookFuse</code> for book names.</li>
+<li><strong>Search:</strong> <code>searchBible()</code> handles references, natural-language questions, exact phrases, and fuzzy fallback.</li>
+<li><strong>Reader display:</strong> YouVersion versions are fetched as HTML, transformed with <code>@youversion/platform-core</code>, then red-letter and named-entity markup is applied. Local KJV text powers search, map, network, and sidebar.</li>
+</ul>
+
+<h2>PART 4 — Current YouVersion Integration</h2>
+<p><strong>YouVersion is integrated.</strong></p>
+<ul>
+<li><code>youversion.ts</code> is a custom REST client for <code>/bibles</code>, <code>/passages/{usfm}</code>, <code>/languages</code>, legacy search, and audio.</li>
+<li><code>AuthGate.tsx</code> and <code>App.tsx</code> use the <code>@youversion</code> SDK (Provider, hooks) for auth and data.</li>
+<li>What works: listing versions/books/chapters, fetching passage HTML, searching, audio, split-translation compare mode, version selection.</li>
+<li>What does not: <strong>YouVersion Sign-In fails with “redirect_uri does not match registered callback URL.”</strong> <code>youversionRedirect.ts</code> computes the redirect from <code>window.location.origin</code> or <code>VITE_YVP_REDIRECT_URL</code>. The mismatch is in the YouVersion console callback registration, which is not in the repo.</li>
+</ul>
+
+<h2>PART 5 — Current Authentication</h2>
+<table>
+<tr><th>Mechanism</th><th>Status</th><th>Notes</th></tr>
+<tr><td>Firebase email/password</td><td>Working</td><td><code>AuthGate.tsx</code> uses <code>signInWithEmailAndPassword</code>; no sign-up UI found</td></tr>
+<tr><td>YouVersion Sign-In</td><td>Partial / broken</td><td>SDK wired, redirect mismatch blocking</td></tr>
+<tr><td>OAuth 2.0 / PKCE</td><td>Handled by SDK</td><td><code>@youversion/platform-react-ui</code></td></tr>
+<tr><td>OIDC/JWT validation</td><td>Not custom</td><td>Relies on SDKs</td></tr>
+<tr><td>Callback handler</td><td>AuthGate.tsx</td><td>Processes <code>?code</code>, <code>?state</code>, <code>?error</code></td></tr>
+<tr><td>Redirect URI config</td><td>youversionRedirect.ts</td><td>Uses <code>window.location.origin</code> or env override</td></tr>
+</table>
+
+<h2>PART 6 — Current Bible Reader</h2>
+<table>
+<tr><th>Feature</th><th>Status</th></tr>
+<tr><td>Book selection</td><td>Working</td></tr>
+<tr><td>Chapter selection</td><td>Working</td></tr>
+<tr><td>Verse display</td><td>Working</td></tr>
+<tr><td>Translation selection</td><td>Working</td></tr>
+<tr><td>Multiple translations</td><td>Working</td></tr>
+<tr><td>Translation comparison</td><td>Working</td></tr>
+<tr><td>Font sizing</td><td>Not implemented</td></tr>
+<tr><td>Light / dark mode</td><td>Working</td></tr>
+<tr><td>Verse numbers</td><td>Working</td></tr>
+<tr><td>Red-letter text</td><td>Working</td></tr>
+<tr><td>Remember last location</td><td>Working</td></tr>
+<tr><td>Reading progress</td><td>Not implemented</td></tr>
+<tr><td>Search</td><td>Working</td></tr>
+<tr><td>Notes</td><td>Working</td></tr>
+<tr><td>Highlights</td><td>Not implemented</td></tr>
+<tr><td>Bookmarks</td><td>Working</td></tr>
+<tr><td>Cross references</td><td>Working</td></tr>
+</table>
+
+<h2>PART 7 — Current Search</h2>
+<ul>
+<li><strong>Data:</strong> local KJV text, book names, book codes.</li>
+<li><strong>Library:</strong> Fuse.js for fuzzy matching.</li>
+<li><strong>Ranking:</strong> exact references first, then exact phrases, then Fuse score.</li>
+<li><strong>Reference search:</strong> yes, <code>parseVerseReference()</code>.</li>
+<li><strong>People/places/themes:</strong> indirectly via keyword matching against <code>characters.json</code> events for question queries (who/what/where).</li>
+<li><strong>Scalability:</strong> in-memory; fine for KJV, not for full multi-version corpus.</li>
+<li><strong>API-backed future:</strong> would require YouVersion Search API or a RiC backend with a persistent index.</li>
+</ul>
+
+<h2>PART 8 — Current Notes / Bookmarks</h2>
+<ul>
+<li><strong>Storage:</strong> <code>localStorage</code> primary; <code>IndexedDB</code> secondary; <code>Firebase Firestore</code> cloud sync when signed in.</li>
+<li><strong>Persistence:</strong> yes, across sessions.</li>
+<li><strong>User ownership:</strong> only when Firebase-signed in; otherwise local-only.</li>
+<li><strong>Cross-device sync:</strong> via Firestore when signed in.</li>
+<li><strong>YouVersion connection:</strong> none.</li>
+</ul>
+
+<h2>PART 9 — Cross-Reference / Relationship Engine</h2>
+<ul>
+<li><code>bible.ts getCrossReferenceMatches()</code> computes shared non-stopword terms between verses and scores by term overlap, same book/chapter, etc.</li>
+<li><code>App.tsx</code> builds a 3D/2D network: center verse, related verses, theme nodes, and a Bible hierarchy (book → chapter → verse).</li>
+<li>The graph is custom WebGL (not Cytoscape, despite the dependency).</li>
+<li>This is the <em>beginning</em> of a Scripture Graph, but it is a term-similarity graph, not a curated cross-reference matrix or semantic graph. It would need real cross-reference data and embeddings to become the “RiC Scripture Graph.”</li>
+</ul>
+
+<h2>PART 10 — Current Geography</h2>
+<ul>
+<li><strong>Data:</strong> <code>public/data/places.json</code> (~80 places) with <code>lat</code>, <code>lng</code>, descriptions, and passage ranges.</li>
+<li><strong>Engine:</strong> <code>src/places.ts</code> loads, indexes, and matches places to verses.</li>
+<li><strong>Map:</strong> Google Maps with custom light/dark styles in <code>mapStyles.ts</code>.</li>
+<li><strong>Static vs. dynamic:</strong> static, hand-curated.</li>
+</ul>
+
+<h2>PART 11 — Current People / Characters</h2>
+<ul>
+<li><strong>Data:</strong> <code>public/data/characters.json</code> (~40 figures) with <code>name</code>, <code>aliases</code>, <code>era</code>, <code>approxDateRange</code>, <code>summary</code>, and <code>events</code> (each tied to <code>placeId</code> and passages).</li>
+<li><strong>Engine:</strong> <code>src/characters.ts</code> loads, indexes, searches, and builds journey paths.</li>
+<li>All data is hard-coded.</li>
+</ul>
+
+<h2>PART 12 — Current Timeline / Journey System</h2>
+<ul>
+<li><code>getCharacterPath()</code> sorts a character’s events and resolves their places.</li>
+<li>UI in the Map tab can “play” a character’s animated journey.</li>
+<li>Dates are approximate and hand-curated.</li>
+<li>This could become a node in a larger Scripture/History Graph if backed by a real data pipeline.</li>
+</ul>
+
+<h2>PART 13 — Current PWA / Mobile App</h2>
+<ul>
+<li><strong>PWA:</strong> <code>manifest.json</code> and icons are present; no service worker is registered in the source, so offline caching is not implemented.</li>
+<li><strong>Mobile:</strong> Capacitor 8 Android project exists; it packages the web app as a WebView. No native plugins beyond the default.</li>
+<li><strong>YouVersion SDK in mobile:</strong> same web SDK runs in WebView; OAuth redirects may need a Capacitor deep-link plugin.</li>
+<li><strong>React Native/Expo:</strong> not used; a rewrite is not recommended.</li>
+</ul>
+
+<h2>PART 14 — Current Live Website</h2>
+<p><code>https://rootedinchrist.faith/</code> serves the same built Vite SPA as the repo. A raw <code>GET</code> returns only the app shell; functionality is entirely client-side.</p>
+<table>
+<tr><th>Aspect</th><th>Observation</th></tr>
+<tr><td>Functional</td><td>App shell loads; JS-driven SPA.</td></tr>
+<tr><td>Static</td><td>Landing, reader, map, network, lexicon are all rendered in JS.</td></tr>
+<tr><td>Placeholder/demonstration</td><td>Network, maps, and journeys are real but run on starter datasets.</td></tr>
+<tr><td>Incomplete</td><td>Service worker, highlight creation, user registration, font sizing, reading progress.</td></tr>
+<tr><td>Production-ready</td><td>KJV search/reader is solid; YouVersion reader needs auth fix; visual features are polished but experimental.</td></tr>
+</table>
+
+<h2>PART 15 — Existing RiC Resources</h2>
+<table>
+<tr><th>Resource</th><th>Status</th></tr>
+<tr><td>KJV</td><td>Implemented</td></tr>
+<tr><td>NIV / ESV / NASB / AMP / LSB</td><td>Via YouVersion API where permitted</td></tr>
+<tr><td>Greek / Hebrew / Strong’s</td><td>Not present</td></tr>
+<tr><td>Morphology / parsing</td><td>Not present</td></tr>
+<tr><td>Lexicon</td><td>Implemented (small KJV glossary)</td></tr>
+<tr><td>Cross references</td><td>Implemented (rule-based similarity)</td></tr>
+<tr><td>Bible dictionaries</td><td>Not present</td></tr>
+<tr><td>Geography / maps</td><td>Implemented</td></tr>
+<tr><td>Timeline / people</td><td>Implemented</td></tr>
+<tr><td>Scripture graph</td><td>Beginning only</td></tr>
+<tr><td>AI / RAG / embeddings / vector DB / LLM</td><td>Not present</td></tr>
+<tr><td>YouVersion Data Exchange / sync</td><td>Not used</td></tr>
+</table>
+
+<h2>PART 16 — Dependencies</h2>
+<table>
+<tr><th>Dependency</th><th>Purpose</th><th>License</th></tr>
+<tr><td>react / react-dom</td><td>UI</td><td>MIT</td></tr>
+<tr><td>vite</td><td>Build</td><td>MIT</td></tr>
+<tr><td>typescript</td><td>Type checking</td><td>Apache-2.0</td></tr>
+<tr><td>firebase</td><td>Auth / Firestore</td><td>Apache-2.0</td></tr>
+<tr><td>@youversion packages</td><td>YouVersion SDK</td><td>YouVersion Platform terms</td></tr>
+<tr><td>d3</td><td>Network layout</td><td>ISC</td></tr>
+<tr><td>cytoscape</td><td>Installed but unused</td><td>MIT</td></tr>
+<tr><td>fuse.js</td><td>Fuzzy search</td><td>Apache-2.0</td></tr>
+<tr><td>@react-google-maps/api</td><td>Google Maps wrapper</td><td>MIT</td></tr>
+<tr><td>@capacitor packages</td><td>Mobile wrapper</td><td>MIT</td></tr>
+<tr><td>lucide-react</td><td>Icons</td><td>ISC</td></tr>
+<tr><td>sharp</td><td>Logo generation</td><td>Apache-2.0</td></tr>
+</table>
+
+<h2>PART 17 — Architectural Assessment</h2>
+<h3>KEEP</h3>
+<ul>
+<li>Local KJV as offline fallback.</li>
+<li><code>bible.ts</code> indexing and search pattern for KJV.</li>
+<li><code>Place</code>/<code>Character</code>/<code>PassageMatch</code> shapes and matching logic.</li>
+<li>Visual network graph concept and WebGL renderer.</li>
+<li>Light/dark theme and CSS variables.</li>
+<li>en/es i18n scaffold.</li>
+</ul>
+<h3>REFACTOR</h3>
+<ul>
+<li><code>App.tsx</code> and <code>YouVersionReaderTab.tsx</code> are too large; split into feature modules.</li>
+<li>Data layer should be abstracted behind a <code>BibleClient</code> / <code>BibleService</code>.</li>
+<li><code>storage.ts</code> should be wrapped in a clean repository/adapter pattern.</li>
+</ul>
+<h3>REPLACE</h3>
+<ul>
+<li>Rule-based cross-reference scoring with a real cross-reference dataset + semantic model.</li>
+<li>Hand-curated <code>places.json</code>/<code>characters.json</code> with licensed/expanded datasets.</li>
+<li>Rule-based “AI insight” with RAG/LLM.</li>
+<li>localStorage-only persistence with a proper backend.</li>
+</ul>
+<h3>CONNECT TO YOUTUBEERSION</h3>
+<table>
+<tr><th>Capability</th><th>Use</th></tr>
+<tr><td>Auth (Sign-In / OAuth / PKCE)</td><td>Official SDK</td></tr>
+<tr><td>Bible / version / passage content</td><td>REST API or SDK hooks</td></tr>
+<tr><td>Search</td><td>REST API</td></tr>
+<tr><td>User highlights / bookmarks</td><td>Data Exchange API where permitted</td></tr>
+<tr><td>Audio</td><td>REST API</td></tr>
+</table>
+<h3>BUILD OURSELVES</h3>
+<ul>
+<li>RiC Scripture Graph / Hyperlink Matrix.</li>
+<li>Integrated biblical geography and timeline.</li>
+<li>RAG + AI study companion.</li>
+<li>Canonical Scripture reference layer across versification systems.</li>
+</ul>
+<h3>DO NOT BUILD</h3>
+<ul>
+<li>User auth (Firebase / YouVersion already provide it).</li>
+<li>Bible content CDN / version management (YouVersion).</li>
+<li>Audio streaming (YouVersion).</li>
+<li>Copyright-compliant translation distribution (YouVersion).</li>
+</ul>
+
+<h2>PART 18 — Compare RiC vs. YouVersion</h2>
+<table>
+<tr><th>Capability</th><th>RiC</th><th>YouVersion</th><th>Use it?</th><th>RiC still builds</th></tr>
+<tr><td>Bible/version APIs</td><td>Custom wrapper + SDK hooks</td><td><code>/bibles</code> + SDK</td><td>Yes</td><td>Caching / offline adapter</td></tr>
+<tr><td>Passage content</td><td>Fetches YVP HTML</td><td><code>/passages/{usfm}</code></td><td>Yes</td><td>Error / fallback UI</td></tr>
+<tr><td>Search</td><td>Fuse + legacy YVP search</td><td>Search endpoints</td><td>Yes</td><td>Rank merge, offline index</td></tr>
+<tr><td>Auth</td><td>SDK, broken redirect</td><td>SDK</td><td>Yes</td><td>Fix redirect + deep links</td></tr>
+<tr><td>Data Exchange</td><td>Not used</td><td>User data exchange</td><td>Maybe</td><td>Consent + sync logic</td></tr>
+<tr><td>USFM references</td><td>OSIS→USFM mapping</td><td>USFM</td><td>Yes</td><td>Canonical reference layer</td></tr>
+<tr><td>Versification</td><td>KJV numbering only</td><td>Version-specific</td><td>Use with care</td><td>Versification mapping</td></tr>
+<tr><td>Audio</td><td>Fetches YVP audio</td><td>audio-bible API</td><td>Yes</td><td>Player UI</td></tr>
+<tr><td>Error handling</td><td>Basic 403 message</td><td>HTTP errors</td><td>Improve</td><td>User-friendly messages</td></tr>
+</table>
+
+<h2>PART 19 — Important Examples to Investigate</h2>
+<table>
+<tr><th>Current</th><th>Investigate</th></tr>
+<tr><td>Local KJV JSON</td><td>YouVersion Bible API + caching + offline fallback</td></tr>
+<tr><td>Local Bible references</td><td>YouVersion USFM + RiC canonical reference layer</td></tr>
+<tr><td>Hand-curated geography</td><td>Properly licensed expanded biblical geography</td></tr>
+<tr><td>Cytoscape / custom term graph</td><td>Evolve into the RiC Scripture Graph / Hyperlink Matrix</td></tr>
+<tr><td>Rule-based “AI insight”</td><td>Grounded RAG + AI study companion</td></tr>
+<tr><td>Local notes/bookmarks</td><td>RiC local storage + YouVersion Data Exchange where permitted</td></tr>
+</table>
+
+<h2>PART 20 — Target Architecture Flow</h2>
+<pre>
+CURRENT RiC
+   ↓
+Local KJV + YouVersion REST + hand-curated data
+   ↓
+WHAT ACTUALLY WORKS: KJV search/reader, local notes, visual demos
+   ↓
+CURRENT DATA SOURCES: public-domain KJV, curated places/characters, YVP API
+   ↓
+CURRENT ARCHITECTURE: Vite React SPA, browser storage, Firebase sync
+   ↓
+YOUTUBEERSION CAPABILITIES: auth, versions, passages, audio, search, data exchange
+   ↓
+OVERLAP: content, auth, search, audio
+   ↓
+PRESERVE: offline KJV, visual graph, geography/timeline concept
+   ↓
+REFACTOR: monolithic components, direct API calls, storage sync
+   ↓
+REPLACE: hand-curated data, rule-based insights, localStorage-only persistence
+   ↓
+YOUTUBEERSION PROVIDES: translations, auth, audio, search, user data exchange
+   ↓
+RiC MUST BUILD: Scripture Graph, canonical reference layer, geography/timeline engine, RAG study companion
+   ↓
+FINAL TARGET ARCHITECTURE: RiC service/adapter over YouVersion SDK/REST, graph DB, expanded datasets, clean UI modules
+   ↓
+DEVELOPMENT ORDER:
+  1. Fix YouVersion auth
+  2. Wrap YVP behind RiC Bible service
+  3. Expand data + graph
+  4. Add RAG/AI
+</pre>
+
+<h2>PART 21 — Final Recommendation</h2>
+<p><strong>Option C — RiC abstraction layer over the official SDK/REST API.</strong></p>
+<p>Use the YouVersion SDK for authentication and branded UI primitives. Use the YouVersion REST API for Bible content, search, and audio. Wrap both behind a <code>RiC BibleClient / BibleService</code> so the rest of the app never imports <code>@youversion</code> directly. This decouples RiC from the external provider, enables transparent offline KJV fallback, and makes the data layer testable and swappable.</p>
+
+<h2>PART 22 — No Architecture Changes Made</h2>
+<p>This report is baseline only. No code was modified, no data was deleted, and no credentials were exposed.</p>
+<p>The next step is to review this baseline and approve the <strong>RiC Architecture v1.0</strong> and <strong>Development Roadmap</strong> before implementation begins.</p>
+
+
+<h2>APPENDIX A — Living Roadmap &amp; Feature Tracker</h2>
+<p><em>This section turns the baseline into a living document. Update it as features are confirmed, shipped, or added to the wishlist. Last generated: 2026-08-09.</em></p>
+
+<h3>A.1 — Implementation Confirmations (Currently in Code)</h3>
+<p>These features have real code in the repository. They should be re-confirmed after each deployment.</p>
+<table>
+<tr><th>Feature</th><th>Code Location</th><th>Status</th><th>Confirmation Notes</th></tr>
+<tr><td>Local KJV Bible loading</td><td><code>src/bible.ts</code>, <code>public/data/bible.json</code></td><td>Confirmed</td><td>Loaded at app startup; 31,102 verses.</td></tr>
+<tr><td>Fuzzy keyword search</td><td><code>src/bible.ts</code></td><td>Confirmed</td><td>Fuse.js over text, bookName, book.</td></tr>
+<tr><td>Verse reference parsing</td><td><code>src/bible.ts</code></td><td>Confirmed</td><td>Handles “John 3:16”, ranges, spoken numbers.</td></tr>
+<tr><td>Natural-language question search</td><td><code>src/bible.ts</code></td><td>Confirmed</td><td>Matches “who baptized Jesus” to character events.</td></tr>
+<tr><td>Book / chapter / verse reader</td><td><code>src/YouVersionReaderTab.tsx</code></td><td>Confirmed</td><td>Uses YouVersion SDK for navigation.</td></tr>
+<tr><td>Translation selection</td><td><code>src/YouVersionReaderTab.tsx</code>, <code>src/ReaderVersionSelector.tsx</code></td><td>Confirmed</td><td>Uses <code>useVersions</code> hook.</td></tr>
+<tr><td>Compare / split-pane mode</td><td><code>src/YouVersionReaderTab.tsx</code>, <code>src/ComparePaneFrame.tsx</code></td><td>Confirmed</td><td>Two versions side by side with sync.</td></tr>
+<tr><td>Red-letter text</td><td><code>src/redLetter.ts</code></td><td>Confirmed</td><td>KJV red-letter markup plus YVP HTML fallback.</td></tr>
+<tr><td>Named-entity highlights</td><td><code>src/entityMarkup.ts</code>, <code>src/useEntityData.ts</code></td><td>Confirmed</td><td>Uses <code>public/data/sentences.tsv</code>.</td></tr>
+<tr><td>Hover highlight</td><td><code>src/ReaderToolButtons.tsx</code></td><td>Confirmed</td><td>Toggle in reader tool footer.</td></tr>
+<tr><td>Notes</td><td><code>src/storage.ts</code>, <code>src/indexedStorage.ts</code>, <code>src/cloudStorage.ts</code></td><td>Confirmed</td><td>Local + cloud via Firebase when signed in.</td></tr>
+<tr><td>Bookmarks</td><td><code>src/storage.ts</code></td><td>Confirmed</td><td>Local + cloud sync.</td></tr>
+<tr><td>Recent searches</td><td><code>src/storage.ts</code></td><td>Confirmed</td><td>Persisted locally and synced when signed in.</td></tr>
+<tr><td>3D network graph</td><td><code>src/App.tsx</code>, <code>src/NetworkScene.tsx</code>, <code>src/RootedNetwork3DScene.tsx</code></td><td>Confirmed</td><td>D3 + WebGL custom renderer.</td></tr>
+<tr><td>Geography / Google Maps</td><td><code>src/App.tsx</code>, <code>src/places.ts</code>, <code>src/mapStyles.ts</code></td><td>Confirmed</td><td>~80 places, custom dark/light styles.</td></tr>
+<tr><td>Character timelines &amp; journeys</td><td><code>src/characters.ts</code>, <code>src/App.tsx</code></td><td>Confirmed</td><td>~40 figures, hand-curated events.</td></tr>
+<tr><td>Lexicon / word study</td><td><code>src/bible.ts</code>, <code>src/LexiconTab.tsx</code></td><td>Confirmed</td><td><code>public/data/lexicon.json</code>.</td></tr>
+<tr><td>Light / dark mode</td><td><code>src/App.tsx</code>, <code>src/AuthGate.tsx</code></td><td>Confirmed</td><td>Stored in localStorage.</td></tr>
+<tr><td>en / es i18n</td><td><code>src/i18n.tsx</code></td><td>Confirmed</td><td>Small in-app translation table.</td></tr>
+<tr><td>Share URL</td><td><code>src/App.tsx</code></td><td>Confirmed</td><td>Copies verse-linked URL to clipboard.</td></tr>
+<tr><td>Audio Bible</td><td><code>src/App.tsx</code>, <code>src/youversion.ts</code></td><td>Confirmed</td><td>Fetches YouVersion audio chapter.</td></tr>
+<tr><td>Wikipedia cards</td><td><code>src/wikipedia.ts</code>, <code>src/WikiMediaCard.tsx</code></td><td>Confirmed</td><td>Fetches summary and images.</td></tr>
+<tr><td>Firebase auth</td><td><code>src/AuthGate.tsx</code></td><td>Confirmed</td><td>Email/password only (no sign-up UI).</td></tr>
+<tr><td>YouVersion auth attempt</td><td><code>src/AuthGate.tsx</code></td><td>Partial</td><td>SDK wired; redirect_uri mismatch blocks sign-in.</td></tr>
+<tr><td>Capacitor Android project</td><td><code>web/android/</code></td><td>Scaffolded</td><td>WebView wrapper; no native plugins added.</td></tr>
+<tr><td>PWA manifest</td><td><code>web/public/manifest.json</code></td><td>Scaffolded</td><td>No service worker implemented yet.</td></tr>
+</table>
+
+<h3>A.2 — Known Gaps &amp; Wishlist</h3>
+<table>
+<tr><th>Item</th><th>Category</th><th>Priority</th><th>Notes</th></tr>
+<tr><td>Fix YouVersion redirect_uri</td><td>Auth</td><td>Critical</td><td>Compare <code>getYouVersionRedirectUrl()</code> to YVP console.</td></tr>
+<tr><td>Add user sign-up / registration</td><td>Auth</td><td>High</td><td>Only sign-in exists; no account creation UI.</td></tr>
+<tr><td>Service worker / offline reading</td><td>PWA</td><td>High</td><td>Enable cached KJV + assets.</td></tr>
+<tr><td>User highlight creation</td><td>Reader</td><td>High</td><td><code>useHighlights</code> is imported but no highlight UI.</td></tr>
+<tr><td>Reading progress</td><td>Reader</td><td>Medium</td><td>Track last-read verse / chapter.</td></tr>
+<tr><td>Font sizing</td><td>Reader</td><td>Medium</td><td>No font-size control in tool footer.</td></tr>
+<tr><td>Highlight / bookmark YouVersion sync</td><td>Data Exchange</td><td>Medium</td><td>Use YVP Data Exchange where user permits.</td></tr>
+<tr><td>USFM / versification mapping layer</td><td>Data</td><td>High</td><td>Needed for cross-version accuracy.</td></tr>
+<tr><td>Expand geography dataset</td><td>Data</td><td>Medium</td><td>Move beyond ~80 hand-curated places.</td></tr>
+<tr><td>Expand character/timeline dataset</td><td>Data</td><td>Medium</td><td>Move beyond ~40 figures.</td></tr>
+<tr><td>Real cross-reference dataset</td><td>Graph</td><td>High</td><td>Replace term-similarity graph.</td></tr>
+<tr><td>Semantic / embedding search</td><td>Search</td><td>Medium</td><td>Requires backend or API support.</td></tr>
+<tr><td>RAG + AI study companion</td><td>AI</td><td>High</td><td>Replace rule-based “insight”.</td></tr>
+<tr><td>RiC Bible service adapter</td><td>Architecture</td><td>High</td><td>Decouple UI from YouVersion.</td></tr>
+<tr><td>iOS app</td><td>Mobile</td><td>Low</td><td>Add Capacitor iOS or alternative.</td></tr>
+<tr><td>Desktop app</td><td>Mobile</td><td>Low</td><td>Tauri or Electron optional.</td></tr>
+<tr><td>Study plans / reading plans</td><td>Product</td><td>Low</td><td>User-defined or curated plans.</td></tr>
+<tr><td>Print / export notes</td><td>Product</td><td>Low</td><td>Export notes/bookmarks to PDF/CSV.</td></tr>
+<tr><td>Social sharing / groups</td><td>Product</td><td>Low</td><td>Collaborative study out of scope initially.</td></tr>
+</table>
+
+<h3>A.3 — Development Phases &amp; Todos</h3>
+<h4>Phase 1 — Foundation &amp; Auth (Immediate)</h4>
+<ol>
+<li>Fix YouVersion redirect URI mismatch.</li>
+<li>Add Firebase email sign-up / registration UI.</li>
+<li>Confirm YouVersion sign-in works on web and Android WebView.</li>
+<li>Wrap YouVersion SDK + REST behind a <code>BibleService</code> adapter.</li>
+</ol>
+
+<h4>Phase 2 — Data &amp; Offline (Next)</h4>
+<ol>
+<li>Implement service worker and offline KJV cache.</li>
+<li>Add reading progress and last-location persistence.</li>
+<li>Build canonical USFM / reference layer and versification mapping.</li>
+<li>Expand places and characters with licensed/expanded data.</li>
+</ol>
+
+<h4>Phase 3 — Graph &amp; Search (Next)</h4>
+<ol>
+<li>Replace term-similarity cross-references with a real cross-reference dataset.</li>
+<li>Persist the Scripture Graph in a graph-capable store or structured JSON.</li>
+<li>Add semantic / embedding search (backend or API).</li>
+<li>Evolve the 3D network into the RiC Scripture Graph / Hyperlink Matrix.</li>
+</ol>
+
+<h4>Phase 4 — AI &amp; Advanced Features (Future)</h4>
+<ol>
+<li>Design RAG pipeline over the Scripture Graph + local data.</li>
+<li>Build the AI study companion with grounded answers.</li>
+<li>Integrate YouVersion Data Exchange for bookmarks/highlights where permitted.</li>
+<li>Polish mobile native UX (deep links, audio, offline).</li>
+</ol>
+
+<h3>A.4 — Resource Inventory</h3>
+<table>
+<tr><th>Resource</th><th>Type</th><th>License / Terms</th><th>Notes</th></tr>
+<tr><td>KJV Bible JSON</td><td>Local data</td><td>Public domain (US)</td><td><code>public/data/bible.json</code>; from midvash/bible-data per README.</td></tr>
+<tr><td>YouVersion Platform API / SDK</td><td>External API &amp; SDK</td><td>YouVersion Platform terms</td><td>Auth, versions, passages, search, audio, Data Exchange.</td></tr>
+<tr><td>Google Maps JavaScript API</td><td>External API</td><td>Google Cloud terms</td><td>Requires <code>VITE_GOOGLE_MAPS_API_KEY</code>.</td></tr>
+<tr><td>Firebase Auth &amp; Firestore</td><td>Backend / SaaS</td><td>Firebase terms</td><td>User auth, cloud sync of notes/bookmarks.</td></tr>
+<tr><td>Wikipedia REST / API</td><td>External API</td><td>CC BY-SA content; terms apply</td><td>Summaries and images for places/people.</td></tr>
+<tr><td>Hand-curated places.json</td><td>Local data</td><td>Original / scholarly estimates</td><td>~80 biblical places; needs expansion/licensing.</td></tr>
+<tr><td>Hand-curated characters.json</td><td>Local data</td><td>Original / scholarly estimates</td><td>~40 biblical figures; needs expansion/licensing.</td></tr>
+<tr><td>lexicon.json</td><td>Local data</td><td>Public / curated</td><td>KJV word-study entries; needs review.</td></tr>
+<tr><td>red_letter_verses.json</td><td>Local data</td><td>kjvstudy.org source per file</td><td>Jesus’ words in KJV; needs license check.</td></tr>
+<tr><td>sentences.tsv</td><td>Local data</td><td>Original / generated</td><td>Named-entity tags per verse word.</td></tr>
+<tr><td>Fuse.js</td><td>Library</td><td>Apache-2.0</td><td>Client-side fuzzy search.</td></tr>
+<tr><td>D3</td><td>Library</td><td>ISC</td><td>Network tree layout.</td></tr>
+<tr><td>React + Vite + TypeScript</td><td>Toolchain</td><td>MIT / Apache-2.0</td><td>Core app stack.</td></tr>
+<tr><td>Capacitor</td><td>Mobile wrapper</td><td>MIT</td><td>Android WebView app.</td></tr>
+</table>
+
+<h3>A.5 — Living Architecture v1.0 (Target)</h3>
+<ul>
+<li><strong>UI layer:</strong> React/Vite components, now split by feature (Search, Reader, Network, Map, Lexicon, Settings) instead of monolithic <code>App.tsx</code>.</li>
+<li><strong>Application services:</strong> <code>BibleService</code> (abstracts YouVersion SDK/REST + offline KJV), <code>UserDataService</code> (local + Firestore + YouVersion Data Exchange), <code>SearchService</code> (local + API), <code>GraphService</code> (Scripture Graph).</li>
+<li><strong>Data layer:</strong> local JSON cache (KJV, places, characters), YouVersion API, Firestore, IndexedDB, and a future graph store / structured JSON.</li>
+<li><strong>Auth:</strong> Firebase email/password + YouVersion OAuth, with unified user identity.</li>
+<li><strong>Mobile:</strong> Capacitor WebView initially; evaluate native auth deep links later.</li>
+<li><strong>AI:</strong> RAG pipeline over local + graph data; optional LLM API for natural-language study help.</li>
+</ul>
+
+<h3>A.6 — Document Change Log</h3>
+<table>
+<tr><th>Date</th><th>Version</th><th>Change</th></tr>
+<tr><td>2026-08-09</td><td>1.0</td><td>Initial baseline (Parts 1–22).</td></tr>
+<tr><td>2026-08-09</td><td>1.1</td><td>Added Appendix A — Living Roadmap &amp; Feature Tracker.</td></tr>
+</table>
+
+<h3>How to Keep This Document Alive</h3>
+<ul>
+<li>After each implementation sprint, update <strong>A.1</strong> to “Confirmed / Shipped” and add any new code locations.</li>
+<li>Move wishlist items into the appropriate phase as they are scheduled.</li>
+<li>Update <strong>A.6</strong> with the date and version every time the document is revised.</li>
+<li>Re-save this <code>.doc</code> as a Word <code>.docx</code> after editing and keep the source HTML under version control if desired.</li>
+</ul>
+
+</body>
+</html>
