@@ -39,6 +39,8 @@ export interface Bookmark {
   verseId: string
   label: string
   createdAt: string
+  versionId?: string
+  versionAbbreviation?: string
 }
 
 export interface RecentSearch {
@@ -47,6 +49,8 @@ export interface RecentSearch {
   verseId: string
   reference: string
   createdAt: string
+  versionId?: string
+  versionAbbreviation?: string
 }
 
 export interface LexiconEntry {

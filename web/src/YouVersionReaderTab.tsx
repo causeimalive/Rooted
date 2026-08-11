@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
-import { BookOpen, ChevronLeft, ChevronRight, GripVertical, Loader2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, GripVertical, Highlighter, Loader2 } from 'lucide-react'
 import { findVerse, getAllVerses } from './bible'
 import { 
   fetchYouVersionPassage, 
@@ -9,6 +9,7 @@ import {
   type YouVersionVersion, 
   type YouVersionSearchHit, 
 } from './youversion'
+import { Capacitor } from '@capacitor/core'
 import { useBibleClient, useBooks, useChapters, useHighlights, useVersion, useVersions, useYVAuth } from '@youversion/platform-react-hooks'
 import { getUserPreference, removeUserPreference, setUserPreference } from './userProfile'
 import { transformBibleHtml, type BiblePassage, type BibleVersion } from '@youversion/platform-core'
@@ -23,8 +24,9 @@ import ReaderChapterList from './ReaderChapterList'
 import ReaderPassageStack from './ReaderPassageStack'
 import ReaderToolButtons from './ReaderToolButtons'
 import ReaderVersionSelector from './ReaderVersionSelector'
+import MobileReaderNav from './MobileReaderNav'
 import { useI18n } from './i18n'
-import type { ReaderView } from './types'
+import type { Bookmark, ReaderView } from './types'
 
 const READER_VERSION_KEY = 'bible-study-yv-version'
 const READER_COMPARE_KEY = 'bible-study-yv-compare'
@@ -39,6 +41,7 @@ const READER_AUTOSCROLL_KEY = 'bible-study-yv-autoscroll'
 const READER_RED_LETTER_KEY = 'bible-study-yv-red-letter'
 const READER_ENTITY_HIGHLIGHTS_KEY = 'bible-study-yv-entity-highlights'
 const READER_HOVER_HIGHLIGHT_KEY = 'bible-study-yv-hover-highlight'
+const READER_FONT_SIZE_KEY = 'bible-study-yv-font-size'
 const DEFAULT_NAV_WIDTH = 300
 const MIN_NAV_WIDTH = 220
 const MAX_NAV_WIDTH = 460
@@ -152,12 +155,16 @@ function parsePassageId(passageId: string): { bookId: string; chapter: number } 
 const ACCESS_DENIED_MESSAGE =
   'This translation requires a YouVersion account or is not available in your region. Sign in to read it.'
 
-function formatPassageError(error: unknown): string {
+function isAccessDeniedError(error: unknown): boolean {
   const text = error instanceof Error ? error.message : String(error)
-  if (text.includes('403') || /access denied/i.test(text) || /forbidden/i.test(text)) {
+  return text.includes('403') || /access denied/i.test(text) || /forbidden/i.test(text)
+}
+
+function formatPassageError(error: unknown): string {
+  if (isAccessDeniedError(error)) {
     return ACCESS_DENIED_MESSAGE
   }
-  return text
+  return error instanceof Error ? error.message : String(error)
 }
 
 function transformPassageForBrowser(
@@ -398,12 +405,14 @@ function ChapterNavButton({
   destination,
   disabled,
   onClick,
+  compact = false,
 }: {
   direction: 'previous' | 'next'
   label: string
   destination: string
   disabled?: boolean
   onClick: () => void
+  compact?: boolean
 }) {
   const isPrevious = direction === 'previous'
   const MainIcon = isPrevious ? ChevronLeft : ChevronRight
@@ -411,7 +420,7 @@ function ChapterNavButton({
   return (
     <button
       type="button"
-      className={`yv-reader-chapter-nav-button ${isPrevious ? 'previous' : 'next'}`}
+      className={`yv-reader-chapter-nav-button ${isPrevious ? 'previous' : 'next'} ${compact ? 'compact' : ''}`}
       onClick={onClick}
       disabled={disabled}
       aria-label={`${label}: ${destination}`}
@@ -419,13 +428,17 @@ function ChapterNavButton({
       <span className="yv-reader-chapter-nav-icon" aria-hidden="true">
         <MainIcon size={16} />
       </span>
-      <span className="yv-reader-chapter-nav-copy">
-        <small>{label}</small>
-        <strong>{destination}</strong>
-      </span>
-      <span className="yv-reader-chapter-nav-chevron" aria-hidden="true">
-        {isPrevious ? <ChevronLeft size={15} /> : <ChevronRight size={15} />}
-      </span>
+      {!compact ? (
+        <>
+          <span className="yv-reader-chapter-nav-copy">
+            <small>{label}</small>
+            <strong>{destination}</strong>
+          </span>
+          <span className="yv-reader-chapter-nav-chevron" aria-hidden="true">
+            {isPrevious ? <ChevronLeft size={15} /> : <ChevronRight size={15} />}
+          </span>
+        </>
+      ) : null}
     </button>
   )
 }
@@ -475,13 +488,26 @@ export default function YouVersionReaderTab({
   onSelect,
   bookmarks,
   onToggleBookmark,
+  audioUrl,
+  audioPlaying,
+  audioLoading,
+  audioTitle,
+  onToggleAudio,
+  onVersionChange,
 }: {
   selectedId: string | null
   onSelect: (id: string) => void
-  bookmarks: { verseId: string }[]
-  onToggleBookmark: (verseId: string) => void
+  bookmarks: Bookmark[]
+  onToggleBookmark: (verseId: string, versionId?: string, versionAbbreviation?: string) => void
+  audioUrl?: string
+  audioPlaying?: boolean
+  audioLoading?: boolean
+  audioTitle?: string
+  onToggleAudio?: () => void
+  onVersionChange?: (version: { id: number; name: string; abbreviation: string }) => void
 }) {
-  const { t, language } = useI18n()
+  const { t, language, setLanguage } = useI18n()
+  const handleToggleLanguage = () => setLanguage(language === 'en' ? 'es' : 'en')
   const { tagPositionsByVerseId } = useEntityData()
   const hasEntityData = Object.keys(tagPositionsByVerseId).length > 0
   const { auth, signIn, signOut, userInfo } = useYVAuth()
@@ -591,6 +617,11 @@ export default function YouVersionReaderTab({
   const comparePassage = useMemo(() => compareSections[0]?.comparePassage ?? null, [compareSections])
   const [compareLoading, setCompareLoading] = useState(false)
   const [compareError, setCompareError] = useState('')
+  const [bookIntroOpen, setBookIntroOpen] = useState(false)
+  const [bookIntroHtml, setBookIntroHtml] = useState('')
+  const [bookIntroLoading, setBookIntroLoading] = useState(false)
+  const [bookIntroError, setBookIntroError] = useState('')
+  const [bookIntroReference, setBookIntroReference] = useState('')
   const compareCurrentPaneRef = useRef<HTMLElement | null>(null)
   const compareComparePaneRef = useRef<HTMLElement | null>(null)
   const compareVersionMenuRef = useRef<HTMLDivElement | null>(null)
@@ -603,6 +634,8 @@ export default function YouVersionReaderTab({
   const chapterNumbersCacheRef = useRef<Map<string, number[]>>(new Map())
   const sectionCacheRef = useRef<Map<string, ReaderSection>>(new Map())
   const passageShellRef = useRef<HTMLDivElement | null>(null)
+  const fontSizeRef = useRef<number>(1.02)
+  const pinchStartRef = useRef<{ dist: number; size: number }>({ dist: 0, size: 1.02 })
   const sectionRefs = useRef<Map<string, HTMLElement | null>>(new Map())
   const loadingMoreRef = useRef(false)
   const hasPrimedScrollRef = useRef(false)
@@ -661,6 +694,12 @@ export default function YouVersionReaderTab({
   }, [versionMenuOpen])
 
   useEffect(() => {
+    if (compareOpen) {
+      setVersionMenuOpen(false)
+    }
+  }, [compareOpen])
+
+  useEffect(() => {
     if (!compareOpen) {
       setCompareVersionMenuOpen(false)
     }
@@ -704,6 +743,18 @@ export default function YouVersionReaderTab({
     () => availableVersions.find((entry) => entry.id === resolvedVersionId) ?? availableVersions[0],
     [availableVersions, resolvedVersionId],
   )
+
+  const selectedVersionLabel = useMemo(() => {
+    if (!selectedVersion) return ''
+    return selectedVersion.localized_abbreviation || selectedVersion.abbreviation || selectedVersion.localized_title || selectedVersion.title
+  }, [selectedVersion])
+
+  useEffect(() => {
+    if (selectedVersion && onVersionChange) {
+      onVersionChange({ id: selectedVersion.id, name: selectedVersion.localized_title || selectedVersion.title, abbreviation: selectedVersionLabel })
+    }
+  }, [selectedVersion, onVersionChange, selectedVersionLabel])
+
   const compareVersion = useMemo(
     () => compareAvailableVersions.find((entry) => entry.id === compareVersionId),
     [compareAvailableVersions, compareVersionId],
@@ -735,6 +786,12 @@ export default function YouVersionReaderTab({
     () => (currentBookWithChapters ? { ...currentBookWithChapters, chapters: resolvedChapters } : books[0]),
     [books, currentBookWithChapters, resolvedChapters],
   )
+  useEffect(() => {
+    setBookIntroOpen(false)
+    setBookIntroHtml('')
+    setBookIntroError('')
+    setBookIntroReference('')
+  }, [currentIndexBook?.id, resolvedVersionId])
   const currentChapter = useMemo(() => clampChapter(currentIndexBook, chapter), [currentIndexBook, chapter])
   const parsedReference = useMemo(() => parseReaderReference(referenceInput, books), [referenceInput, books])
   const versionTitle = version?.localized_title || version?.title || 'Bible Reader'
@@ -758,6 +815,7 @@ export default function YouVersionReaderTab({
     error: highlightsError,
     refetch: refetchHighlights,
     createHighlight,
+    deleteHighlight,
   } = useHighlights(
     {
       version_id: resolvedVersionId ?? 1,
@@ -802,13 +860,19 @@ export default function YouVersionReaderTab({
     }
     return map
   }, [bookCodeById])
-  const bookmarkedIds = useMemo(() => new Set(bookmarks.map((b) => b.verseId)), [bookmarks])
+  const readerVersionId = versionId ? String(versionId) : ''
+  const bookmarkedIds = useMemo(
+    () => new Set(bookmarks.filter((b) => b.versionId === readerVersionId).map((b) => b.verseId)),
+    [bookmarks, readerVersionId],
+  )
   const activeBookId = anchorReference?.bookId ?? currentIndexBook?.id ?? ''
   const activeChapter = anchorReference?.chapter ?? currentChapter
   const activeBook = useMemo(
     () => books.find((book) => book.id === activeBookId) ?? currentIndexBook,
     [activeBookId, books, currentIndexBook],
   )
+  const [mobileChromeVisible, setMobileChromeVisible] = useState(false)
+  const [isCompactMobile, setIsCompactMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches)
   const focusedPassageTitle = useMemo(() => {
     const bookId = focusedPassage?.bookId ?? activeBookId
     const chapter = focusedPassage?.chapter ?? activeChapter
@@ -824,7 +888,183 @@ export default function YouVersionReaderTab({
     [books, testamentFilter],
   )
 
-  const highlightCount = highlights?.data.length ?? 0
+  const mobileBookOptions = useMemo(
+    () =>
+      visibleBooks.map((book) => {
+        const title = book.full_title || book.title || book.abbreviation || book.id
+        const subtitle = book.title && book.title !== title ? book.title : book.abbreviation || ''
+        return { value: book.id, label: title, subtitle: subtitle !== title ? subtitle : '' }
+      }),
+    [visibleBooks],
+  )
+
+  const mobileChapterOptions = useMemo(() => {
+    const numbers = (activeBook?.chapters ?? [])
+      .map((chapter) => Number(chapter.id || chapter.title))
+      .filter((value) => Number.isFinite(value))
+    return numbers.map((chapter) => ({ value: chapter, label: chapter.toString(), subtitle: 'Chapter' }))
+  }, [activeBook])
+
+  const mobileVerseOptions = useMemo(() => {
+    const section = sections.find((s) => s.bookId === activeBookId && s.chapter === activeChapter)
+    const numbers = section?.verses.map((verse) => Number(verse.verse)).filter(Number.isFinite) ?? []
+    return numbers.map((verse) => ({ value: verse, label: verse.toString(), subtitle: 'Verse' }))
+  }, [activeBookId, activeChapter, sections])
+
+  const mobileVersionOptions = useMemo(
+    () =>
+      availableVersions.map((entry) => {
+        const label = formatVersionLabel(entry)
+        return { value: entry.id, label: label.title, subtitle: label.subtitle }
+      }),
+    [availableVersions],
+  )
+
+  const mobileCompareVersionOptions = useMemo(
+    () =>
+      compareAvailableVersions.map((entry) => {
+        const label = formatVersionLabel(entry)
+        return { value: entry.id, label: label.title, subtitle: label.subtitle }
+      }),
+    [compareAvailableVersions],
+  )
+
+  const activeVerseNumber = useMemo(() => {
+    if (!selectedVerse) return 1
+    const bookCode = bookCodeById[activeBookId] ?? activeBookId
+    if (selectedVerse.book !== bookCode || selectedVerse.chapter !== activeChapter) return 1
+    return selectedVerse.verse
+  }, [selectedVerse, activeBookId, activeChapter, bookCodeById])
+
+  useEffect(() => {
+    setMobileChromeVisible(true)
+  }, [activeBookId, activeChapter, resolvedVersionId, compareVersionId, compareOpen, readerView])
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 640px)')
+    const update = () => setIsCompactMobile(media.matches)
+    update()
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [])
+
+  useEffect(() => {
+    if (!isCompactMobile || !compareOpen) return
+    setCompareOpen(false)
+    setCompareVersionMenuOpen(false)
+  }, [compareOpen, isCompactMobile])
+
+  useEffect(() => {
+    const shell = passageShellRef.current
+    if (!shell || compareOpen) return
+
+    const appMain = shell.closest<HTMLElement>('.app-main')
+    const scrollTargets = [shell, appMain].filter(Boolean) as HTMLElement[]
+    if (!scrollTargets.length) return
+
+    const lastScrollTops = new Map<HTMLElement, number>(scrollTargets.map((target) => [target, target.scrollTop]))
+    let raf = 0
+
+    const updateChromeVisibility = (source: HTMLElement) => {
+      const currentScrollTop = source.scrollTop
+      const lastScrollTop = lastScrollTops.get(source) ?? currentScrollTop
+      const delta = currentScrollTop - lastScrollTop
+
+      if (currentScrollTop <= 12) {
+        setMobileChromeVisible(false)
+        lastScrollTops.set(source, currentScrollTop)
+        return
+      }
+
+      if (Math.abs(delta) < 8) return
+
+      setMobileChromeVisible(delta < 0)
+      lastScrollTops.set(source, currentScrollTop)
+    }
+
+    const handlers = scrollTargets.map((target) => {
+      const onScroll = () => {
+        cancelAnimationFrame(raf)
+        raf = window.requestAnimationFrame(() => updateChromeVisibility(target))
+      }
+
+      target.addEventListener('scroll', onScroll, { passive: true })
+      return { target, onScroll }
+    })
+
+    return () => {
+      handlers.forEach(({ target, onScroll }) => target.removeEventListener('scroll', onScroll))
+      cancelAnimationFrame(raf)
+    }
+  }, [compareOpen, sections.length])
+
+  useEffect(() => {
+    const shell = passageShellRef.current
+    if (!shell || !Capacitor.isNativePlatform()) return
+
+    const saved = Number(getUserPreference(userId, READER_FONT_SIZE_KEY))
+    if (Number.isFinite(saved) && saved > 0) {
+      fontSizeRef.current = saved
+    }
+    shell.style.setProperty('--reader-font-size', `${fontSizeRef.current.toFixed(3)}rem`)
+
+    const getDistance = (t1: Touch, t2: Touch) =>
+      Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY)
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        const t1 = e.touches[0]
+        const t2 = e.touches[1]
+        pinchStartRef.current = {
+          dist: getDistance(t1, t2),
+          size: fontSizeRef.current,
+        }
+      }
+    }
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 2 || pinchStartRef.current.dist <= 0) return
+      e.preventDefault()
+      const t1 = e.touches[0]
+      const t2 = e.touches[1]
+      const dist = getDistance(t1, t2)
+      const scale = dist / pinchStartRef.current.dist
+      const next = Math.min(Math.max(pinchStartRef.current.size * scale, 0.85), 1.7)
+      fontSizeRef.current = next
+      shell.style.setProperty('--reader-font-size', `${next.toFixed(3)}rem`)
+    }
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (pinchStartRef.current.dist > 0 && e.touches.length < 2) {
+        window.dispatchEvent(new CustomEvent('reader:font-size', { detail: fontSizeRef.current }))
+        pinchStartRef.current = { dist: 0, size: fontSizeRef.current }
+      }
+    }
+
+    shell.addEventListener('touchstart', onTouchStart, { passive: true })
+    shell.addEventListener('touchmove', onTouchMove, { passive: false })
+    shell.addEventListener('touchend', onTouchEnd, { passive: true })
+
+    return () => {
+      shell.removeEventListener('touchstart', onTouchStart)
+      shell.removeEventListener('touchmove', onTouchMove)
+      shell.removeEventListener('touchend', onTouchEnd)
+    }
+  }, [compareOpen, sections.length])
+
+  useEffect(() => {
+    const onChange = (e: Event) => {
+      const size = (e as CustomEvent<number>).detail
+      if (typeof size !== 'number') return
+      fontSizeRef.current = size
+      setUserPreference(userIdRef.current, READER_FONT_SIZE_KEY, String(size))
+      const shell = passageShellRef.current
+      shell?.style.setProperty('--reader-font-size', `${size.toFixed(3)}rem`)
+    }
+    window.addEventListener('reader:font-size', onChange)
+    return () => window.removeEventListener('reader:font-size', onChange)
+  }, [])
+
   const signedInLabel = userInfo?.name || userInfo?.email || 'YouVersion user'
   const currentPassageLabel = currentReference || passageLabel
   const passageReferenceLabel = focusedReferenceLabel || currentPassageLabel
@@ -833,6 +1073,11 @@ export default function YouVersionReaderTab({
   const compareVersionTitle = compareVersionLabel.title || 'Choose a compare version'
   const compareVersionSubtitle = compareVersionLabel.subtitle || 'Select a version'
   const comparePassageLabel = compareCurrentPassage?.reference || currentPassageLabel
+  const currentBookMetadata = currentIndexBook as YouVersionBook | undefined
+  const currentBookInfoUrl = selectedVersion?.youversion_deep_link?.trim() || ''
+  const currentBookInfoLabel = currentBookMetadata?.intro
+    ? (currentBookMetadata.intro.title?.trim() || 'Book intro')
+    : (currentBookInfoUrl ? 'Open book info' : '')
   const handleSetReaderView = useCallback((view: ReaderView) => {
     setReaderView(view)
   }, [readerView])
@@ -860,6 +1105,78 @@ export default function YouVersionReaderTab({
     setCompareVersionId(id)
     setCompareVersionMenuOpen(false)
   }, [])
+  const handleOpenBookSource = useCallback(() => {
+    if (!currentBookInfoUrl) return
+    window.open(currentBookInfoUrl, '_blank', 'noopener,noreferrer')
+  }, [currentBookInfoUrl])
+  const handleOpenBookInfo = useCallback(async () => {
+    if (!currentBookMetadata) return
+
+    const introPassageId = currentBookMetadata.intro?.passage_id?.trim() ?? ''
+    if (introPassageId && resolvedVersionId !== null) {
+      if (bookIntroOpen && bookIntroReference === introPassageId && bookIntroHtml) {
+        setBookIntroOpen((current) => !current)
+        return
+      }
+
+      setBookIntroLoading(true)
+      setBookIntroError('')
+      try {
+        const passage = await fetchYouVersionPassage(resolvedVersionId, introPassageId, { format: 'html', includeHeadings: true, includeNotes: true })
+        const ref = parsePassageId(passage.id) ?? parsePassageId(introPassageId)
+        const transformed = transformPassageForBrowser(
+          passage.content,
+          ref?.bookId ?? currentBookMetadata.id,
+          ref?.chapter,
+          tagPositionsByVerseId,
+          bookNumberById,
+          entityHighlightsEnabled,
+        )
+        setBookIntroHtml(transformed.html)
+        setBookIntroReference(introPassageId)
+        setBookIntroOpen(true)
+      } catch (error) {
+        setBookIntroError(error instanceof Error ? error.message : String(error))
+        setBookIntroOpen(true)
+      } finally {
+        setBookIntroLoading(false)
+      }
+      return
+    }
+
+    if (currentBookInfoUrl) {
+      handleOpenBookSource()
+    }
+  }, [bookIntroHtml, bookIntroOpen, bookIntroReference, bookNumberById, currentBookInfoUrl, currentBookMetadata, entityHighlightsEnabled, handleOpenBookSource, resolvedVersionId, tagPositionsByVerseId])
+  const handleSaveVerse = useCallback(async (verseId: string) => {
+    const isSaved = bookmarkedIds.has(verseId)
+    onToggleBookmark(verseId, selectedVersion ? String(selectedVersion.id) : '', selectedVersionLabel)
+    if (!auth.isAuthenticated || resolvedVersionId === null) return
+    setLocalError('')
+    try {
+      if (isSaved) {
+        await deleteHighlight(verseId, { version_id: resolvedVersionId })
+      } else {
+        await createHighlight({
+          version_id: resolvedVersionId,
+          passage_id: verseId,
+          color: 'f4b400',
+        })
+      }
+      refetchHighlights()
+    } catch (error) {
+      setLocalError(error instanceof Error ? error.message : String(error))
+    }
+  }, [auth.isAuthenticated, bookmarkedIds, createHighlight, deleteHighlight, onToggleBookmark, refetchHighlights, resolvedVersionId, selectedVersion, selectedVersionLabel])
+
+  const handleYouVersionSignIn = useCallback(async () => {
+    await signIn({
+      redirectUrl: getYouVersionRedirectUrl(),
+      scopes: ['profile', 'email'],
+      permissions: ['highlights'],
+    })
+  }, [signIn])
+
   const readerToolButtons = useMemo(
     () => (
       <ReaderToolButtons
@@ -875,10 +1192,16 @@ export default function YouVersionReaderTab({
         onToggleRedLetter={handleToggleRedLetter}
         onToggleEntityHighlights={handleToggleEntityHighlights}
         onToggleHoverHighlight={handleToggleHoverHighlight}
+        onOpenBookInfo={handleOpenBookInfo}
+        bookInfoLabel={currentBookInfoLabel}
+        bookInfoOpen={bookIntroOpen}
+        hideCompareButton={isCompactMobile}
+        hideAutoScrollButton={isCompactMobile}
       />
     ),
-    [readerView, compareOpen, autoScrollEnabled, redLetterEnabled, hoverHighlightEnabled, entityHighlightsEnabled, handleSetReaderView, handleToggleCompare, handleToggleAutoScroll, handleToggleRedLetter, handleToggleEntityHighlights, handleToggleHoverHighlight],
+    [readerView, compareOpen, autoScrollEnabled, redLetterEnabled, hoverHighlightEnabled, entityHighlightsEnabled, currentBookInfoLabel, bookIntroOpen, handleOpenBookInfo, handleSetReaderView, handleToggleCompare, handleToggleAutoScroll, handleToggleRedLetter, handleToggleEntityHighlights, handleToggleHoverHighlight, isCompactMobile],
   )
+
 
   useEffect(() => {
     if (compareVersionId === null) {
@@ -906,30 +1229,6 @@ export default function YouVersionReaderTab({
       setCompareVersionId(fallbackCompare.id)
     }
   }, [compareAvailableVersions, compareOpen, compareVersionId, resolvedVersionId])
-
-  const handleYouVersionSignIn = useCallback(async () => {
-    await signIn({
-      redirectUrl: getYouVersionRedirectUrl(),
-      scopes: ['profile', 'email'],
-      permissions: ['highlights'],
-    })
-  }, [signIn])
-
-  const handleSyncCurrentPassage = useCallback(async () => {
-    if (!resolvedVersionId || !currentReference) return
-
-    setLocalError('')
-    try {
-      await createHighlight({
-        version_id: resolvedVersionId,
-        passage_id: currentReference,
-        color: 'f4b400',
-      })
-      refetchHighlights()
-    } catch (error) {
-      setLocalError(error instanceof Error ? error.message : String(error))
-    }
-  }, [createHighlight, currentReference, refetchHighlights, resolvedVersionId])
 
   const resolveChapterNumbers = useCallback(
     async (book: YouVersionBook): Promise<number[]> => {
@@ -960,18 +1259,89 @@ export default function YouVersionReaderTab({
     [bibleClient, resolvedVersionId, tagPositionsByVerseId, hasEntityData, bookNumberById, entityHighlightsEnabled],
   )
 
-  const loadCompareSection = useCallback(
-    async (reference: ReaderReference): Promise<CompareSection | null> => {
-      if (resolvedVersionId === null || compareVersionId === null) return null
+  const versionProbeOrder = useCallback(
+    (preferredVersionId: number | null) => {
+      const ids: number[] = []
+      const push = (value: number | null | undefined) => {
+        if (!value || ids.includes(value)) return
+        ids.push(value)
+      }
 
+      push(preferredVersionId)
+      for (const entry of availableVersions) {
+        push(entry.id)
+      }
+      return ids
+    },
+    [availableVersions],
+  )
+
+  const loadSectionForVersion = useCallback(
+    async (versionId: number, reference: ReaderReference): Promise<ReaderSection | null> => {
+      const chapterReference = formatReference(reference.bookId, reference.chapter)
+      const cacheKey = `${versionId}:${chapterReference}:${hasEntityData ? '1' : '0'}:${entityHighlightsEnabled ? '1' : '0'}`
+      const cached = sectionCacheRef.current.get(cacheKey)
+      if (cached) return cached
+
+      const passage = await bibleClient.getPassage(versionId, chapterReference, 'html', true, true)
+      const transformed = transformPassageForBrowser(
+        passage.content,
+        reference.bookId,
+        reference.chapter,
+        tagPositionsByVerseId,
+        bookNumberById,
+        entityHighlightsEnabled,
+      )
+
+      const section: ReaderSection = {
+        key: chapterReference,
+        bookId: reference.bookId,
+        chapter: reference.chapter,
+        reference: passage.reference || chapterReference,
+        passageId: passage.id,
+        content: transformed.html,
+        plainText: transformed.text,
+        verses: extractVerseBlocks(transformed.html),
+      }
+
+      sectionCacheRef.current.set(cacheKey, section)
+      return section
+    },
+    [bibleClient, tagPositionsByVerseId, hasEntityData, bookNumberById, entityHighlightsEnabled],
+  )
+
+  const loadSection = useCallback(
+    async (reference: ReaderReference): Promise<ReaderSection | null> => {
+      if (resolvedVersionId === null) return null
+      return loadSectionForVersion(resolvedVersionId, reference)
+    },
+    [loadSectionForVersion, resolvedVersionId],
+  )
+
+  const loadCompareSectionForVersion = useCallback(
+    async (currentVersionId: number, nextCompareVersionId: number, reference: ReaderReference): Promise<CompareSection | null> => {
       const chapterReference = formatReference(reference.bookId, reference.chapter)
       const [currentPassage, comparePassage] = await Promise.all([
-        bibleClient.getPassage(resolvedVersionId, chapterReference, 'html', true, true),
-        bibleClient.getPassage(compareVersionId, chapterReference, 'html', true, true),
+        bibleClient.getPassage(currentVersionId, chapterReference, 'html', true, true),
+        bibleClient.getPassage(nextCompareVersionId, chapterReference, 'html', true, true),
       ])
 
-      const currentTransformed = transformPassageForBrowser(currentPassage.content, reference.bookId, reference.chapter, tagPositionsByVerseId, bookNumberById, entityHighlightsEnabled)
-      const compareTransformed = transformPassageForBrowser(comparePassage.content, reference.bookId, reference.chapter, tagPositionsByVerseId, bookNumberById, entityHighlightsEnabled)
+      const currentTransformed = transformPassageForBrowser(
+        currentPassage.content,
+        reference.bookId,
+        reference.chapter,
+        tagPositionsByVerseId,
+        bookNumberById,
+        entityHighlightsEnabled,
+      )
+      const compareTransformed = transformPassageForBrowser(
+        comparePassage.content,
+        reference.bookId,
+        reference.chapter,
+        tagPositionsByVerseId,
+        bookNumberById,
+        entityHighlightsEnabled,
+      )
 
       return {
         key: chapterReference,
@@ -986,7 +1356,56 @@ export default function YouVersionReaderTab({
         compareVerses: extractVerseBlocks(compareTransformed.html),
       }
     },
-    [bibleClient, compareVersionId, resolvedVersionId],
+    [bibleClient, tagPositionsByVerseId, bookNumberById, entityHighlightsEnabled],
+  )
+
+  const loadCompareSection = useCallback(
+    async (reference: ReaderReference): Promise<CompareSection | null> => {
+      if (resolvedVersionId === null || compareVersionId === null) return null
+      return loadCompareSectionForVersion(resolvedVersionId, compareVersionId, reference)
+    },
+    [compareVersionId, loadCompareSectionForVersion, resolvedVersionId],
+  )
+
+  const recoverAccessibleSection = useCallback(
+    async (reference: ReaderReference, preferredVersionId: number | null): Promise<ReaderSection | null> => {
+      for (const candidateVersionId of versionProbeOrder(preferredVersionId)) {
+        try {
+          const section = await loadSectionForVersion(candidateVersionId, reference)
+          if (candidateVersionId !== preferredVersionId) {
+            setVersionId(candidateVersionId)
+          }
+          setLocalError('')
+          return section
+        } catch (error) {
+          if (!isAccessDeniedError(error)) throw error
+        }
+      }
+      return null
+    },
+    [loadSectionForVersion, versionProbeOrder],
+  )
+
+  const recoverAccessibleCompareSection = useCallback(
+    async (reference: ReaderReference, preferredCompareVersionId: number | null): Promise<CompareSection | null> => {
+      if (resolvedVersionId === null) return null
+      const candidateVersionIds = versionProbeOrder(preferredCompareVersionId).filter((candidate) => candidate !== resolvedVersionId)
+      for (const candidateVersionId of candidateVersionIds) {
+        try {
+          const compareSection = await loadCompareSectionForVersion(resolvedVersionId, candidateVersionId, reference)
+          if (candidateVersionId !== preferredCompareVersionId) {
+            setCompareVersionId(candidateVersionId)
+          }
+          setLocalError('')
+          setCompareError('')
+          return compareSection
+        } catch (error) {
+          if (!isAccessDeniedError(error)) throw error
+        }
+      }
+      return null
+    },
+    [loadCompareSectionForVersion, resolvedVersionId, versionProbeOrder],
   )
 
   useEffect(() => {
@@ -1037,35 +1456,6 @@ export default function YouVersionReaderTab({
     setTestamentFilter(currentTestament)
   }, [currentIndexBook, testamentFilter])
 
-  const loadSection = useCallback(
-    async (reference: ReaderReference): Promise<ReaderSection | null> => {
-      if (resolvedVersionId === null) return null
-
-      const chapterReference = formatReference(reference.bookId, reference.chapter)
-      const cacheKey = `${resolvedVersionId}:${chapterReference}:${hasEntityData ? '1' : '0'}:${entityHighlightsEnabled ? '1' : '0'}`
-      const cached = sectionCacheRef.current.get(cacheKey)
-      if (cached) return cached
-
-      const passage = await bibleClient.getPassage(resolvedVersionId, chapterReference, 'html', true, true)
-      const transformed = transformPassageForBrowser(passage.content, reference.bookId, reference.chapter, tagPositionsByVerseId, bookNumberById, entityHighlightsEnabled)
-
-      const section: ReaderSection = {
-        key: chapterReference,
-        bookId: reference.bookId,
-        chapter: reference.chapter,
-        reference: passage.reference || chapterReference,
-        passageId: passage.id,
-        content: transformed.html,
-        plainText: transformed.text,
-        verses: extractVerseBlocks(transformed.html),
-      }
-
-      sectionCacheRef.current.set(cacheKey, section)
-      return section
-    },
-    [bibleClient, resolvedVersionId, tagPositionsByVerseId, hasEntityData, bookNumberById, entityHighlightsEnabled],
-  )
-
   const setBookAndChapter = useCallback((nextBookId: string, nextChapter: number) => {
     setBookId(nextBookId)
     setChapter(nextChapter)
@@ -1087,6 +1477,10 @@ export default function YouVersionReaderTab({
       if (!section) return
       setSections((current) => (current.some((entry) => entry.key === section.key) ? current : [...current, section]))
     } catch (loadError) {
+      if (isAccessDeniedError(loadError)) {
+        const recovered = await recoverAccessibleSection(next, resolvedVersionId)
+        if (recovered) return
+      }
       setLocalError(formatPassageError(loadError))
     } finally {
       loadingMoreRef.current = false
@@ -1117,6 +1511,10 @@ export default function YouVersionReaderTab({
         shell.scrollTop = previousScrollTop + (nextScrollHeight - previousScrollHeight)
       })
     } catch (loadError) {
+      if (isAccessDeniedError(loadError)) {
+        const recovered = await recoverAccessibleSection(previous, resolvedVersionId)
+        if (recovered) return
+      }
       setLocalError(formatPassageError(loadError))
     } finally {
       loadingMoreRef.current = false
@@ -1146,6 +1544,10 @@ export default function YouVersionReaderTab({
       if (!section) return
       setCompareSections((current) => (current.some((entry) => entry.key === section.key) ? current : [...current, section]))
     } catch (loadError) {
+      if (isAccessDeniedError(loadError)) {
+        const recovered = await recoverAccessibleCompareSection(next, compareVersionId)
+        if (recovered) return
+      }
       setLocalError(formatPassageError(loadError))
     } finally {
       compareLoadingMoreRef.current = false
@@ -1184,6 +1586,10 @@ export default function YouVersionReaderTab({
         shell.scrollTop = previousScrollTop + (nextScrollHeight - previousScrollHeight)
       })
     } catch (loadError) {
+      if (isAccessDeniedError(loadError)) {
+        const recovered = await recoverAccessibleCompareSection(previous, compareVersionId)
+        if (recovered) return
+      }
       setLocalError(formatPassageError(loadError))
     } finally {
       compareLoadingMoreRef.current = false
@@ -1249,6 +1655,12 @@ export default function YouVersionReaderTab({
         if (cancelled) return
 
         setSections(builtSections)
+      } catch (loadError) {
+        if (!cancelled && isAccessDeniedError(loadError)) {
+          const recovered = await recoverAccessibleSection(firstReference, resolvedVersionId)
+          if (recovered) return
+        }
+        throw loadError
       } finally {
         loadingMoreRef.current = false
         setIsLoadingSections(false)
@@ -1299,6 +1711,12 @@ export default function YouVersionReaderTab({
         if (builtSections[0] && !builtSections[0].compareHtml.trim()) {
           setCompareError('This version does not contain this passage.')
         }
+      } catch (loadError) {
+        if (!cancelled && isAccessDeniedError(loadError)) {
+          const recovered = await recoverAccessibleCompareSection({ bookId: currentIndexBook.id, chapter: currentChapter }, compareVersionId)
+          if (recovered) return
+        }
+        throw loadError
       } finally {
         compareLoadingMoreRef.current = false
         setIsLoadingSections(false)
@@ -1342,6 +1760,9 @@ export default function YouVersionReaderTab({
 
         const header = element.querySelector('.yv-reader-section-header') as HTMLElement | null
         const headerRect = header?.getBoundingClientRect()
+        if (header && headerRect) {
+          header.classList.toggle('stuck', headerRect.top <= shellRect.top + 1)
+        }
         const headerTop = headerRect?.top ?? rect.top
         const distance = Math.abs(headerTop - focusLine)
         if (distance < closestDistance) {
@@ -1474,6 +1895,8 @@ export default function YouVersionReaderTab({
     },
     [onSelect],
   )
+
+  const handleToggleBookmark = handleSaveVerse
 
   useLayoutEffect(() => {
     if (!targetVerse) return
@@ -1665,6 +2088,13 @@ export default function YouVersionReaderTab({
     (bookId: string, chapterNumber: number) => goToReference({ bookId, chapter: chapterNumber }),
     [goToReference],
   )
+  const handleSelectVerse = useCallback(
+    (verseNumber: number) => {
+      if (!activeBookId) return
+      goToReference({ bookId: activeBookId, chapter: activeChapter, verse: verseNumber })
+    },
+    [activeBookId, activeChapter, goToReference],
+  )
 
   const goAdjacentChapter = useCallback(
     async (direction: 'previous' | 'next') => {
@@ -1728,7 +2158,49 @@ export default function YouVersionReaderTab({
 
   const previousChapterDestination = formatChapterNavDestination(previousChapterBook, previousReference, 'No previous chapter')
   const nextChapterDestination = formatChapterNavDestination(nextChapterBook, nextReference, 'No next chapter')
-  const currentChapterLabel = formatChapterNavDestination(navigationBook, navigationReference, passageLabel)
+  const currentChapterLabel = `${passageLabel}:${activeVerseNumber}`
+  const mobileCompareOpen = compareOpen && !isCompactMobile
+  const readerToolButtonsDesktop = useMemo(
+    () => (
+      <ReaderToolButtons
+        readerView={readerView}
+        compareOpen={compareOpen}
+        autoScrollEnabled={autoScrollEnabled}
+        redLetterEnabled={redLetterEnabled}
+        hoverHighlightEnabled={hoverHighlightEnabled}
+        entityHighlightsEnabled={entityHighlightsEnabled}
+        onSetReaderView={handleSetReaderView}
+        onToggleCompare={handleToggleCompare}
+        onToggleAutoScroll={handleToggleAutoScroll}
+        onToggleRedLetter={handleToggleRedLetter}
+        onToggleEntityHighlights={handleToggleEntityHighlights}
+        onToggleHoverHighlight={handleToggleHoverHighlight}
+        onOpenBookInfo={handleOpenBookInfo}
+        bookInfoLabel={currentBookInfoLabel}
+        bookInfoOpen={bookIntroOpen}
+        chapterLabel={currentChapterLabel}
+        splitLayout
+      />
+    ),
+    [
+      readerView,
+      compareOpen,
+      autoScrollEnabled,
+      redLetterEnabled,
+      hoverHighlightEnabled,
+      entityHighlightsEnabled,
+      currentBookInfoLabel,
+      bookIntroOpen,
+      currentChapterLabel,
+      handleOpenBookInfo,
+      handleSetReaderView,
+      handleToggleCompare,
+      handleToggleAutoScroll,
+      handleToggleRedLetter,
+      handleToggleEntityHighlights,
+      handleToggleHoverHighlight,
+    ],
+  )
 
   const compareCurrentPassageHtml = useMemo(() => {
     if (!compareCurrentPassage) return ''
@@ -1914,6 +2386,8 @@ export default function YouVersionReaderTab({
                     const articleClass = isFlow
                       ? `yv-reader-verse-flow-item yv-reader-compare-verse-flow-item ${isSelected ? 'selected' : ''}`
                       : `yv-reader-compare-verse-card ${isSelected ? 'selected' : ''}`
+                    const verseId = `${bookCodeById[section.bookId] ?? section.bookId}.${section.chapter}.${verse.verse}`
+                    const isSaved = bookmarkedIds.has(verseId)
 
                     return (
                       <article
@@ -1928,6 +2402,20 @@ export default function YouVersionReaderTab({
                           className={isFlow ? 'yv-reader-verse-flow-content yv-reader-compare-verse-content' : 'yv-reader-compare-verse-content'}
                           dangerouslySetInnerHTML={{ __html: verse.strippedHtml }}
                         />
+                        {isSelected && (
+                          <button
+                            type="button"
+                            className="yv-reader-verse-bookmark"
+                            title={isSaved ? 'Unsave' : 'Save'}
+                            aria-label={isSaved ? 'Unsave verse' : 'Save verse'}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              void handleSaveVerse(verseId)
+                            }}
+                          >
+                            <Highlighter size={14} fill={isSaved ? 'currentColor' : 'none'} />
+                          </button>
+                        )}
                       </article>
                     )
                   })}
@@ -1938,7 +2426,7 @@ export default function YouVersionReaderTab({
         </>
       )
     },
-    [compareSections, compareSelection, handleCompareVerseClick, readerView],
+    [compareSections, compareSelection, handleCompareVerseClick, readerView, bookmarkedIds, handleSaveVerse],
   )
 
   const compareGrid = useMemo(
@@ -2066,13 +2554,77 @@ export default function YouVersionReaderTab({
         )}
         <div className="yv-reader-body" ref={readerBodyRef}>
           <aside className="yv-reader-nav">
-            <div className="yv-reader-nav-header">
-              <BookOpen size={16} />
-              <div className="yv-reader-nav-header-copy">
-                <strong>{versionTitle}</strong>
-                <div>{versionSubtitle || 'Readable passage list'}</div>
+            {mobileCompareOpen ? (
+              <div className="yv-reader-compare-nav-header">
+                <ReaderVersionSelector
+                  wrapperClassName="yv-reader-selector-shell yv-reader-nav-header-selector"
+                  selectorClassName="yv-reader-selector yv-reader-reader-selector yv-reader-nav-header-selector-inner"
+                  buttonClassName="yv-reader-version-button yv-reader-nav-header-version-button"
+                  menuOpen={versionMenuOpen}
+                  onToggleMenu={handleToggleVersionMenu}
+                  title={currentVersionTitle}
+                  subtitle={currentVersionSubtitle}
+                  chevronSize={14}
+                  menuRef={versionMenuRef}
+                  menu={renderVersionMenu('Bible version selection', resolvedVersionId, handleSelectCurrentVersion, availableVersions)}
+                />
+                <ReaderVersionSelector
+                  wrapperClassName="yv-reader-selector-shell yv-reader-nav-header-selector"
+                  selectorClassName="yv-reader-selector yv-reader-reader-selector yv-reader-nav-header-selector-inner"
+                  buttonClassName="yv-reader-version-button yv-reader-nav-header-version-button"
+                  menuOpen={compareVersionMenuOpen}
+                  onToggleMenu={handleToggleCompareVersionMenu}
+                  title={compareVersionTitle}
+                  subtitle={compareVersionSubtitle}
+                  chevronSize={14}
+                  menuRef={compareVersionMenuRef}
+                  menu={renderVersionMenu('Compare Bible version selection', compareVersionId, handleSelectCompareVersion, compareAvailableVersions)}
+                />
               </div>
-            </div>
+            ) : (
+              <ReaderVersionSelector
+                wrapperClassName="yv-reader-selector-shell yv-reader-nav-header-selector"
+                selectorClassName="yv-reader-selector yv-reader-reader-selector yv-reader-nav-header-selector-inner"
+                buttonClassName="yv-reader-version-button yv-reader-nav-header-version-button"
+                menuOpen={versionMenuOpen}
+                onToggleMenu={handleToggleVersionMenu}
+                title={currentVersionTitle}
+                subtitle={currentVersionSubtitle}
+                chevronSize={14}
+                menuRef={versionMenuRef}
+                menu={renderVersionMenu('Bible version selection', resolvedVersionId, handleSelectCurrentVersion, availableVersions)}
+              />
+            )}
+
+            {(bookIntroOpen || bookIntroLoading || Boolean(bookIntroError) || Boolean(bookIntroHtml)) && (
+              <div className="yv-reader-book-intro" role="region" aria-label="Book introduction">
+                <div className="yv-reader-book-intro-header">
+                  <div className="yv-reader-book-intro-title-wrap">
+                    <span>Book intro</span>
+                    <strong>{currentBookMetadata?.intro?.title || currentBookMetadata?.full_title || currentBookMetadata?.title || 'YouVersion book'}</strong>
+                  </div>
+                  <div className="yv-reader-book-intro-actions">
+                    {currentBookInfoUrl && (
+                      <button type="button" className="secondary" onClick={handleOpenBookSource}>
+                        Source
+                      </button>
+                    )}
+                    <button type="button" className="secondary" onClick={() => setBookIntroOpen(false)}>
+                      Close
+                    </button>
+                  </div>
+                </div>
+                {bookIntroLoading ? (
+                  <div className="empty yv-reader-book-intro-empty">Loading book intro…</div>
+                ) : bookIntroError ? (
+                  <div className="yv-reader-error" style={{ margin: 0 }}>
+                    {bookIntroError}
+                  </div>
+                ) : (
+                  <div className="yv-reader-book-intro-content" dangerouslySetInnerHTML={{ __html: bookIntroHtml }} />
+                )}
+              </div>
+            )}
 
             <div className="yv-reader-nav-stack">
               <ReaderBookList
@@ -2101,66 +2653,59 @@ export default function YouVersionReaderTab({
           </button>
 
           <section className={`yv-reader-reader ${redLetterEnabled ? 'red-letter' : ''} ${hoverHighlightEnabled ? 'hover-highlight' : ''}`}>
-            <div className={`yv-reader-meta ${compareOpen ? 'yv-reader-meta-compare' : ''}`}>
-              <div className="yv-reader-meta-panel yv-reader-meta-panel-primary">
-                <span className="yv-reader-meta-label">Passage</span>
-                <strong>{focusedPassageTitle}</strong>
-                <span>{passageReferenceLabel}</span>
-              </div>
-              <div
-                ref={versionMenuRef}
-                className="yv-reader-meta-panel yv-reader-meta-panel-version"
-                role="button"
-                tabIndex={0}
-                onClick={handleToggleVersionMenu}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault()
-                    handleToggleVersionMenu()
-                  }
-                }}
-                aria-label="Change Bible version"
-              >
-                <span className="yv-reader-meta-label">Version</span>
-                <strong>{currentVersionTitle}</strong>
-                <span>{currentVersionSubtitle}</span>
-                {versionMenuOpen
-                  ? renderVersionMenu('Bible version selection', resolvedVersionId, handleSelectCurrentVersion, availableVersions)
-                  : null}
-              </div>
-              {compareOpen ? (
-                <div
-                  ref={compareVersionMenuRef}
-                  className="yv-reader-meta-panel yv-reader-meta-panel-version yv-reader-meta-panel-compare"
-                  role="button"
-                  tabIndex={0}
-                  onClick={handleToggleCompareVersionMenu}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault()
-                      handleToggleCompareVersionMenu()
-                    }
-                  }}
-                  aria-label="Change compare version"
-                >
-                  <div className="yv-reader-meta-panel-compare-copy">
-                    <span className="yv-reader-meta-label">Compare Version</span>
-                    <strong>{compareVersionTitle}</strong>
-                    <span>{compareVersionSubtitle}</span>
+
+            <div className={`yv-reader-mobile-chrome ${mobileChromeVisible ? 'visible' : ''}`}>
+              <MobileReaderNav
+                bookOptions={mobileBookOptions}
+                chapterOptions={mobileChapterOptions}
+                verseOptions={mobileVerseOptions}
+                versionOptions={mobileVersionOptions}
+                compareVersionOptions={mobileCompareOpen ? mobileCompareVersionOptions : undefined}
+                activeBookId={activeBookId}
+                activeChapter={activeChapter}
+                activeVerse={activeVerseNumber}
+                activeVersionId={resolvedVersionId}
+                activeCompareVersionId={compareVersionId}
+                activeLanguage={language}
+                audioAvailable={Boolean(audioUrl)}
+                audioLoading={audioLoading}
+                audioPlaying={audioPlaying}
+                compareOpen={mobileCompareOpen}
+                onSelectBook={handleSelectBook}
+                onSelectChapter={(chapter) => handleSelectChapter(activeBookId, chapter)}
+                onSelectVerse={handleSelectVerse}
+                onSelectVersion={handleSelectCurrentVersion}
+                onSelectCompareVersion={handleSelectCompareVersion}
+                onToggleLanguage={handleToggleLanguage}
+                onToggleAudio={onToggleAudio}
+              />
+
+              <div className="yv-reader-footer yv-reader-mobile-footer">
+                <div className="yv-reader-footer-nav yv-reader-mobile-footer-nav" aria-label="Chapter navigation">
+                  <ChapterNavButton
+                    direction="previous"
+                    label={t('previousChapter')}
+                    destination={previousChapterDestination}
+                    disabled={!previousReference || isLoadingSections}
+                    onClick={goPrevious}
+                    compact
+                  />
+                  <div className="yv-reader-current-chapter-spot yv-reader-mobile-tools" aria-label="Current chapter">
+                    {readerToolButtons}
                   </div>
-                  {compareVersionMenuOpen
-                    ? renderVersionMenu(
-                        'Compare Bible version selection',
-                        compareVersionId,
-                        handleSelectCompareVersion,
-                        compareAvailableVersions,
-                      )
-                    : null}
+                  <ChapterNavButton
+                    direction="next"
+                    label={t('nextChapter')}
+                    destination={nextChapterDestination}
+                    disabled={!nextReference || isLoadingSections}
+                    onClick={goNext}
+                    compact
+                  />
                 </div>
-              ) : null}
+              </div>
             </div>
 
-            {compareOpen ? (
+            {mobileCompareOpen ? (
               <div className="yv-reader-compare-shell">
                 {compareError ? (
                   <div className="empty yv-reader-error yv-reader-compare-empty">
@@ -2185,24 +2730,22 @@ export default function YouVersionReaderTab({
                 )}
               </div>
             ) : (
-              <>
-                <ReaderPassageStack
-                  passageShellRef={passageShellRef}
-                  sectionRefs={sectionRefs}
-                  sections={sections}
-                  readerView={readerView}
-                  focusedSectionKey={focusedSectionKey}
-                  isLoadingSections={isLoadingSections}
-                  selectedId={selectedId}
-                  onSelectVerse={handleReaderVerseSelect}
-                  onToggleBookmark={onToggleBookmark}
-                  bookmarkedVerseIds={bookmarkedIds}
-                  bookCodeById={bookCodeById}
-                />
-              </>
+              <ReaderPassageStack
+                passageShellRef={passageShellRef}
+                sectionRefs={sectionRefs}
+                sections={sections}
+                readerView={readerView}
+                focusedSectionKey={focusedSectionKey}
+                isLoadingSections={isLoadingSections}
+                selectedId={selectedId}
+                onSelectVerse={handleReaderVerseSelect}
+                onToggleBookmark={handleToggleBookmark}
+                bookmarkedVerseIds={bookmarkedIds}
+                bookCodeById={bookCodeById}
+              />
             )}
 
-            <div className="yv-reader-footer">
+            <div className="yv-reader-footer yv-reader-desktop-footer" aria-label="Chapter navigation">
               <div className="yv-reader-footer-nav" aria-label="Chapter navigation">
                 <ChapterNavButton
                   direction="previous"
@@ -2211,9 +2754,7 @@ export default function YouVersionReaderTab({
                   disabled={!previousReference || isLoadingSections}
                   onClick={goPrevious}
                 />
-                <div className="yv-reader-current-chapter-spot" aria-label="Current chapter">
-                  {readerToolButtons}
-                </div>
+                {readerToolButtonsDesktop}
                 <ChapterNavButton
                   direction="next"
                   label={t('nextChapter')}

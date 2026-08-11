@@ -7,8 +7,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const rootDir = path.resolve(__dirname, '..')
 
 const SOURCES = {
-  tan: 'C:\\Users\\cscla\\OneDrive\\Desktop\\Rooted\\Images\\Logos\\TanNoBGNew.png',
-  green: 'C:\\Users\\cscla\\OneDrive\\Desktop\\Rooted\\Images\\Logos\\GreenNoBGNew.png',
+  tan: 'C:\\Users\\cscla\\OneDrive\\Desktop\\Rooted\\Images\\Logos\\RootedTan.png',
+  green: 'C:\\Users\\cscla\\OneDrive\\Desktop\\Rooted\\Images\\Logos\\RootedGreen.png',
 }
 
 const PHONE_ICON_SOURCE = 'C:\\Users\\cscla\\OneDrive\\Desktop\\Rooted\\Images\\Logos\\Rooted.png'

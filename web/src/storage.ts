@@ -57,7 +57,7 @@ function normalizeRecentSearches(searches: RecentSearch[]): RecentSearch[] {
   const unique: RecentSearch[] = []
   const sorted = [...searches].sort((a, b) => itemTimestamp(b) - itemTimestamp(a))
   for (const search of sorted) {
-    const key = search.verseId || search.query
+    const key = `${search.verseId}:${search.versionId ?? ''}` || search.query
     if (seen.has(key)) continue
     seen.add(key)
     unique.push(search)
@@ -70,8 +70,9 @@ function normalizeBookmarks(bookmarks: Bookmark[]): Bookmark[] {
   const unique: Bookmark[] = []
   const sorted = [...bookmarks].sort((a, b) => itemTimestamp(b) - itemTimestamp(a))
   for (const bm of sorted) {
-    if (seen.has(bm.verseId)) continue
-    seen.add(bm.verseId)
+    const key = `${bm.verseId}:${bm.versionId ?? ''}`
+    if (seen.has(key)) continue
+    seen.add(key)
     unique.push(bm)
   }
   return unique
@@ -198,11 +199,11 @@ export function deleteNote(id: string) {
   if (currentUserId) void deleteUserNote(currentUserId, id).catch(() => {})
 }
 
-export function toggleBookmark(verseId: string, label?: string): boolean {
+export function toggleBookmark(verseId: string, versionId?: string, versionAbbreviation?: string): boolean {
   const bookmarks = getBookmarks()
-  const exists = bookmarks.find((b) => b.verseId === verseId)
+  const exists = bookmarks.find((b) => b.verseId === verseId && (!versionId || !b.versionId || b.versionId === versionId))
   if (exists) {
-    set(BOOKMARKS_KEY, bookmarks.filter((b) => b.verseId !== verseId))
+    set(BOOKMARKS_KEY, bookmarks.filter((b) => b.id !== exists.id))
     void deleteBookmarkDB(exists.id).catch(() => {})
     if (currentUserId) void deleteUserBookmark(currentUserId, exists.id).catch(() => {})
     return false
@@ -210,8 +211,10 @@ export function toggleBookmark(verseId: string, label?: string): boolean {
   const bm: Bookmark = {
     id: crypto.randomUUID(),
     verseId,
-    label: label || 'Bookmarked',
+    label: versionAbbreviation || 'Bookmarked',
     createdAt: new Date().toISOString(),
+    versionId,
+    versionAbbreviation,
   }
   set(BOOKMARKS_KEY, [bm, ...bookmarks])
   void saveBookmarkDB(bm).catch(() => {})
@@ -219,24 +222,26 @@ export function toggleBookmark(verseId: string, label?: string): boolean {
   return true
 }
 
-export function isBookmarked(verseId: string): boolean {
-  return getBookmarks().some((b) => b.verseId === verseId)
+export function isBookmarked(verseId: string, versionId?: string): boolean {
+  return getBookmarks().some((b) => b.verseId === verseId && (!versionId || !b.versionId || b.versionId === versionId))
 }
 
 export function getRecentSearches(): RecentSearch[] {
   return normalizeRecentSearches(get<RecentSearch>(RECENT_SEARCHES_KEY))
 }
 
-export function addRecentSearch(entry: { query: string; verseId: string; reference: string }) {
+export function addRecentSearch(entry: { query: string; verseId: string; reference: string; versionId?: string; versionAbbreviation?: string }) {
   const query = entry.query.trim()
   if (!query || !entry.verseId) return
-  const existing = getRecentSearches().filter((r) => r.verseId !== entry.verseId)
+  const existing = getRecentSearches().filter((r) => r.verseId !== entry.verseId || (entry.versionId ? r.versionId !== entry.versionId : false))
   const recent: RecentSearch = {
     id: crypto.randomUUID(),
     query,
     verseId: entry.verseId,
     reference: entry.reference,
     createdAt: new Date().toISOString(),
+    versionId: entry.versionId,
+    versionAbbreviation: entry.versionAbbreviation,
   }
   set(RECENT_SEARCHES_KEY, [recent, ...existing].slice(0, MAX_RECENT_SEARCHES))
   void saveRecentSearchDB(recent).catch(() => {})

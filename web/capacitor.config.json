@@ -1,5 +1,11 @@
 {
   "appId": "com.cscla.biblestudy",
   "appName": "Rooted",
-  "webDir": "dist"
+  "webDir": "dist",
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 3000,
+      "launchAutoHide": true
+    }
+  }
 }

@@ -67,7 +67,7 @@ type ScenePalette = {
   }
 }
 
-const SCENE_PALETTE: Record<'dark' | 'light', ScenePalette> = {
+export const SCENE_PALETTE: Record<'dark' | 'light', ScenePalette> = {
   dark: {
     clearColor: [0.089, 0.107, 0.13, 1],
     fogColor: [0.089, 0.107, 0.13],

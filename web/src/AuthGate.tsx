@@ -1,4 +1,4 @@
-import { FormEvent, ReactNode, useEffect, useRef, useState } from 'react'
+import { FormEvent, ReactNode, useEffect, useState } from 'react'
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
@@ -10,6 +10,7 @@ import { YouVersionProvider } from '@youversion/platform-react-ui'
 import { useYVAuth } from '@youversion/platform-react-hooks'
 import { auth } from './firebase'
 import Landing from './Landing'
+import { YOUVERSION_API_BASE } from './youversion'
 import { getYouVersionRedirectUrl } from './youversionRedirect'
 
 type Theme = 'dark' | 'light'
@@ -57,11 +58,13 @@ function LoginScreen({
   theme,
   onToggleTheme,
   onYouVersionLogin,
+  callbackError,
 }: {
   onBack: () => void
   theme: Theme
   onToggleTheme: () => void
   onYouVersionLogin?: () => void | Promise<void>
+  callbackError?: string | null
 }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -85,38 +88,40 @@ function LoginScreen({
   return (
     <div
       style={{
-        minHeight: '100vh',
+        minHeight: '100dvh',
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         justifyContent: 'center',
         background: 'var(--bg)',
         color: 'var(--text)',
-        padding: '1.5rem',
+        padding: 'clamp(1rem, 4vw, 1.5rem)',
         position: 'relative',
+        overflowY: 'auto',
       }}
     >
       <button
         className="secondary"
         onClick={onBack}
-        style={{ position: 'absolute', top: '1.5rem', left: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+        style={{ position: 'absolute', top: 'clamp(0.75rem, 3vw, 1.5rem)', left: 'clamp(0.75rem, 3vw, 1.5rem)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
       >
         <ArrowLeft size={16} /> Back
       </button>
-      <div style={{ position: 'absolute', top: '1.5rem', right: '1.5rem' }}>
+      <div style={{ position: 'absolute', top: 'clamp(0.75rem, 3vw, 1.5rem)', right: 'clamp(0.75rem, 3vw, 1.5rem)' }}>
         <ThemeToggle theme={theme} onToggle={onToggleTheme} />
       </div>
       <form
         onSubmit={handleSubmit}
         style={{
-          width: '100%',
-          maxWidth: 360,
+          width: 'min(100%, 26rem)',
+          maxWidth: '100%',
           background: 'var(--surface)',
-          borderRadius: '1rem',
-          padding: '2rem',
+          borderRadius: '1.1rem',
+          padding: 'clamp(1.25rem, 4vw, 2rem)',
           display: 'flex',
           flexDirection: 'column',
           gap: '0.9rem',
           boxShadow: '0 20px 45px rgba(0,0,0,0.25)',
+          marginTop: 'clamp(3.25rem, 10vw, 4.5rem)',
         }}
       >
         <img
@@ -148,11 +153,11 @@ function LoginScreen({
             required
           />
         </label>
-        {error && (
-          <div style={{ color: 'var(--danger)', fontSize: '0.85rem' }}>{error}</div>
+        {(error || callbackError) && (
+          <div style={{ color: 'var(--danger)', fontSize: '0.85rem' }}>{error ?? callbackError}</div>
         )}
-        <button type="submit" disabled={submitting}>
-          {submitting ? 'Signing in�' : 'Sign In'}
+        <button type="submit" disabled={submitting} style={{ width: '100%' }}>
+          {submitting ? 'Signing in…' : 'Sign In'}
         </button>
         {onYouVersionLogin ? (
           <>
@@ -163,7 +168,7 @@ function LoginScreen({
               type="button"
               className="secondary"
               onClick={() => void onYouVersionLogin()}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', width: '100%' }}
             >
               <LogIn size={16} /> Sign in with YouVersion
             </button>
@@ -174,17 +179,52 @@ function LoginScreen({
   )
 }
 
-export function AuthSignOutButton() {
-  const { signOut: yvSignOut } = useYVAuth()
+export function AuthSignInButton() {
+  const { auth: yvAuth, signIn } = useYVAuth()
+
+  if (yvAuth.isAuthenticated) return null
 
   return (
     <button
       type="button"
-      className="secondary"
+      className="secondary header-signin"
       onClick={async () => {
-        await signOut(auth)
-        await yvSignOut()
+        await signIn({
+          redirectUrl: getYouVersionRedirectUrl(),
+          scopes: ['profile', 'email'],
+          permissions: ['highlights'],
+        })
       }}
+      title="Sign in with YouVersion"
+      aria-label="Sign in with YouVersion"
+      style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', padding: '0.55rem 0.75rem' }}
+    >
+      <LogIn size={16} /> YouVersion
+    </button>
+  )
+}
+
+export function AuthSignOutButton() {
+  const { auth: yvAuth, signOut: yvSignOut } = useYVAuth()
+  const handleSignOut = async () => {
+    try {
+      if (yvAuth.isAuthenticated) {
+        await yvSignOut()
+      }
+    } catch (error) {
+      console.error('YouVersion sign out failed:', error)
+    }
+    try {
+      await signOut(auth)
+    } catch (error) {
+      console.error('Firebase sign out failed:', error)
+    }
+  }
+  return (
+    <button
+      type="button"
+      className="secondary header-signout"
+      onClick={handleSignOut}
       title="Sign out"
       aria-label="Sign out"
       style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0.55rem' }}
@@ -233,7 +273,11 @@ function AuthGateNoProvider({ children }: { children: ReactNode }) {
 
   if (!user) {
     return showLogin ? (
-      <LoginScreen onBack={() => setShowLogin(false)} theme={theme} onToggleTheme={toggleTheme} />
+      <LoginScreen
+        onBack={() => setShowLogin(false)}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+      />
     ) : (
       <Landing onLogin={() => setShowLogin(true)} theme={theme} onToggleTheme={toggleTheme} />
     )
@@ -253,9 +297,8 @@ function AuthGateContent({
 }) {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null | undefined>(undefined)
   const [showLogin, setShowLogin] = useState(false)
-  const [isYvCallbackLoading, setIsYvCallbackLoading] = useState(false)
+  const [callbackError, setCallbackError] = useState<string | null>(null)
   const { auth: yvAuth, processCallback } = useYVAuth()
-  const callbackProcessed = useRef(false)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
@@ -266,17 +309,21 @@ function AuthGateContent({
   }, [])
 
   useEffect(() => {
-    if (callbackProcessed.current || yvAuth.isAuthenticated) return
     const search = new URLSearchParams(window.location.search)
     if (!search.has('code') && !search.has('error') && !search.has('state')) return
-    callbackProcessed.current = true
-    setIsYvCallbackLoading(true)
     void processCallback()
+      .then((result) => {
+        if (result) {
+          console.info('YouVersion sign-in complete:', result.name)
+        }
+      })
       .catch((error) => {
+        const message = error instanceof Error ? error.message : String(error)
         console.error('YouVersion callback error:', error)
+        setCallbackError(`Sign-in failed: ${message}`)
+        setShowLogin(true)
       })
       .finally(() => {
-        setIsYvCallbackLoading(false)
         const url = new URL(window.location.href)
         url.searchParams.delete('code')
         url.searchParams.delete('state')
@@ -284,9 +331,9 @@ function AuthGateContent({
         url.searchParams.delete('error_description')
         window.history.replaceState({}, '', url.toString())
       })
-  }, [processCallback, yvAuth.isAuthenticated])
+  }, [processCallback])
 
-  if (firebaseUser === undefined || isYvCallbackLoading) {
+  if (firebaseUser === undefined) {
     return (
       <div
         style={{
@@ -313,6 +360,7 @@ function AuthGateContent({
         onToggleTheme={onToggleTheme}
         onLogin={() => setShowLogin(true)}
         onBack={() => setShowLogin(false)}
+        callbackError={callbackError}
       />
     )
   }
@@ -326,12 +374,14 @@ function AuthEntryScreen({
   onToggleTheme,
   onLogin,
   onBack,
+  callbackError,
 }: {
   showLogin: boolean
   theme: Theme
   onToggleTheme: () => void
   onLogin: () => void
   onBack: () => void
+  callbackError: string | null
 }) {
   const { signIn } = useYVAuth()
 
@@ -349,6 +399,7 @@ function AuthEntryScreen({
       theme={theme}
       onToggleTheme={onToggleTheme}
       onYouVersionLogin={handleYouVersionLogin}
+      callbackError={callbackError}
     />
   ) : (
     <Landing
@@ -374,10 +425,11 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   }
 
   return (
-    <YouVersionProvider appKey={YOUVERSION_APP_KEY} theme={theme} includeAuth={true} authRedirectUrl={getYouVersionRedirectUrl()}>
+    <YouVersionProvider appKey={YOUVERSION_APP_KEY} apiHost={YOUVERSION_API_BASE} theme={theme} includeAuth={true} authRedirectUrl={getYouVersionRedirectUrl()}>
       <AuthGateContent theme={theme} onToggleTheme={toggleTheme}>
         {children}
       </AuthGateContent>
     </YouVersionProvider>
   )
 }
+

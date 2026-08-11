@@ -9,7 +9,8 @@ const browserIconSource = 'C:\\Users\\cscla\\OneDrive\\Desktop\\Rooted\\Images\\
 const lightSource = 'C:\\Users\\cscla\\OneDrive\\Desktop\\Rooted\\Images\\Logos\\RootedGreen.png'
 const darkSource = 'C:\\Users\\cscla\\OneDrive\\Desktop\\Rooted\\Images\\Logos\\RootedTan.png'
 const transparentBackground = { r: 0, g: 0, b: 0, alpha: 0 }
-const browserIconScale = 2.15
+const browserIconScale = 1.7
+const launcherIconScale = 0.58
 
 function toPixels(size, scale = 1) {
   return Math.max(1, Math.round(size * scale))
@@ -44,8 +45,8 @@ async function writeIcon(file, sourcePath, size, background, scale = 0.68) {
     .toFile(file)
 }
 
-async function writeContainedIcon(file, size, scale = 1) {
-  await writeIcon(file, lightSource, size, transparentBackground, scale)
+async function writeContainedIcon(file, sourcePath, size, scale = launcherIconScale) {
+  await writeIcon(file, sourcePath, size, transparentBackground, scale)
 }
 
 async function writeBrowserIcon(file, sourcePath, size, scale = browserIconScale) {
@@ -125,7 +126,7 @@ for (const [file, size] of outputs) {
   if (isDarkFavicon) {
     await writeDarkFavicon(file, size)
   } else if (isAndroidLauncher) {
-    await writeContainedIcon(file, size, 0.68)
+    await writeContainedIcon(file, browserIconSource, size)
   } else if (isBrowserIcon) {
     await writeBrowserIcon(file, browserIconSource, size)
   } else {

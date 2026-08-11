@@ -1,6 +1,6 @@
 import { memo } from 'react'
-import { AlignJustify, ArrowLeftRight, BookOpen, Highlighter, Quote, RefreshCw, Tag, Type } from 'lucide-react'
-import type { ReaderView, Verse } from './types'
+import { AlignJustify, ArrowLeftRight, BookOpen, MousePointer2, Quote, RefreshCw, Tag, Type } from 'lucide-react'
+import type { ReaderView } from './types'
 
 type ReaderToolButtonsProps = {
   readerView: ReaderView
@@ -15,6 +15,13 @@ type ReaderToolButtonsProps = {
   onToggleRedLetter: () => void
   onToggleHoverHighlight: () => void
   onToggleEntityHighlights: () => void
+  onOpenBookInfo?: () => void
+  bookInfoLabel?: string
+  bookInfoOpen?: boolean
+  chapterLabel?: string
+  splitLayout?: boolean
+  hideCompareButton?: boolean
+  hideAutoScrollButton?: boolean
 }
 
 type LegendItem = {
@@ -45,11 +52,30 @@ function ReaderToolButtons({
   onToggleRedLetter,
   onToggleHoverHighlight,
   onToggleEntityHighlights,
+  onOpenBookInfo,
+  bookInfoLabel,
+  bookInfoOpen,
+  chapterLabel,
+  splitLayout,
+  hideCompareButton,
+  hideAutoScrollButton,
 }: ReaderToolButtonsProps) {
   const legendOpen = entityHighlightsEnabled
 
-  return (
-    <div className="yv-reader-nav-tools" role="group" aria-label="Reading tools">
+  const viewButtons = (
+    <>
+      {!hideCompareButton ? (
+        <button
+          type="button"
+          className={`yv-reader-meta-icon-button ${compareOpen ? 'active' : ''}`}
+          aria-pressed={compareOpen}
+          aria-label={compareOpen ? 'Turn compare mode off' : 'Turn compare mode on'}
+          title={compareOpen ? 'Compare on' : 'Compare off'}
+          onClick={onToggleCompare}
+        >
+          <ArrowLeftRight size={15} />
+        </button>
+      ) : null}
       <button
         type="button"
         className={`yv-reader-meta-icon-button ${readerView === 'html' ? 'active' : ''}`}
@@ -80,26 +106,33 @@ function ReaderToolButtons({
       >
         <AlignJustify size={15} />
       </button>
+    </>
+  )
+
+  const toolButtons = (
+    <>
       <button
         type="button"
-        className={`yv-reader-meta-icon-button ${compareOpen ? 'active' : ''}`}
-        aria-pressed={compareOpen}
-        aria-label={compareOpen ? 'Turn compare mode off' : 'Turn compare mode on'}
-        title={compareOpen ? 'Compare on' : 'Compare off'}
-        onClick={onToggleCompare}
+        className={`yv-reader-meta-icon-button ${hoverHighlightEnabled ? 'active' : ''}`}
+        aria-pressed={hoverHighlightEnabled}
+        aria-label={hoverHighlightEnabled ? 'Turn hover highlight off' : 'Turn hover highlight on'}
+        title={hoverHighlightEnabled ? 'Hover highlight on' : 'Hover highlight off'}
+        onClick={onToggleHoverHighlight}
       >
-        <ArrowLeftRight size={15} />
+        <MousePointer2 size={15} />
       </button>
-      <button
-        type="button"
-        className={`yv-reader-meta-icon-button ${autoScrollEnabled ? 'active' : ''}`}
-        aria-pressed={autoScrollEnabled}
-        aria-label={autoScrollEnabled ? 'Turn auto sync off' : 'Turn auto sync on'}
-        title={autoScrollEnabled ? 'Auto sync on' : 'Auto sync off'}
-        onClick={onToggleAutoScroll}
-      >
-        <RefreshCw size={15} />
-      </button>
+      {!hideAutoScrollButton ? (
+        <button
+          type="button"
+          className={`yv-reader-meta-icon-button ${autoScrollEnabled ? 'active' : ''}`}
+          aria-pressed={autoScrollEnabled}
+          aria-label={autoScrollEnabled ? 'Turn auto sync off' : 'Turn auto sync on'}
+          title={autoScrollEnabled ? 'Auto sync on' : 'Auto sync off'}
+          onClick={onToggleAutoScroll}
+        >
+          <RefreshCw size={15} />
+        </button>
+      ) : null}
       <button
         type="button"
         className={`yv-reader-meta-icon-button ${redLetterEnabled ? 'active' : ''}`}
@@ -120,6 +153,29 @@ function ReaderToolButtons({
       >
         <Tag size={15} />
       </button>
+    </>
+  )
+
+  const centerSpot = chapterLabel ? (
+    <div className="yv-reader-chapter-spot" title="Current chapter and verse" aria-label="Current chapter and verse">
+      <span className="yv-reader-chapter-spot-ref">{chapterLabel}</span>
+    </div>
+  ) : null
+
+  if (splitLayout && centerSpot) {
+    return (
+      <div className="yv-reader-nav-tools yv-reader-nav-tools-split" role="group" aria-label="Reading tools">
+        <div className="yv-reader-tool-group">{viewButtons}</div>
+        {centerSpot}
+        <div className="yv-reader-tool-group">{toolButtons}</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="yv-reader-nav-tools" role="group" aria-label="Reading tools">
+      {viewButtons}
+      {toolButtons}
 
       <div className={`yv-reader-entity-legend ${legendOpen ? 'open' : ''}`} aria-hidden={!legendOpen}>
         {LEGEND.map((item) => (
