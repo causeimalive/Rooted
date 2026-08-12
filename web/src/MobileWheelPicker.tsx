@@ -35,7 +35,7 @@ type MobileWheelPickerProps<T> = {
 
 function triggerHaptic() {
   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-    navigator.vibrate?.(12)
+    navigator.vibrate?.(18)
   }
 }
 
@@ -62,7 +62,10 @@ function WheelColumn<T extends string | number>({
     lastCommittedIndexRef.current = activeIndex
     if (!hasCenteredRef.current) {
       const active = list.querySelector<HTMLElement>(`[data-option-index="${activeIndex}"]`)
-      active?.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' })
+      if (active && shell) {
+        const targetTop = active.offsetTop + active.clientHeight / 2 - shell.clientHeight / 2
+        shell.scrollTo({ top: targetTop, behavior: 'auto' })
+      }
       hasCenteredRef.current = true
     }
 

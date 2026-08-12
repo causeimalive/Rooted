@@ -203,7 +203,7 @@ export default function LexiconTab({ query, onQuery, onSelect }: LexiconTabProps
   )
 
   return (
-    <div className="panel" style={panelStyle}>
+    <div style={panelStyle}>
       {suggestions.length > 0 && (
         <div className="lexicon-suggestions">
           {suggestions.map((s) => (

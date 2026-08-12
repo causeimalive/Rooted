@@ -26,6 +26,7 @@ import ReaderToolButtons from './ReaderToolButtons'
 import ReaderVersionSelector from './ReaderVersionSelector'
 import MobileReaderNav from './MobileReaderNav'
 import { useI18n } from './i18n'
+import { importYouVersionHighlights } from './storage'
 import type { Bookmark, ReaderView } from './types'
 
 const READER_VERSION_KEY = 'bible-study-yv-version'
@@ -807,8 +808,12 @@ export default function YouVersionReaderTab({
     [anchorReference],
   )
   const currentReference = anchorReferenceKey
+  const highlightsPassageId = useMemo(
+    () => (anchorReference ? `${anchorReference.bookId}.${anchorReference.chapter}` : ''),
+    [anchorReference],
+  )
   const compareVersionLabel = formatVersionLabel(compareVersion)
-  const highlightsEnabled = auth.isAuthenticated && resolvedVersionId !== null && Boolean(currentReference)
+  const highlightsEnabled = auth.isAuthenticated && resolvedVersionId !== null && highlightsPassageId !== ''
   const {
     highlights,
     loading: highlightsLoading,
@@ -819,7 +824,7 @@ export default function YouVersionReaderTab({
   } = useHighlights(
     {
       version_id: resolvedVersionId ?? 1,
-      passage_id: currentReference || 'GEN.1',
+      passage_id: highlightsPassageId || 'GEN.1',
     },
     { enabled: highlightsEnabled },
   )
@@ -865,6 +870,31 @@ export default function YouVersionReaderTab({
     () => new Set(bookmarks.filter((b) => b.versionId === readerVersionId).map((b) => b.verseId)),
     [bookmarks, readerVersionId],
   )
+
+  useEffect(() => {
+    if (!highlights?.data?.length || !resolvedVersionId) return
+    const all = getAllVerses()
+    if (!all.length) return
+    const versionId = String(resolvedVersionId)
+    const unseen: { verseId: string; color?: string }[] = []
+    for (const h of highlights.data) {
+      const parts = h.passage_id.split('.')
+      const bookId = parts[0]
+      const chapter = Number(parts[1])
+      const verse = Number(parts[2])
+      if (!bookId || !Number.isFinite(chapter) || !Number.isFinite(verse)) continue
+      const match = all.find((v) => v.book.toUpperCase() === bookId.toUpperCase() && v.chapter === chapter && v.verse === verse)
+      if (!match || bookmarkedIds.has(match.id)) continue
+      unseen.push({ verseId: match.id, color: h.color })
+    }
+    if (!unseen.length) return
+    try {
+      importYouVersionHighlights(unseen, versionId, selectedVersionLabel)
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : String(err))
+    }
+  }, [highlights, resolvedVersionId, selectedVersionLabel, bookmarkedIds, getAllVerses().length])
+
   const activeBookId = anchorReference?.bookId ?? currentIndexBook?.id ?? ''
   const activeChapter = anchorReference?.chapter ?? currentChapter
   const activeBook = useMemo(
@@ -882,7 +912,14 @@ export default function YouVersionReaderTab({
   const focusedReferenceLabel = focusedVerseLabel || activeSection?.reference || anchorReferenceKey
   const navigationReference = anchorReference
   const copyright = version?.copyright?.trim() ?? ''
-  const readerError = localError || versionsError?.message || versionError?.message || booksError?.message || chaptersError?.message || ''
+  const readerError = localError || versionsError?.message || versionError?.message || booksError?.message || chaptersError?.message || highlightsError?.message || ''
+  const isHighlightsPermissionError = Boolean(
+    highlightsError &&
+      (highlightsError.message?.includes('NOT_PERMITTED') ||
+        highlightsError.message?.toLowerCase().includes('permit') ||
+        highlightsError.message?.toLowerCase().includes('not permitted') ||
+        (highlightsError as { reason?: string }).reason === 'NOT_PERMITTED'),
+  )
   const visibleBooks = useMemo(
     () => books.filter((book) => testamentFilter === 'all' || getTestamentForBook(book.id) === testamentFilter),
     [books, testamentFilter],
@@ -2161,7 +2198,7 @@ export default function YouVersionReaderTab({
 
   const previousChapterDestination = formatChapterNavDestination(previousChapterBook, previousReference, 'No previous chapter')
   const nextChapterDestination = formatChapterNavDestination(nextChapterBook, nextReference, 'No next chapter')
-  const currentChapterLabel = `${passageLabel}:${activeVerseNumber}`
+  const currentChapterLabel = passageLabel
   const mobileCompareOpen = compareOpen && !isCompactMobile
   const readerToolButtonsDesktop = useMemo(
     () => (
@@ -2553,7 +2590,17 @@ export default function YouVersionReaderTab({
       <div className="yv-reader" style={readerStyle}>
         {readerError && (
           <div className="yv-reader-error-banner" role="alert" style={{ padding: '0.75rem 1rem', background: 'var(--danger-bg, rgba(239,68,68,0.15))', color: 'var(--danger, #ef4444)', textAlign: 'center', fontSize: '0.9rem' }}>
-            {readerError}
+            <div>{readerError}</div>
+            {isHighlightsPermissionError && (
+              <button
+                type="button"
+                className="secondary"
+                style={{ marginTop: '0.5rem' }}
+                onClick={() => void handleYouVersionSignIn()}
+              >
+                Grant highlights access
+              </button>
+            )}
           </div>
         )}
         <div className="yv-reader-body" ref={readerBodyRef}>

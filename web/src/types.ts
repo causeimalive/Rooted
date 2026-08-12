@@ -12,7 +12,7 @@ export interface Keyword {
   meaning: string
 }
 
-export type Tab = 'search' | 'reader' | 'network' | 'map' | 'lexicon'
+export type Tab = 'search' | 'reader' | 'network' | 'map'
 export type ReaderView = 'html' | 'chapter' | 'verse'
 
 export interface Verse {
@@ -41,6 +41,7 @@ export interface Bookmark {
   createdAt: string
   versionId?: string
   versionAbbreviation?: string
+  color?: string
 }
 
 export interface RecentSearch {

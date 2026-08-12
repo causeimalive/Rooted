@@ -31,6 +31,10 @@ const MAX_RECENT_SEARCHES = 25
 
 let currentUserId: string | null = null
 
+export function getCurrentUserId(): string | null {
+  return currentUserId
+}
+
 function itemTimestamp(item: { createdAt?: string; updatedAt?: string }): number {
   return new Date(item.updatedAt || item.createdAt || 0).getTime()
 }
@@ -80,11 +84,18 @@ function normalizeBookmarks(bookmarks: Bookmark[]): Bookmark[] {
 
 export async function syncUserData(userId: string) {
   currentUserId = userId
-  const [cloudBookmarks, cloudNotes, cloudRecent] = await Promise.all([
-    getUserBookmarks(userId),
-    getUserNotes(userId),
-    getUserRecentSearches(userId),
-  ])
+  let cloudBookmarks: Bookmark[] = []
+  let cloudNotes: Note[] = []
+  let cloudRecent: RecentSearch[] = []
+  try {
+    ;[cloudBookmarks, cloudNotes, cloudRecent] = await Promise.all([
+      getUserBookmarks(userId),
+      getUserNotes(userId),
+      getUserRecentSearches(userId),
+    ])
+  } catch {
+    // If cloud access is not permitted, fall back to local-only sync.
+  }
 
   const mergedBookmarks = normalizeBookmarks(
     mergeById(get<Bookmark>(BOOKMARKS_KEY), cloudBookmarks),
@@ -100,12 +111,48 @@ export async function syncUserData(userId: string) {
   set(NOTES_KEY, mergedNotes)
   set(RECENT_SEARCHES_KEY, mergedRecent)
 
-  await Promise.all([
-    Promise.all(mergedBookmarks.map((b) => saveUserBookmark(userId, b))),
-    Promise.all(mergedNotes.map((n) => saveUserNote(userId, n))),
-    Promise.all(mergedRecent.map((r) => saveUserRecentSearch(userId, r))),
-  ])
+  try {
+    await Promise.all([
+      Promise.all(mergedBookmarks.map((b) => saveUserBookmark(userId, b))),
+      Promise.all(mergedNotes.map((n) => saveUserNote(userId, n))),
+      Promise.all(mergedRecent.map((r) => saveUserRecentSearch(userId, r))),
+    ])
+  } catch {
+    // Cloud write may fail for users without the right permissions; local data is already in sync.
+  }
 
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('bible-study-storage-hydrated'))
+  }
+}
+
+export function importYouVersionHighlights(
+  items: { verseId: string; color?: string }[],
+  versionId: string,
+  versionAbbreviation: string,
+) {
+  const existing = getBookmarks()
+  const additions: Bookmark[] = []
+  for (const item of items) {
+    if (existing.some((b) => b.verseId === item.verseId && b.versionId === versionId)) continue
+    const bookmark: Bookmark = {
+      id: crypto.randomUUID(),
+      verseId: item.verseId,
+      label: item.color ? `#${item.color}` : versionAbbreviation || 'Bookmarked',
+      createdAt: new Date().toISOString(),
+      versionId,
+      versionAbbreviation,
+      color: item.color,
+    }
+    additions.push(bookmark)
+  }
+  if (!additions.length) return
+  const next = normalizeBookmarks([...additions, ...existing])
+  set(BOOKMARKS_KEY, next)
+  for (const bookmark of additions) {
+    void saveBookmarkDB(bookmark).catch(() => {})
+    if (currentUserId) void saveUserBookmark(currentUserId, bookmark).catch(() => {})
+  }
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('bible-study-storage-hydrated'))
   }

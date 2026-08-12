@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from 'react'
 import { onAuthStateChanged } from 'firebase/auth'
 import { Capacitor } from '@capacitor/core'
 import { App as CapacitorApp } from '@capacitor/app'
@@ -74,13 +74,14 @@ import { getMapStyle } from './mapStyles'
 import WikiMediaCard from './WikiMediaCard'
 import LexiconTab from './LexiconTab'
 import YouVersionReaderTab from './YouVersionReaderTab'
-import NetworkScene from './NetworkScene'
+const NetworkThreeScene = lazy(() => import('./NetworkThreeScene'))
 import { SCENE_PALETTE } from './relationshipGraph/palette'
 import { AuthSignOutButton } from './AuthGate'
 import {
   addRecentSearch,
   clearCurrentUser,
   getBookmarks,
+  getCurrentUserId,
   getRecentSearches,
   isBookmarked,
   syncUserData,
@@ -95,9 +96,9 @@ import { getWikipediaLink, useWikiImages, useWikiSummary, type WikiImage } from 
 import { useBibleClient, useBooks, useChapters, useHighlights, useVersion, useVersions, useYVAuth } from '@youversion/platform-react-hooks'
 import { getYouVersionRedirectUrl } from './youversionRedirect'
 
-type Tab = 'search' | 'reader' | 'network' | 'map' | 'lexicon'
+type Tab = 'search' | 'reader' | 'network' | 'map'
 
-const TABS: Tab[] = ['search', 'reader', 'network', 'map', 'lexicon']
+const TABS: Tab[] = ['search', 'reader', 'network', 'map']
 
 const USFM_BOOK_NORMALIZE: Record<string, string> = {
   genesis: 'Gen', exodus: 'Exod', leviticus: 'Lev', numbers: 'Num', deuteronomy: 'Deut',
@@ -205,12 +206,15 @@ function SettingsMenu() {
       return true
     }
   })
-  const [category, setCategory] = useState<'look-feel' | 'network'>('look-feel')
+  const [category, setCategory] = useState<'look-feel' | 'network' | 'youversion'>('look-feel')
+  const [syncState, setSyncState] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle')
+  const [syncMessage, setSyncMessage] = useState<string | null>(null)
   const dialogRef = useRef<HTMLDialogElement | null>(null)
 
-  const CATEGORIES: { id: 'look-feel' | 'network'; label: string; icon: typeof Cog }[] = [
+  const CATEGORIES: { id: 'look-feel' | 'network' | 'youversion'; label: string; icon: typeof Cog }[] = [
     { id: 'look-feel', label: 'Look & feel', icon: Palette },
     { id: 'network', label: 'Network', icon: Globe },
+    { id: 'youversion', label: 'YouVersion', icon: BookOpen },
   ]
 
   useEffect(() => {
@@ -269,6 +273,23 @@ function SettingsMenu() {
     setUiScale(Math.min(Math.max(next, 0.85), 1.35))
   }, [])
 
+  const handleSync = useCallback(async () => {
+    const syncUserId = getCurrentUserId() ?? userId
+    if (!syncUserId) return
+    setSyncState('syncing')
+    setSyncMessage(null)
+    try {
+      await syncUserData(syncUserId)
+      setSyncState('success')
+      setSyncMessage('Sync complete')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      console.error('Sync failed:', error)
+      setSyncState('error')
+      setSyncMessage(message)
+    }
+  }, [userId])
+
   return (
     <>
       <button
@@ -320,23 +341,6 @@ function SettingsMenu() {
             <div className="header-settings-content">
               {category === 'look-feel' && (
                 <>
-                  <div className="header-settings-card yv-card">
-                    <div className="yv-card-header">
-                      <span className="yv-card-icon">
-                        <Check size={20} />
-                      </span>
-                      <div className="yv-card-body">
-                        <span className="yv-card-title">
-                          YouVersion {auth.isAuthenticated ? 'connected' : 'available'}
-                        </span>
-                        {auth.isAuthenticated && userInfo?.name ? (
-                          <small>Signed in as {userInfo.name}</small>
-                        ) : (
-                          <small>Sign in with YouVersion to sync highlights across devices.</small>
-                        )}
-                      </div>
-                    </div>
-                  </div>
                   <h3 className="header-settings-content-title">Look & feel</h3>
                   <div className="header-settings-card">
                     <span>Reader text size</span>
@@ -416,6 +420,53 @@ function SettingsMenu() {
                   </div>
                 </>
               )}
+              {category === 'youversion' && (
+                <>
+                  <h3 className="header-settings-content-title">YouVersion</h3>
+                  <div className="header-settings-card yv-card">
+                    <div className="yv-card-header">
+                      <span className="yv-card-icon">
+                        <Check size={20} />
+                      </span>
+                      <div className="yv-card-body">
+                        <span className="yv-card-title">
+                          YouVersion {auth.isAuthenticated ? 'connected' : 'available'}
+                        </span>
+                        {auth.isAuthenticated && userInfo?.name ? (
+                          <small>Signed in as {userInfo.name}</small>
+                        ) : (
+                          <small>Sign in with YouVersion to sync highlights across devices.</small>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="header-settings-card header-settings-toggle">
+                    <div>
+                      <span>Bookmarks & highlights</span>
+                      <small>Sync your saved bookmarks and imported highlights across devices</small>
+                    </div>
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={!auth.isAuthenticated || syncState === 'syncing'}
+                      onClick={() => void handleSync()}
+                    >
+                      {syncState === 'syncing' ? <Loader2 size={16} className="spin" /> : 'Sync'}
+                    </button>
+                  </div>
+                  {syncMessage && (
+                    <small
+                      style={{
+                        color: syncState === 'success' ? 'var(--success)' : 'var(--danger)',
+                        display: 'block',
+                        marginTop: '0.25rem',
+                      }}
+                    >
+                      {syncMessage}
+                    </small>
+                  )}
+                </>
+              )}
             </div>
         </div>
       </dialog>
@@ -460,6 +511,8 @@ export default function App() {
   }, [isNative])
 
   const { t, language, setLanguage } = useI18n()
+  const { auth: yvAuth, userInfo } = useYVAuth()
+  const yvUserId = yvAuth.isAuthenticated ? userInfo?.userId : undefined
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     const saved = localStorage.getItem('bible-study-theme') as 'dark' | 'light' | null
     if (saved === 'dark' || saved === 'light') return saved
@@ -561,15 +614,22 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        void syncUserData(user.uid).catch(() => {})
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      const userId = firebaseUser?.uid ?? yvUserId
+      if (userId) {
+        void syncUserData(userId).catch(() => {})
       } else {
         clearCurrentUser()
       }
     })
     return unsubscribe
-  }, [])
+  }, [yvUserId])
+
+  useEffect(() => {
+    if (yvUserId) {
+      void syncUserData(yvUserId).catch(() => {})
+    }
+  }, [yvUserId])
 
   useEffect(() => {
     if (tab !== 'search') {
@@ -772,9 +832,6 @@ export default function App() {
           <button className={`tab ${tab === 'map' ? 'active' : ''}`} onClick={() => setTab('map')}>
             <MapIcon size={16} /> {t('map')}
           </button>
-          <button className={`tab ${tab === 'lexicon' ? 'active' : ''}`} onClick={() => setTab('lexicon')}>
-            <Book size={16} /> {t('words')}
-          </button>
         </div>
         <div className="header-tools">
           {tab !== 'search' && (
@@ -785,10 +842,6 @@ export default function App() {
                   e.preventDefault()
                   const trimmed = headerQuery.trim()
                   if (!trimmed) return
-                  if (tab === 'lexicon') {
-                    setQuery(trimmed)
-                    return
-                  }
                   runSearch(trimmed)
                 }}
               >
@@ -820,6 +873,14 @@ export default function App() {
           )}
           {!isNative && (
             <>
+              <button
+                className="language-toggle"
+                onClick={() => setLanguage(language === 'en' ? 'es' : 'en')}
+                title={t('language')}
+                aria-label={t('language')}
+              >
+                {language.toUpperCase()}
+              </button>
               <button className="theme-toggle" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} title={theme === 'dark' ? t('lightMode') : t('darkMode')}>
                 {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
               </button>
@@ -888,6 +949,7 @@ export default function App() {
               fallbackVerse={results[0]?.verse ?? getAllVerses()[0]}
               onSelect={setSelectedId}
               selectedId={selectedId}
+              bookmarks={bookmarks}
               theme={theme}
             />
           )}
@@ -902,16 +964,7 @@ export default function App() {
               searchResultsHost={mapSearchResultsHost}
             />
           )}
-          {tab === 'lexicon' && (
-            <LexiconTab
-              query={headerQuery}
-              onQuery={setHeaderQuery}
-              onSelect={(id) => {
-                setSelectedId(id)
-                setTab('search')
-              }}
-            />
-          )}
+
 
           {tab === 'search' && (
             <aside className="sidebar verse-sidebar">
@@ -1210,7 +1263,7 @@ function SearchTab({
   recentSearches: RecentSearch[]
 }) {
   const { t } = useI18n()
-  const [mode, setMode] = useState<'bookmarks' | 'search'>('search')
+  const [mode, setMode] = useState<'verses' | 'bookmarks' | 'words'>('verses')
   const all = getAllVerses()
   const currentVersionId = readerVersion ? String(readerVersion.id) : ''
   const allBookmarkedVerses = useMemo(
@@ -1233,6 +1286,7 @@ function SearchTab({
   )
 
   const showingBookmarks = mode === 'bookmarks'
+  const showingWords = mode === 'words'
   const bookmarked = useMemo(
     () => (showingBookmarks ? new Set(allBookmarkedVerses.map((i) => i.verse.id)) : activeVersionBookmarked),
     [showingBookmarks, allBookmarkedVerses, activeVersionBookmarked],
@@ -1248,8 +1302,8 @@ function SearchTab({
       <div className="search-header">
         <div className="search-mode-toggle">
           <button
-            className={`search-mode-btn ${!showingBookmarks ? 'active' : ''}`}
-            onClick={() => setMode('search')}
+            className={`search-mode-btn ${mode === 'verses' ? 'active' : ''}`}
+            onClick={() => setMode('verses')}
           >
             <Search size={14} /> {t('search')}
           </button>
@@ -1258,6 +1312,12 @@ function SearchTab({
             onClick={() => setMode('bookmarks')}
           >
             <Bookmark size={14} /> {t('bookmarks')}
+          </button>
+          <button
+            className={`search-mode-btn ${showingWords ? 'active' : ''}`}
+            onClick={() => setMode('words')}
+          >
+            <Book size={14} /> {t('words')}
           </button>
         </div>
         <div className="search-bar">
@@ -1268,20 +1328,23 @@ function SearchTab({
             value={query}
             autoFocus
             onChange={(e) => onQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && onSearch(query)}
+            onKeyDown={(e) => e.key === 'Enter' && mode === 'verses' && onSearch(query)}
           />
           {query && (
-            <button className="search-clear" onClick={() => { onQuery(''); setMode('search') }}>
+            <button className="search-clear" onClick={() => { onQuery(''); setMode('verses') }}>
               <X size={16} />
             </button>
           )}
         </div>
-        {(query.trim() || showingBookmarks) && resultCount > 0 && (
+        {(query.trim() || showingBookmarks) && !showingWords && resultCount > 0 && (
           <div className="result-count">{t('resultCount', { count: String(resultCount) })}</div>
         )}
       </div>
-      <div className="verse-list">
-        {showingBookmarks ? (
+      {showingWords ? (
+        <LexiconTab query={query} onQuery={onQuery} onSelect={onSelect} />
+      ) : (
+        <div className="verse-list">
+          {showingBookmarks ? (
           allBookmarkedVerses.length === 0 ? (
             <div className="empty">{t('noBookmarks')}</div>
           ) : (
@@ -1402,11 +1465,12 @@ function SearchTab({
         )}
 
       </div>
+    )}
     </div>
   )
 }
 
-type NetworkKind = 'center' | 'related' | 'theme' | 'echo' | 'ambient' | 'book' | 'chapter'
+type NetworkKind = 'center' | 'related' | 'theme' | 'echo' | 'ambient' | 'book' | 'chapter' | 'person' | 'place' | 'event' | 'userWaypoint'
 
 type NetworkNode = {
   id: string
@@ -1675,6 +1739,47 @@ function buildNetworkNodes(centerVerse: Verse, relatedMatches: VerseMatch[], the
     })
   })
 
+  const people = getCharactersForVerse(centerVerse, 3)
+  const places = getPlacesForVerse(centerVerse, 3)
+
+  people.forEach((person, index) => {
+    const angle = Math.PI + (index / Math.max(people.length, 1)) * Math.PI + (hashString(person.id) / 3600) * Math.PI * 0.2
+    const radius = 52
+    const x = clamp(50 + Math.cos(angle) * radius, 5, 95)
+    const y = clamp(50 + Math.sin(angle) * radius * 0.9, 5, 95)
+
+    nodes.push({
+      id: `person-${person.id}`,
+      kind: 'person',
+      label: person.name,
+      detail: person.era || 'Person',
+      x,
+      y,
+      z: clamp(20 + index * 8, 10, 44),
+      size: 72,
+      score: 0,
+    })
+  })
+
+  places.forEach((place, index) => {
+    const angle = (index / Math.max(places.length, 1)) * Math.PI * 2 + (hashString(place.id) / 3600) * Math.PI * 0.2
+    const radius = 62
+    const x = clamp(50 + Math.cos(angle) * radius, 5, 95)
+    const y = clamp(50 + Math.sin(angle) * radius * 0.9, 5, 95)
+
+    nodes.push({
+      id: `place-${place.id}`,
+      kind: 'place',
+      label: place.name,
+      detail: place.region || 'Place',
+      x,
+      y,
+      z: clamp(-20 - index * 8, -44, -10),
+      size: 72,
+      score: 0,
+    })
+  })
+
   const occupied = new Set(nodes.map((node) => node.verse?.id).filter((id): id is string => Boolean(id)))
   relatedMatches.slice(0, 6).forEach((match, parentIndex) => {
     const parentNode = nodes.find((node) => node.verse?.id === match.verse.id)
@@ -1726,6 +1831,29 @@ function buildNetworkEdges(centerVerse: Verse, relatedMatches: VerseMatch[], the
       source: `center-${centerVerse.id}`,
       target: match.verse.id,
       weight: match.score,
+      kind: 'spoke',
+    })
+  })
+
+  const peopleForCenter = getCharactersForVerse(centerVerse, 3)
+  const placesForCenter = getPlacesForVerse(centerVerse, 3)
+
+  peopleForCenter.forEach((person) => {
+    edges.push({
+      id: `spoke-person-${centerVerse.id}-${person.id}`,
+      source: `center-${centerVerse.id}`,
+      target: `person-${person.id}`,
+      weight: 0.8,
+      kind: 'spoke',
+    })
+  })
+
+  placesForCenter.forEach((place) => {
+    edges.push({
+      id: `spoke-place-${centerVerse.id}-${place.id}`,
+      source: `center-${centerVerse.id}`,
+      target: `place-${place.id}`,
+      weight: 0.8,
       kind: 'spoke',
     })
   })
@@ -1902,12 +2030,14 @@ function NetworkTab({
   fallbackVerse,
   onSelect,
   selectedId,
+  bookmarks,
   theme,
 }: {
   selectedVerse?: Verse
   fallbackVerse?: Verse
   onSelect: (id: string) => void
   selectedId: string | null
+  bookmarks: BookmarkType[]
   theme: 'dark' | 'light'
 }) {
   const { t } = useI18n()
@@ -1930,6 +2060,19 @@ function NetworkTab({
   const [networkSelectedVerse, setNetworkSelectedVerse] = useState<Verse | null>(null)
   const [mapFocusBookId, setMapFocusBookId] = useState<string | null>(null)
   const [mapFocusChapter, setMapFocusChapter] = useState<number | null>(null)
+  const [cameraDistance, setCameraDistance] = useState(800)
+  const [cameraTarget, setCameraTarget] = useState({ x: 0, y: 0, z: 0 })
+
+  const handleCameraChange = useCallback(
+    (camera: { yaw: number; pitch: number; distance: number; target: { x: number; y: number; z: number } }) => {
+      setCameraDistance(camera.distance)
+      setCameraTarget(camera.target)
+    },
+    [],
+  )
+
+  const [showUserJourney, setShowUserJourney] = useState(false)
+
   const sidebarOpen = Boolean(networkSelectedVerse)
   const networkLayoutStyle = {
     '--network-sidebar-width': sidebarOpen ? 'clamp(360px, 34vw, 520px)' : '0px',
@@ -2033,11 +2176,47 @@ function NetworkTab({
     [nodes],
   )
 
+  const activeGraphFocus = useMemo(() => {
+    if (mapFocusBookId != null) {
+      return { bookId: mapFocusBookId, chapter: mapFocusChapter }
+    }
+    if (cameraDistance > 650) {
+      return { bookId: null, chapter: null }
+    }
+
+    let nearestBook: NetworkNode | null = null
+    let minDist = Infinity
+    for (const book of ambientBible.bookNodes) {
+      const dist = Math.hypot(book.x - cameraTarget.x, book.y - cameraTarget.y, book.z - cameraTarget.z)
+      if (dist < minDist) {
+        minDist = dist
+        nearestBook = book
+      }
+    }
+    if (!nearestBook) return { bookId: null, chapter: null }
+
+    if (cameraDistance > 300) {
+      return { bookId: nearestBook.bookId, chapter: null }
+    }
+
+    let nearestChapter: NetworkNode | null = null
+    minDist = Infinity
+    for (const chapter of ambientBible.chapterNodes) {
+      if (chapter.bookId !== nearestBook.bookId) continue
+      const dist = Math.hypot(chapter.x - cameraTarget.x, chapter.y - cameraTarget.y, chapter.z - cameraTarget.z)
+      if (dist < minDist) {
+        minDist = dist
+        nearestChapter = chapter
+      }
+    }
+    return { bookId: nearestBook.bookId, chapter: nearestChapter?.chapterNumber ?? null }
+  }, [mapFocusBookId, mapFocusChapter, cameraDistance, cameraTarget, ambientBible])
+
   const hierarchyStep = useMemo(() => {
-    if (mapFocusBookId == null) return 'book'
-    if (mapFocusChapter == null) return 'chapter'
-    return 'verse'
-  }, [mapFocusBookId, mapFocusChapter])
+    if (activeGraphFocus.chapter != null) return 'verse'
+    if (activeGraphFocus.bookId != null) return 'chapter'
+    return 'book'
+  }, [activeGraphFocus])
 
   const visibleAmbientNodes = useMemo<NetworkNode[]>(
     () => {
@@ -2045,12 +2224,12 @@ function NetworkTab({
         return ambientBible.bookNodes
       }
       if (hierarchyStep === 'chapter') {
-        const focusBookId = mapFocusBookId ?? centerVerse?.book ?? null
+        const focusBookId = activeGraphFocus.bookId ?? centerVerse?.book ?? null
         if (!focusBookId) return []
         return ambientBible.chapterNodes.filter((node) => node.bookId === focusBookId)
       }
-      const focusBookId = mapFocusBookId ?? centerVerse?.book ?? null
-      const focusChapter = mapFocusChapter ?? centerVerse?.chapter ?? null
+      const focusBookId = activeGraphFocus.bookId ?? centerVerse?.book ?? null
+      const focusChapter = activeGraphFocus.chapter ?? centerVerse?.chapter ?? null
       if (!focusBookId || focusChapter == null) return []
       const key = `${focusBookId}-${focusChapter}`
       const chapterNode = ambientBible.chapterByKey.get(key)
@@ -2078,12 +2257,99 @@ function NetworkTab({
           }
         })
     },
-    [ambientBible, centerVerse?.book, centerVerse?.chapter, hierarchyStep, localVerseIds, mapFocusBookId, mapFocusChapter],
+    [ambientBible, centerVerse?.book, centerVerse?.chapter, hierarchyStep, localVerseIds, activeGraphFocus],
   )
 
-  const sceneNodes = useMemo(() => [...visibleAmbientNodes, ...nodes], [nodes, visibleAmbientNodes])
-
   const nodeById = useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes])
+
+  const selectedCharacter = useMemo(() => {
+    if (!focusedNodeId?.startsWith('person-')) return null
+    const node = nodeById.get(focusedNodeId)
+    if (!node) return null
+    const charId = node.id.replace('person-', '')
+    return getCharacter(charId)
+  }, [focusedNodeId, nodeById])
+
+  const personPath = useMemo(() => {
+    if (!selectedCharacter) return [] as NetworkNode[]
+    const stops = getCharacterPath(selectedCharacter)
+    const personNode = nodeById.get(focusedNodeId ?? '') ?? { x: 50, y: 50, z: 0 }
+    const total = stops.length
+    return stops.map((stop, i) => {
+      const angle = (i / Math.max(total, 1)) * Math.PI * 2
+      const radius = 20 + i * 10
+      const x = clamp(personNode.x + Math.cos(angle) * radius, 4, 96)
+      const y = clamp(personNode.y + Math.sin(angle) * radius, 4, 96)
+      const z = personNode.z + 18 + i * 5
+      const firstPassage = stop.event.passages[0]
+      return {
+        id: `event-${selectedCharacter.id}-${i}`,
+        kind: 'event' as NetworkKind,
+        label: stop.event.label,
+        detail: stop.place?.name ?? stop.event.approxDate ?? 'Event',
+        x,
+        y,
+        z,
+        size: 30,
+        parentId: focusedNodeId,
+        bookId: firstPassage?.book,
+        chapterNumber: firstPassage?.startChapter,
+      } as NetworkNode
+    })
+  }, [selectedCharacter, focusedNodeId, nodeById])
+
+  const personPaths = useMemo(() => {
+    if (!personPath.length) return []
+    const color = SCENE_PALETTE[theme].nodeColors.person
+    const points = personPath.map((n) => ({ x: n.x, y: n.y, z: n.z }))
+    return [{ id: focusedNodeId ?? 'person-path', points, color }]
+  }, [personPath, focusedNodeId, theme])
+
+  const userJourneyNodes = useMemo<NetworkNode[]>(() => {
+    if (!showUserJourney) return []
+    const sorted = [...bookmarks]
+      .filter((b) => b.verseId)
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+    if (sorted.length < 2) return []
+    return sorted
+      .map((bookmark, i) => {
+        const verse = findVerse(bookmark.verseId)
+        if (!verse) return null
+        const chapterKey = `${verse.book}-${verse.chapter}`
+        const chapterNode = ambientBible.chapterByKey.get(chapterKey)
+        const verses = ambientBible.verseByChapter.get(chapterKey)
+        if (!chapterNode || !verses) return null
+        const verseIndex = verses.findIndex((v) => v.id === verse.id)
+        const offset = fibonacciSpherePoint(verseIndex, verses.length, 26)
+        return {
+          id: `user-waypoint-${bookmark.id}`,
+          kind: 'userWaypoint' as NetworkKind,
+          label: `${verse.bookName} ${verse.chapter}:${verse.verse}`,
+          detail: `Saved ${new Date(bookmark.createdAt).toLocaleDateString()}`,
+          x: chapterNode.x + offset.x,
+          y: chapterNode.y + offset.y,
+          z: chapterNode.z + offset.z,
+          size: 28,
+          verse,
+          parentId: `chapter-${chapterKey}`,
+          bookId: verse.book,
+          bookName: verse.bookName,
+          chapterNumber: verse.chapter,
+        } as NetworkNode
+      })
+      .filter((n): n is NetworkNode => Boolean(n))
+  }, [bookmarks, showUserJourney, ambientBible])
+
+  const userJourneyPaths = useMemo(() => {
+    if (!showUserJourney || userJourneyNodes.length < 2) return []
+    const color = SCENE_PALETTE[theme].nodeColors.verse
+    const points = userJourneyNodes.map((n) => ({ x: n.x, y: n.y, z: n.z }))
+    return [{ id: 'user-journey', points, color }]
+  }, [userJourneyNodes, showUserJourney, theme])
+
+  const scenePaths = useMemo(() => [...personPaths, ...userJourneyPaths], [personPaths, userJourneyPaths])
+
+  const sceneNodes = useMemo(() => [...visibleAmbientNodes, ...nodes, ...personPath, ...userJourneyNodes], [visibleAmbientNodes, nodes, personPath, userJourneyNodes])
   const sceneNodeById = useMemo(() => new Map(sceneNodes.map((node) => [node.id, node])), [sceneNodes])
 
   const centerNode = useMemo(() => nodes.find((node) => node.kind === 'center'), [nodes])
@@ -2096,10 +2362,7 @@ function NetworkTab({
     [focusedNodeId, sceneNodeById],
   )
   const graphFocus = useMemo(() => {
-    const node =
-      activeGraphFocusNode?.kind === 'book' || activeGraphFocusNode?.kind === 'chapter'
-        ? activeGraphFocusNode
-        : selectedNode
+    const node = activeGraphFocusNode ?? selectedNode
     if (node) {
       return { x: node.x, y: node.y, z: node.z }
     }
@@ -2123,12 +2386,10 @@ function NetworkTab({
       z: totals.z / nodes.length,
     }
   }, [activeGraphFocusNode, nodes, selectedNode])
-  const selectedSceneNodeId = useMemo(() => {
-    if (activeGraphFocusNode?.kind === 'book' || activeGraphFocusNode?.kind === 'chapter') {
-      return activeGraphFocusNode.id
-    }
-    return selectedNode?.id ?? centerNode?.id ?? null
-  }, [activeGraphFocusNode, centerNode, selectedNode])
+  const selectedSceneNodeId = useMemo(
+    () => activeGraphFocusNode?.id ?? selectedNode?.id ?? centerNode?.id ?? null,
+    [activeGraphFocusNode, centerNode, selectedNode],
+  )
 
   const focusedNode = useMemo(
     () => (hoveredNodeId ? sceneNodeById.get(hoveredNodeId) : focusedNodeId ? sceneNodeById.get(focusedNodeId) : selectedNode ?? centerNode),
@@ -2387,6 +2648,13 @@ function NetworkTab({
             <span className="network-stat-chip">{relatedMatches.length} {t('networkConnections')}</span>
             <span className="network-stat-chip">{themes.length} {t('networkThemes')}</span>
             <span className="network-stat-chip">{strongestMatch ? `${t('networkStrength')} ${Math.round(strongestMatch.score)}` : t('networkStrength')}</span>
+            <button
+              type="button"
+              className={showUserJourney ? 'primary' : 'secondary'}
+              onClick={() => setShowUserJourney((s) => !s)}
+            >
+              {showUserJourney ? 'Hide my journey' : 'Show my journey'}
+            </button>
           </div>
 
           <div className="network-breadcrumb">
@@ -2418,6 +2686,7 @@ function NetworkTab({
             ['place', 'Place'],
             ['theme', 'Theme'],
             ['originalWord', 'Word'],
+            ['userWaypoint', 'Journey'],
           ].map(([kind, label]) => {
             const [r, g, b] = SCENE_PALETTE[theme].nodeColors[kind as keyof typeof SCENE_PALETTE.dark.nodeColors]
             return (
@@ -2431,15 +2700,25 @@ function NetworkTab({
 
       <div className="network-grid" style={networkLayoutStyle}>
         <section className="bubble-canvas-card network-stage-card">
-          <NetworkScene
-            nodes={sceneNodes}
-            edges={edges}
-            focus={graphFocus}
-            selectedId={selectedSceneNodeId}
-            onSelect={handleSceneSelect}
-            onHoverNode={setHoveredNodeId}
-            theme={theme}
-          />
+          <Suspense
+            fallback={
+              <div style={{ width: '100%', height: '100%', minHeight: 460, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)' }}>
+                Loading graph…
+              </div>
+            }
+          >
+            <NetworkThreeScene
+              nodes={sceneNodes}
+              edges={edges}
+              focus={graphFocus}
+              selectedId={selectedSceneNodeId}
+              onSelect={handleSceneSelect}
+              onHoverNode={setHoveredNodeId}
+              onCameraChange={handleCameraChange}
+              paths={scenePaths}
+              theme={theme}
+            />
+          </Suspense>
         </section>
 
         <aside className={`network-sidebar ${sidebarOpen ? 'open' : ''}`}>
@@ -3026,7 +3305,7 @@ function MapPlacePopup({
 }) {
   const { t } = useI18n()
   const { loading, data } = useWikiSummary(place.id, place.name)
-  const { images: extraImages } = useWikiImages(data?.title)
+  const { images: extraImages } = useWikiImages(place.id, place.name)
   const wikiLink = data?.pageUrl ?? getWikipediaLink(place.id, place.name)
   const highlightedPassages = useMemo(() => place.passages.slice(0, 6), [place.passages])
 
@@ -3251,7 +3530,12 @@ function MapTab({
 }) {
   const { t } = useI18n()
   const all = getAllVerses()
-  const allPlaces = useMemo(() => getAllPlaces(), [])
+  const [allPlaces, setAllPlaces] = useState<Place[]>(getAllPlaces)
+  useEffect(() => {
+    Promise.all([loadPlaces(), loadCharacters()]).then(() => {
+      setAllPlaces(getAllPlaces())
+    })
+  }, [])
   const mapCenter = useMemo(() => getFallbackCenter(allPlaces), [allPlaces])
   const isNativePlatform = Capacitor.isNativePlatform()
   const { isLoaded, loadError } = useJsApiLoader({
@@ -3358,7 +3642,6 @@ function MapTab({
     '--map-sidebar-gap': sidebarOpen ? '1.25rem' : '0px',
   } as CSSProperties
   const popupPlace = showPlacePopup && !isCompactMap ? mapActivePlace : undefined
-  const [bounceId, setBounceId] = useState<string | null>(null)
 
   const path = useMemo(() => (activeCharacter ? getCharacterPath(activeCharacter) : []), [activeCharacter])
   const [stopIndex, setStopIndex] = useState(0)
@@ -3369,6 +3652,17 @@ function MapTab({
     () => (activeCharacter && playing ? allPlaces.filter((place) => pathPlaceIds.has(place.id)) : allPlaces),
     [activeCharacter, allPlaces, pathPlaceIds, playing],
   )
+  const allPlacesBounds = useMemo<google.maps.LatLngBoundsLiteral | undefined>(() => {
+    if (!allPlaces.length) return undefined
+    const lats = allPlaces.map((p) => p.lat)
+    const lngs = allPlaces.map((p) => p.lng)
+    return {
+      north: Math.max(...lats),
+      south: Math.min(...lats),
+      east: Math.max(...lngs),
+      west: Math.min(...lngs),
+    }
+  }, [allPlaces])
 
   useEffect(() => {
     setStopIndex(0)
@@ -3407,11 +3701,6 @@ function MapTab({
     }
   }
 
-  const bouncePlace = (id: string) => {
-    setBounceId(id)
-    window.setTimeout(() => setBounceId((current) => (current === id ? null : current)), 1400)
-  }
-
   const selectPlace = (id: string) => {
     setMapActivePlaceId(id)
     setActiveCharacter(null)
@@ -3424,7 +3713,6 @@ function MapTab({
       setSelectionSource('map')
       setShowPlacePopup(true)
     }
-    bouncePlace(id)
   }
 
   const selectPlaceFromSearch = (id: string) => {
@@ -3434,7 +3722,6 @@ function MapTab({
     onQuery('')
     setSelectionSource('search')
     setShowPlacePopup(false)
-    bouncePlace(id)
   }
 
   const selectSidebarPlace = (id: string) => {
@@ -3444,7 +3731,6 @@ function MapTab({
     onQuery('')
     setSelectionSource('search')
     setShowPlacePopup(false)
-    bouncePlace(id)
   }
 
   const selectCharacter = (character: Character, source: 'map' | 'search' = 'search') => {
@@ -3456,7 +3742,6 @@ function MapTab({
     if (first?.place) {
       setMapActivePlaceId(first.place.id)
       setSidebarPlaceId(first.place.id)
-      bouncePlace(first.place.id)
     }
   }
 
@@ -3494,26 +3779,41 @@ function MapTab({
                 <Loader2 className="spin" size={18} /> {t('loading')}
               </div>
             )}
-            {isLoaded && !useFallbackMap && (
+            {isLoaded && !useFallbackMap && !allPlaces.length && (
+              <div className="empty" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Loader2 className="spin" size={18} /> Loading places…
+              </div>
+            )}
+            {isLoaded && !useFallbackMap && allPlaces.length > 0 && (
               <GoogleMap
                 key={theme}
                 mapContainerStyle={{ width: '100%', height: '100%' }}
                 center={center}
                 zoom={4}
-                onLoad={(map) => {
-                  mapRef.current = map
-                  if (allPlaces.length) {
-                    const bounds = new google.maps.LatLngBounds()
-                    allPlaces.forEach((place) => bounds.extend({ lat: place.lat, lng: place.lng }))
-                    map.fitBounds(bounds, 72)
-                  }
-                }}
                 options={{
                   styles: getMapStyle(theme),
                   disableDefaultUI: true,
                   zoomControl: true,
                   clickableIcons: false,
                   gestureHandling: 'greedy',
+                  minZoom: 3,
+                  maxZoom: 18,
+                  ...(allPlacesBounds
+                    ? { restriction: { latLngBounds: allPlacesBounds, strictBounds: false } }
+                    : {}),
+                }}
+                onLoad={(map) => {
+                  mapRef.current = map
+                  if (allPlacesBounds) {
+                    const bounds = new google.maps.LatLngBounds()
+                    bounds.extend({ lat: allPlacesBounds.south, lng: allPlacesBounds.west })
+                    bounds.extend({ lat: allPlacesBounds.north, lng: allPlacesBounds.east })
+                    map.fitBounds(bounds, { top: 64, right: 64, bottom: 64, left: 64 })
+                    google.maps.event.addListenerOnce(map, 'idle', () => {
+                      const z = map.getZoom()
+                      if (z != null) map.setZoom(z + 0.5)
+                    })
+                  }
                 }}
               >
                 <MapMarkers
@@ -3522,7 +3822,6 @@ function MapTab({
                   theme={theme}
                   relevantIds={relevantIds}
                   activePlaceId={mapActivePlace?.id}
-                  bounceId={bounceId}
                   onSelect={selectPlace}
                 />
                 {pathCoords.length > 1 && (
@@ -3668,6 +3967,8 @@ function MapTab({
     </div>
   )
 }
+
+
 
 
 

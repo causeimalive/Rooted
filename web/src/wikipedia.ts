@@ -10,6 +10,7 @@ export interface WikiImage {
 
 export interface WikiSummary {
   title: string
+  wikipediaTitle?: string
   extract: string
   thumbnailUrl?: string
   imageUrl?: string
@@ -42,6 +43,10 @@ export const WIKI_TITLE_OVERRIDES: Record<string, string> = {
   'jericho-nt': 'Jericho',
   'red-sea': 'Red Sea',
   'jabesh-gilead': 'Jabesh-Gilead',
+  'chinnereth': 'Sea of Galilee',
+  'chinneroth': 'Sea of Galilee',
+  'kinneret': 'Sea of Galilee',
+  'kineret': 'Sea of Galilee',
 }
 
 const cache = new Map<string, WikiSummary | null>()
@@ -53,34 +58,119 @@ function wikipediaPageUrl(title: string): string {
   return `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, '_'))}`
 }
 
-export async function fetchWikiSummary(title: string): Promise<WikiSummary | null> {
+function resolveTitle(idOrTitle: string, fallbackTitle?: string): string | undefined {
+  if (!idOrTitle || !fallbackTitle) return undefined
+  return WIKI_TITLE_OVERRIDES[idOrTitle] ?? fallbackTitle
+}
+
+async function fetchWikipediaSummary(title: string): Promise<WikiSummary | null> {
+  try {
+    const res = await fetch(
+      `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.replace(/ /g, '_'))}`,
+      { headers: { Accept: 'application/json' } },
+    )
+    if (!res.ok) throw new Error('not found')
+    const data = await res.json()
+    if (data.type === 'disambiguation' || !data.extract) throw new Error('no usable summary')
+    const images: WikiImage[] = []
+    if (data.originalimage?.source) {
+      images.push({
+        title: data.title ?? title,
+        url: data.originalimage.source,
+        thumbUrl: data.thumbnail?.source ?? data.originalimage.source,
+      })
+    } else if (data.thumbnail?.source) {
+      images.push({
+        title: data.title ?? title,
+        url: data.thumbnail.source,
+        thumbUrl: data.thumbnail.source,
+      })
+    }
+    return {
+      title: data.title ?? title,
+      wikipediaTitle: data.title ?? title,
+      extract: data.extract,
+      thumbnailUrl: data.thumbnail?.source ?? data.originalimage?.source,
+      imageUrl: data.originalimage?.source ?? data.thumbnail?.source,
+      pageUrl: data.content_urls?.desktop?.page ?? wikipediaPageUrl(title),
+      images,
+    }
+  } catch {
+    return null
+  }
+}
+
+function commonsFileUrl(file: string, width?: number): string {
+  const encoded = encodeURIComponent(file.replace(/ /g, '_'))
+  return `https://commons.wikimedia.org/wiki/Special:FilePath/${encoded}${width ? `?width=${width}` : ''}`
+}
+
+async function fetchWikidataSummary(title: string): Promise<WikiSummary | null> {
+  try {
+    const searchRes = await fetch(
+      `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(title)}&language=en&format=json&origin=*`,
+      { headers: { Accept: 'application/json' } },
+    )
+    if (!searchRes.ok) return null
+    const searchData = (await searchRes.json()) as { search?: Array<{ id: string }> }
+    const id = searchData.search?.[0]?.id
+    if (!id) return null
+
+    const entityRes = await fetch(`https://www.wikidata.org/wiki/Special:EntityData/${id}.json`)
+    if (!entityRes.ok) return null
+    const entityData = (await entityRes.json()) as { entities: Record<string, any> }
+    const entity = entityData.entities[id]
+    const label = entity.labels?.en?.value ?? title
+    const extract = entity.descriptions?.en?.value ?? ''
+    const enWikiUrl = entity.sitelinks?.enwiki?.url
+    const pageUrl = enWikiUrl ?? wikipediaPageUrl(label)
+
+    const imageFiles: string[] = []
+    const p18 = entity.claims?.P18?.[0]?.mainsnak?.datavalue?.value
+    if (p18) imageFiles.push(p18)
+    const p41 = entity.claims?.P41?.[0]?.mainsnak?.datavalue?.value
+    if (p41 && !imageFiles.includes(p41)) imageFiles.push(p41)
+
+    const images: WikiImage[] = imageFiles
+      .filter(Boolean)
+      .map((file) => ({
+        title: file,
+        url: commonsFileUrl(file, 800),
+        thumbUrl: commonsFileUrl(file, 400),
+      }))
+
+    return {
+      title: label,
+      wikipediaTitle: enWikiUrl ? undefined : label,
+      extract,
+      thumbnailUrl: images[0]?.thumbUrl,
+      imageUrl: images[0]?.url,
+      pageUrl,
+      images,
+    }
+  } catch {
+    return null
+  }
+}
+
+export async function fetchWikiSummary(id: string | undefined, fallbackTitle: string | undefined): Promise<WikiSummary | null> {
+  const title = resolveTitle(id ?? '', fallbackTitle)
+  if (!title) return null
+
   if (cache.has(title)) return cache.get(title) ?? null
   const existing = inflight.get(title)
   if (existing) return existing
 
   const promise = (async (): Promise<WikiSummary | null> => {
     try {
-      const res = await fetch(
-        `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.replace(/ /g, '_'))}`,
-        { headers: { Accept: 'application/json' } },
-      )
-      if (!res.ok) throw new Error('not found')
-      const data = await res.json()
-      if (data.type === 'disambiguation' || !data.extract) throw new Error('no usable summary')
-      const summary: WikiSummary = {
-        title: data.title ?? title,
-        extract: data.extract,
-        thumbnailUrl: data.thumbnail?.source ?? data.originalimage?.source,
-        imageUrl: data.originalimage?.source ?? data.thumbnail?.source,
-        pageUrl: data.content_urls?.desktop?.page ?? wikipediaPageUrl(title),
-        images: data.originalimage?.source
-          ? [{ title: data.title ?? title, url: data.originalimage.source, thumbUrl: data.thumbnail?.source ?? data.originalimage.source }]
-          : data.thumbnail?.source
-            ? [{ title: data.title ?? title, url: data.thumbnail.source, thumbUrl: data.thumbnail.source }]
-            : [],
+      const wp = await fetchWikipediaSummary(title)
+      if (wp) {
+        cache.set(title, wp)
+        return wp
       }
-      cache.set(title, summary)
-      return summary
+      const wd = await fetchWikidataSummary(title)
+      cache.set(title, wd)
+      return wd
     } catch {
       cache.set(title, null)
       return null
@@ -95,18 +185,13 @@ export async function fetchWikiSummary(title: string): Promise<WikiSummary | nul
   }
 }
 
-export function getWikipediaLink(idOrTitle: string, fallbackTitle: string): string {
-  const title = WIKI_TITLE_OVERRIDES[idOrTitle] ?? fallbackTitle
-  return wikipediaPageUrl(title)
-}
-
 interface WikiState {
   loading: boolean
   data: WikiSummary | null
 }
 
 export function useWikiSummary(id: string | undefined, fallbackTitle: string | undefined): WikiState {
-  const title = id && fallbackTitle ? WIKI_TITLE_OVERRIDES[id] ?? fallbackTitle : undefined
+  const title = resolveTitle(id ?? '', fallbackTitle)
   const [state, setState] = useState<WikiState>({ loading: Boolean(title), data: null })
 
   useEffect(() => {
@@ -116,7 +201,7 @@ export function useWikiSummary(id: string | undefined, fallbackTitle: string | u
     }
     let cancelled = false
     setState({ loading: true, data: null })
-    fetchWikiSummary(title).then((data) => {
+    fetchWikiSummary(id, fallbackTitle).then((data) => {
       if (!cancelled) setState({ loading: false, data })
     })
     return () => {
@@ -127,7 +212,7 @@ export function useWikiSummary(id: string | undefined, fallbackTitle: string | u
   return state
 }
 
-async function fetchWikiImagesForTitle(title: string): Promise<WikiImage[] | null> {
+async function fetchWikipediaImagesForTitle(title: string): Promise<WikiImage[] | null> {
   const encodedTitle = encodeURIComponent(title.replace(/ /g, '_'))
   try {
     const res = await fetch(
@@ -172,7 +257,93 @@ async function fetchWikiImagesForTitle(title: string): Promise<WikiImage[] | nul
   }
 }
 
-export function useWikiImages(title: string | undefined): { loading: boolean; images: WikiImage[] } {
+async function fetchWikimediaCommonsImages(title: string): Promise<WikiImage[] | null> {
+  try {
+    const searchRes = await fetch(
+      `https://commons.wikimedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(title)}&srnamespace=6&srlimit=12&format=json&origin=*`,
+      { headers: { Accept: 'application/json' } },
+    )
+    if (!searchRes.ok) return null
+    const searchData = (await searchRes.json()) as {
+      query?: { search?: Array<{ title: string }> }
+    }
+    const results = searchData.query?.search ?? []
+    if (!results.length) return null
+
+    const fileTitles = results.map((r) => r.title).join('|')
+    const infoRes = await fetch(
+      `https://commons.wikimedia.org/w/api.php?action=query&prop=imageinfo&titles=${encodeURIComponent(fileTitles)}&iiprop=url|size|mime&iiurlwidth=600&format=json&origin=*`,
+      { headers: { Accept: 'application/json' } },
+    )
+    if (!infoRes.ok) return null
+    const infoData = (await infoRes.json()) as {
+      query?: { pages?: Record<string, any> }
+    }
+    const infoPages = infoData.query?.pages ?? {}
+    const images: WikiImage[] = []
+    for (const infoPage of Object.values(infoPages) as Array<{
+      title: string
+      imageinfo?: Array<{ url: string; thumburl?: string; width: number; height: number; mime: string }>
+    }>) {
+      const info = infoPage.imageinfo?.[0]
+      if (!info || !info.mime.startsWith('image/')) continue
+      images.push({
+        title: infoPage.title,
+        url: info.url,
+        thumbUrl: info.thumburl ?? info.url,
+        width: info.width,
+        height: info.height,
+      })
+    }
+    return images.length ? images : null
+  } catch {
+    return null
+  }
+}
+
+async function fetchWikiImagesForTitle(id: string | undefined, fallbackTitle: string | undefined): Promise<WikiImage[] | null> {
+  const title = resolveTitle(id ?? '', fallbackTitle)
+  if (!title) return null
+
+  if (imageCache.has(title)) return imageCache.get(title) ?? null
+  const existing = imageInflight.get(title)
+  if (existing) return existing
+
+  const promise = (async (): Promise<WikiImage[] | null> => {
+    try {
+      const wp = await fetchWikipediaImagesForTitle(title)
+      if (wp?.length) {
+        imageCache.set(title, wp)
+        return wp
+      }
+      const wd = await (async (): Promise<WikiImage[] | null> => {
+        const summary = await fetchWikiSummary(id, fallbackTitle)
+        if (!summary?.images.length) return null
+        return summary.images
+      })()
+      if (wd?.length) {
+        imageCache.set(title, wd)
+        return wd
+      }
+      const wc = await fetchWikimediaCommonsImages(title)
+      imageCache.set(title, wc)
+      return wc
+    } catch {
+      imageCache.set(title, null)
+      return null
+    }
+  })()
+
+  imageInflight.set(title, promise)
+  try {
+    return await promise
+  } finally {
+    imageInflight.delete(title)
+  }
+}
+
+export function useWikiImages(id: string | undefined, fallbackTitle: string | undefined): { loading: boolean; images: WikiImage[] } {
+  const title = resolveTitle(id ?? '', fallbackTitle)
   const [state, setState] = useState<{ loading: boolean; images: WikiImage[] }>({ loading: Boolean(title), images: [] })
 
   useEffect(() => {
@@ -181,13 +352,12 @@ export function useWikiImages(title: string | undefined): { loading: boolean; im
       return
     }
     let cancelled = false
-    const normalized = title.replace(/ /g, '_')
-    const cached = imageCache.get(normalized)
+    const cached = imageCache.get(title)
     if (cached) {
       setState({ loading: false, images: cached })
       return
     }
-    const inflight = imageInflight.get(normalized)
+    const inflight = imageInflight.get(title)
     if (inflight) {
       inflight.then((images) => {
         if (!cancelled) setState({ loading: false, images: images ?? [] })
@@ -195,12 +365,12 @@ export function useWikiImages(title: string | undefined): { loading: boolean; im
       return
     }
     setState({ loading: true, images: [] })
-    const promise = fetchWikiImagesForTitle(title).then((images) => {
-      imageCache.set(normalized, images)
-      imageInflight.delete(normalized)
+    const promise = fetchWikiImagesForTitle(id, fallbackTitle).then((images) => {
+      imageCache.set(title, images)
+      imageInflight.delete(title)
       return images ?? []
     })
-    imageInflight.set(normalized, promise)
+    imageInflight.set(title, promise)
     promise.then((images) => {
       if (!cancelled) setState({ loading: false, images })
     })
@@ -210,4 +380,9 @@ export function useWikiImages(title: string | undefined): { loading: boolean; im
   }, [title])
 
   return state
+}
+
+export function getWikipediaLink(idOrTitle: string, fallbackTitle: string): string {
+  const title = WIKI_TITLE_OVERRIDES[idOrTitle] ?? fallbackTitle
+  return wikipediaPageUrl(title)
 }
