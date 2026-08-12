@@ -173,7 +173,7 @@ function transformPassageForBrowser(
   chapter?: number,
   tagPositionsByVerseId: Record<string, { wordIndex: number; tag: string }[]> = {},
   bookNumberById: Record<string, number> = {},
-  entityHighlightsEnabled = true,
+  entityHighlightsEnabled = false,
 ): { html: string; text: string } {
   if (/^\s*Access denied/i.test(content)) {
     return {
@@ -563,11 +563,11 @@ export default function YouVersionReaderTab({
   })
   const [entityHighlightsEnabled, setEntityHighlightsEnabled] = useState(() => {
     const saved = getUserPreference(userId, READER_ENTITY_HIGHLIGHTS_KEY)
-    return saved === null ? true : saved === 'true'
+    return saved === null ? false : saved === 'true'
   })
   useEffect(() => {
     const saved = getUserPreference(userId, READER_ENTITY_HIGHLIGHTS_KEY)
-    setEntityHighlightsEnabled(saved === null ? true : saved === 'true')
+    setEntityHighlightsEnabled(saved === null ? false : saved === 'true')
   }, [userId])
   const [hoverHighlightEnabled, setHoverHighlightEnabled] = useState(() => {
     const saved = getUserPreference(userId, READER_HOVER_HIGHLIGHT_KEY)
@@ -605,7 +605,7 @@ export default function YouVersionReaderTab({
     const savedRedLetter = getUserPreference(userId, READER_RED_LETTER_KEY)
     setRedLetterEnabled(savedRedLetter === null ? true : savedRedLetter === 'true')
     const savedEntity = getUserPreference(userId, READER_ENTITY_HIGHLIGHTS_KEY)
-    setEntityHighlightsEnabled(savedEntity === null ? true : savedEntity === 'true')
+    setEntityHighlightsEnabled(savedEntity === null ? false : savedEntity === 'true')
     const savedHover = getUserPreference(userId, READER_HOVER_HIGHLIGHT_KEY)
     setHoverHighlightEnabled(savedHover === 'true')
     const savedCompareVersion = Number(getUserPreference(userId, READER_COMPARE_KEY))
@@ -1148,18 +1148,19 @@ export default function YouVersionReaderTab({
       handleOpenBookSource()
     }
   }, [bookIntroHtml, bookIntroOpen, bookIntroReference, bookNumberById, currentBookInfoUrl, currentBookMetadata, entityHighlightsEnabled, handleOpenBookSource, resolvedVersionId, tagPositionsByVerseId])
-  const handleSaveVerse = useCallback(async (verseId: string) => {
+  const handleSaveVerse = useCallback(async (verseId: string, yvPassageId?: string) => {
     const isSaved = bookmarkedIds.has(verseId)
     onToggleBookmark(verseId, selectedVersion ? String(selectedVersion.id) : '', selectedVersionLabel)
     if (!auth.isAuthenticated || resolvedVersionId === null) return
+    const highlightPassageId = yvPassageId ?? verseId
     setLocalError('')
     try {
       if (isSaved) {
-        await deleteHighlight(verseId, { version_id: resolvedVersionId })
+        await deleteHighlight(highlightPassageId, { version_id: resolvedVersionId })
       } else {
         await createHighlight({
           version_id: resolvedVersionId,
-          passage_id: verseId,
+          passage_id: highlightPassageId,
           color: 'f4b400',
         })
       }
@@ -2389,6 +2390,7 @@ export default function YouVersionReaderTab({
                       ? `yv-reader-verse-flow-item yv-reader-compare-verse-flow-item ${isSelected ? 'selected' : ''}`
                       : `yv-reader-compare-verse-card ${isSelected ? 'selected' : ''}`
                     const verseId = `${bookCodeById[section.bookId] ?? section.bookId}.${section.chapter}.${verse.verse}`
+                    const yvPassageId = `${section.bookId}.${section.chapter}.${verse.verse}`
                     const isSaved = bookmarkedIds.has(verseId)
 
                     return (
@@ -2412,7 +2414,7 @@ export default function YouVersionReaderTab({
                             aria-label={isSaved ? 'Unsave verse' : 'Save verse'}
                             onClick={(e) => {
                               e.stopPropagation()
-                              void handleSaveVerse(verseId)
+                              void handleSaveVerse(verseId, yvPassageId)
                             }}
                           >
                             <Highlighter size={14} fill={isSaved ? 'currentColor' : 'none'} />

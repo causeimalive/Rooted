@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from 'react'
 import { onAuthStateChanged } from 'firebase/auth'
 import { Capacitor } from '@capacitor/core'
+import { App as CapacitorApp } from '@capacitor/app'
 import {
   BookOpen,
   Book,
@@ -23,8 +24,10 @@ import {
   Play,
   Pause,
   Users,
+  Check,
 } from 'lucide-react'
-import { GoogleMap, Marker, Polyline, useJsApiLoader } from '@react-google-maps/api'
+import { GoogleMap, Polyline, useJsApiLoader } from '@react-google-maps/api'
+import MapMarkers from './MapMarkers'
 import { YouVersionProvider } from '@youversion/platform-react-ui'
 import {
   findVerse,
@@ -178,13 +181,13 @@ function serializeHash(verseId: string | null | undefined): string {
   return params.toString()
 }
 
-const BRANDING_ASSET_VERSION = '20260810b'
+const BRANDING_ASSET_VERSION = '20260811a'
 const YOUVERSION_APP_KEY = import.meta.env.VITE_YVP_APP_KEY?.trim() ?? ''
 const READER_FONT_SIZE_KEY = 'bible-study-yv-font-size'
 const UI_SCALE_KEY = 'bible-study-ui-scale'
 
 function SettingsMenu() {
-  const { userInfo } = useYVAuth()
+  const { auth, userInfo } = useYVAuth()
   const userId = userInfo?.userId
   const [isOpen, setIsOpen] = useState(false)
   const [fontSize, setFontSize] = useState(() => {
@@ -281,6 +284,9 @@ function SettingsMenu() {
         className="header-settings-dialog"
         ref={dialogRef}
         onClose={() => setIsOpen(false)}
+        onClick={(e) => {
+          if (e.currentTarget === e.target) setIsOpen(false)
+        }}
       >
         <div className="header-settings-popup">
           <button
@@ -314,6 +320,23 @@ function SettingsMenu() {
             <div className="header-settings-content">
               {category === 'look-feel' && (
                 <>
+                  <div className="header-settings-card yv-card">
+                    <div className="yv-card-header">
+                      <span className="yv-card-icon">
+                        <Check size={20} />
+                      </span>
+                      <div className="yv-card-body">
+                        <span className="yv-card-title">
+                          YouVersion {auth.isAuthenticated ? 'connected' : 'available'}
+                        </span>
+                        {auth.isAuthenticated && userInfo?.name ? (
+                          <small>Signed in as {userInfo.name}</small>
+                        ) : (
+                          <small>Sign in with YouVersion to sync highlights across devices.</small>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                   <h3 className="header-settings-content-title">Look & feel</h3>
                   <div className="header-settings-card">
                     <span>Reader text size</span>
@@ -402,6 +425,40 @@ function SettingsMenu() {
 
 export default function App() {
   const isNative = Capacitor.isNativePlatform()
+
+  useEffect(() => {
+    if (!isNative) return
+    let listener: { remove: () => void } | undefined
+    const handleUrl = (urlString: string | undefined) => {
+      if (!urlString) return
+      try {
+        console.info('App launch URL:', urlString)
+        if (urlString.startsWith('com.rooted.christ://auth')) {
+          // Auth callback is already loaded into the WebView by MainActivity;
+          // do not reload it from the JS side.
+          return
+        }
+        const url = new URL(urlString)
+        const params = url.search
+        if (params) {
+          const base = window.location.origin + (window.location.pathname.split('?')[0] || '/')
+          window.location.href = base + params
+        }
+      } catch (err) {
+        console.error('App launch URL error:', err)
+      }
+    }
+    CapacitorApp.addListener('appUrlOpen', (event) => handleUrl(event.url)).then((handle) => {
+      listener = handle
+    })
+    CapacitorApp.getLaunchUrl().then((url) => {
+      if (url?.url) handleUrl(url.url)
+    })
+    return () => {
+      listener?.remove()
+    }
+  }, [isNative])
+
   const { t, language, setLanguage } = useI18n()
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     const saved = localStorage.getItem('bible-study-theme') as 'dark' | 'light' | null
@@ -732,10 +789,6 @@ export default function App() {
                     setQuery(trimmed)
                     return
                   }
-                  if (tab === 'map') {
-                    // map filters live as the user types; no need to switch tabs
-                    return
-                  }
                   runSearch(trimmed)
                 }}
               >
@@ -849,7 +902,6 @@ export default function App() {
               searchResultsHost={mapSearchResultsHost}
             />
           )}
-
           {tab === 'lexicon' && (
             <LexiconTab
               query={headerQuery}
@@ -1664,7 +1716,7 @@ function buildNetworkEdges(centerVerse: Verse, relatedMatches: VerseMatch[], the
   const edges: NetworkEdge[] = []
   const occupied = new Set<string>([centerVerse.id])
 
-  relatedMatches.slice(0, 6).forEach((match) => {
+  relatedMatches.forEach((match) => {
     occupied.add(match.verse.id)
   })
 
@@ -1704,6 +1756,7 @@ function buildNetworkEdges(centerVerse: Verse, relatedMatches: VerseMatch[], the
       .slice(0, parentIndex < 3 ? 2 : 1)
 
     echoMatches.forEach((echo) => {
+      occupied.add(echo.verse.id)
       edges.push({
         id: `echo-${match.verse.id}-${echo.verse.id}`,
         source: match.verse.id,
@@ -1746,8 +1799,17 @@ function fibonacciSpherePoint(index: number, total: number, radius: number) {
   }
 }
 
-function buildBibleHierarchyNodes(allVerses: Verse[]): NetworkNode[] {
-  if (!allVerses.length) return []
+type AmbientBibleData = {
+  bookNodes: NetworkNode[]
+  chapterNodes: NetworkNode[]
+  chapterByKey: Map<string, NetworkNode>
+  verseByChapter: Map<string, Verse[]>
+}
+
+function buildBibleHierarchyNodes(allVerses: Verse[]): AmbientBibleData {
+  if (!allVerses.length) {
+    return { bookNodes: [], chapterNodes: [], chapterByKey: new Map(), verseByChapter: new Map() }
+  }
 
   const bookOrder: string[] = []
   const bookSeen = new Set<string>()
@@ -1777,17 +1839,19 @@ function buildBibleHierarchyNodes(allVerses: Verse[]): NetworkNode[] {
   chaptersByBook.forEach((chapters) => chapters.sort((a, b) => a - b))
   versesByBookChapter.forEach((verses) => verses.sort((a, b) => a.verse - b.verse))
 
-  const nodes: NetworkNode[] = []
+  const bookNodes: NetworkNode[] = []
+  const chapterNodes: NetworkNode[] = []
+  const chapterByKey = new Map<string, NetworkNode>()
+  const verseByChapter = new Map<string, Verse[]>()
   const bookRadius = 480
   const chapterRadius = 90
-  const verseRadius = 26
 
   bookOrder.forEach((book, bookIndex) => {
     const bookPos = fibonacciSpherePoint(bookIndex, bookOrder.length, bookRadius)
     const bookName = bookNames.get(book) ?? book
     const chapters = chaptersByBook.get(book) ?? []
 
-    nodes.push({
+    bookNodes.push({
       id: `book-${book}`,
       kind: 'book',
       label: bookName,
@@ -1810,7 +1874,7 @@ function buildBibleHierarchyNodes(allVerses: Verse[]): NetworkNode[] {
       const key = `${book}-${chapter}`
       const verses = versesByBookChapter.get(key) ?? []
 
-      nodes.push({
+      const chapterNode: NetworkNode = {
         id: `chapter-${key}`,
         kind: 'chapter',
         label: `${bookName} ${chapter}`,
@@ -1823,30 +1887,14 @@ function buildBibleHierarchyNodes(allVerses: Verse[]): NetworkNode[] {
         bookId: book,
         bookName,
         chapterNumber: chapter,
-      })
-
-      verses.forEach((verse, verseIndex) => {
-        const verseOffset = fibonacciSpherePoint(verseIndex, verses.length, verseRadius)
-        nodes.push({
-          id: verse.id,
-          kind: 'ambient',
-          label: `${verse.bookName} ${verse.chapter}:${verse.verse}`,
-          detail: verse.text.slice(0, 90),
-          x: chapterPos.x + verseOffset.x,
-          y: chapterPos.y + verseOffset.y,
-          z: chapterPos.z + verseOffset.z,
-          size: 30,
-          verse,
-          parentId: `chapter-${key}`,
-          bookId: book,
-          bookName,
-          chapterNumber: chapter,
-        })
-      })
+      }
+      chapterNodes.push(chapterNode)
+      chapterByKey.set(key, chapterNode)
+      verseByChapter.set(key, verses)
     })
   })
 
-  return nodes
+  return { bookNodes, chapterNodes, chapterByKey, verseByChapter }
 }
 
 function NetworkTab({
@@ -1880,7 +1928,6 @@ function NetworkTab({
   // the previous/next chapter once a specific chapter is focused); verses
   // only appear for the focused chapter.
   const [networkSelectedVerse, setNetworkSelectedVerse] = useState<Verse | null>(null)
-  const [networkCameraDistance, setNetworkCameraDistance] = useState<number | null>(null)
   const [mapFocusBookId, setMapFocusBookId] = useState<string | null>(null)
   const [mapFocusChapter, setMapFocusChapter] = useState<number | null>(null)
   const sidebarOpen = Boolean(networkSelectedVerse)
@@ -1979,31 +2026,59 @@ function NetworkTab({
     [centerVerse, relatedMatches, themes],
   )
 
-  const ambientBibleNodes = useMemo(() => buildBibleHierarchyNodes(all), [all])
+  const ambientBible = useMemo(() => buildBibleHierarchyNodes(all), [all])
 
   const localVerseIds = useMemo(
     () => new Set(nodes.map((node) => node.verse?.id).filter((id): id is string => Boolean(id))),
     [nodes],
   )
 
-  const hierarchyStep = networkCameraDistance == null ? 'book' : networkCameraDistance > 650 ? 'book' : networkCameraDistance > 260 ? 'chapter' : 'verse'
-  const visibleAmbientNodes = useMemo(
+  const hierarchyStep = useMemo(() => {
+    if (mapFocusBookId == null) return 'book'
+    if (mapFocusChapter == null) return 'chapter'
+    return 'verse'
+  }, [mapFocusBookId, mapFocusChapter])
+
+  const visibleAmbientNodes = useMemo<NetworkNode[]>(
     () => {
+      if (hierarchyStep === 'book') {
+        return ambientBible.bookNodes
+      }
+      if (hierarchyStep === 'chapter') {
+        const focusBookId = mapFocusBookId ?? centerVerse?.book ?? null
+        if (!focusBookId) return []
+        return ambientBible.chapterNodes.filter((node) => node.bookId === focusBookId)
+      }
       const focusBookId = mapFocusBookId ?? centerVerse?.book ?? null
       const focusChapter = mapFocusChapter ?? centerVerse?.chapter ?? null
-      return ambientBibleNodes.filter((node) => {
-        if (node.verse && localVerseIds.has(node.verse.id)) return false
-        if (hierarchyStep === 'book') {
-          return node.kind === 'book'
-        }
-        if (hierarchyStep === 'chapter') {
-          return node.kind === 'chapter' && node.bookId === focusBookId
-        }
-        if (!focusBookId || focusChapter == null) return false
-        return node.kind === 'ambient' && node.bookId === focusBookId && node.chapterNumber === focusChapter
-      })
+      if (!focusBookId || focusChapter == null) return []
+      const key = `${focusBookId}-${focusChapter}`
+      const chapterNode = ambientBible.chapterByKey.get(key)
+      const verses = ambientBible.verseByChapter.get(key)
+      if (!chapterNode || !verses?.length) return []
+      return verses
+        .filter((verse) => !localVerseIds.has(verse.id))
+        .map((verse, verseIndex) => {
+          const verseOffset = fibonacciSpherePoint(verseIndex, verses.length, 26)
+          return {
+            id: verse.id,
+            kind: 'ambient' as NetworkKind,
+            label: `${verse.bookName} ${verse.chapter}:${verse.verse}`,
+            detail: verse.text.slice(0, 90),
+            x: chapterNode.x + verseOffset.x,
+            y: chapterNode.y + verseOffset.y,
+            z: chapterNode.z + verseOffset.z,
+            size: 30,
+            verse,
+            parentId: `chapter-${key}`,
+            bookId: focusBookId,
+            bookName: verse.bookName,
+            chapterNumber: verse.chapter,
+            jumpVerseId: undefined,
+          }
+        })
     },
-    [ambientBibleNodes, centerVerse?.book, centerVerse?.chapter, hierarchyStep, localVerseIds, mapFocusBookId, mapFocusChapter],
+    [ambientBible, centerVerse?.book, centerVerse?.chapter, hierarchyStep, localVerseIds, mapFocusBookId, mapFocusChapter],
   )
 
   const sceneNodes = useMemo(() => [...visibleAmbientNodes, ...nodes], [nodes, visibleAmbientNodes])
@@ -2016,10 +2091,17 @@ function NetworkTab({
     () => (selectedId ? nodes.find((node) => node.verse?.id === selectedId) : undefined),
     [nodes, selectedId],
   )
-  const selectedSceneNodeId = selectedNode?.id ?? centerNode?.id ?? null
+  const activeGraphFocusNode = useMemo(
+    () => (focusedNodeId ? sceneNodeById.get(focusedNodeId) : undefined),
+    [focusedNodeId, sceneNodeById],
+  )
   const graphFocus = useMemo(() => {
-    if (selectedNode) {
-      return { x: selectedNode.x, y: selectedNode.y, z: selectedNode.z }
+    const node =
+      activeGraphFocusNode?.kind === 'book' || activeGraphFocusNode?.kind === 'chapter'
+        ? activeGraphFocusNode
+        : selectedNode
+    if (node) {
+      return { x: node.x, y: node.y, z: node.z }
     }
 
     if (!nodes.length) {
@@ -2040,26 +2122,13 @@ function NetworkTab({
       y: totals.y / nodes.length,
       z: totals.z / nodes.length,
     }
-  }, [nodes, selectedNode])
-
-  const projectedNodes = useMemo(
-    () => nodes.map((node) => ({ node, projected: projectNetworkPoint(node, camera, canvasSize, graphFocus) })).sort((a, b) => a.projected.depth - b.projected.depth),
-    [camera, canvasSize, graphFocus, nodes],
-  )
-
-  const projectedEdges = useMemo(
-    () => edges.map((edge) => {
-      const source = nodes.find((node) => node.id === edge.source)
-      const target = nodes.find((node) => node.id === edge.target)
-      if (!source || !target) return null
-      return {
-        edge,
-        source: projectNetworkPoint(source, camera, canvasSize, graphFocus),
-        target: projectNetworkPoint(target, camera, canvasSize, graphFocus),
-      }
-    }).filter((entry): entry is NonNullable<typeof entry> => Boolean(entry)),
-    [camera, canvasSize, edges, graphFocus, nodes],
-  )
+  }, [activeGraphFocusNode, nodes, selectedNode])
+  const selectedSceneNodeId = useMemo(() => {
+    if (activeGraphFocusNode?.kind === 'book' || activeGraphFocusNode?.kind === 'chapter') {
+      return activeGraphFocusNode.id
+    }
+    return selectedNode?.id ?? centerNode?.id ?? null
+  }, [activeGraphFocusNode, centerNode, selectedNode])
 
   const focusedNode = useMemo(
     () => (hoveredNodeId ? sceneNodeById.get(hoveredNodeId) : focusedNodeId ? sceneNodeById.get(focusedNodeId) : selectedNode ?? centerNode),
@@ -2266,28 +2335,37 @@ function NetworkTab({
     }
   }
 
-  const handleSceneSelect = (id: string) => {
-    const node = sceneNodeById.get(id)
-    if (!node) return
-    setFocusedNodeId(id)
-    if (node.kind === 'book') {
-      setMapFocusBookId(node.bookId ?? null)
-      setMapFocusChapter(null)
-      return
-    }
-    if (node.kind === 'chapter') {
-      setMapFocusBookId(node.bookId ?? null)
-      setMapFocusChapter(node.chapterNumber ?? null)
-      return
-    }
-    if (node.kind === 'theme') {
-      onSelect(node.jumpVerseId ?? centerVerse?.id ?? id)
-      return
-    }
-    if (node.verse) {
-      onSelect(node.verse.id)
-    }
-  }
+  const handleSceneSelect = useCallback(
+    (id: string) => {
+      const node = sceneNodeById.get(id)
+      if (!node) return
+      setFocusedNodeId(id)
+      if (node.kind === 'book') {
+        setMapFocusBookId(node.bookId ?? null)
+        setMapFocusChapter(null)
+        return
+      }
+      if (node.kind === 'chapter') {
+        setMapFocusBookId(node.bookId ?? null)
+        setMapFocusChapter(node.chapterNumber ?? null)
+        return
+      }
+      if (node.kind === 'theme') {
+        const jump = node.jumpVerseId ? findVerse(node.jumpVerseId) : undefined
+        const verse = jump ?? centerVerse
+        if (verse) {
+          setNetworkSelectedVerse(verse)
+          onSelect(verse.id)
+        }
+        return
+      }
+      if (node.verse) {
+        setNetworkSelectedVerse(node.verse)
+        onSelect(node.verse.id)
+      }
+    },
+    [centerVerse, findVerse, onSelect, sceneNodeById, setFocusedNodeId, setMapFocusBookId, setMapFocusChapter, setNetworkSelectedVerse],
+  )
 
   const viewportTransform = `translate3d(${camera.x}px, ${camera.y}px, 0) scale(${camera.scale})`
 
@@ -2319,7 +2397,7 @@ function NetworkTab({
               <>
                 <span className="network-breadcrumb-sep">/</span>
                 <button className="secondary network-breadcrumb-crumb" onClick={() => setMapFocusChapter(null)}>
-                  {ambientBibleNodes.find((node) => node.kind === 'book' && node.bookId === mapFocusBookId)?.bookName ?? mapFocusBookId}
+                  {ambientBible.bookNodes.find((node) => node.bookId === mapFocusBookId)?.bookName ?? mapFocusBookId}
                 </button>
               </>
             )}
@@ -2358,26 +2436,8 @@ function NetworkTab({
             edges={edges}
             focus={graphFocus}
             selectedId={selectedSceneNodeId}
-            onSelect={(id) => {
-              const node = sceneNodeById.get(id)
-              if (node?.kind === 'book' && node.bookId) {
-                setMapFocusBookId(node.bookId)
-                setMapFocusChapter(null)
-                return
-              }
-              if (node?.kind === 'chapter' && node.bookId && node.chapterNumber != null) {
-                setMapFocusBookId(node.bookId)
-                setMapFocusChapter(node.chapterNumber)
-                return
-              }
-              const verse = node?.verse ?? (node?.jumpVerseId ? findVerse(node.jumpVerseId) : null)
-              if (verse) {
-                setNetworkSelectedVerse(verse)
-                onSelect(verse.id)
-              }
-            }}
+            onSelect={handleSceneSelect}
             onHoverNode={setHoveredNodeId}
-            onCameraChange={(camera) => setNetworkCameraDistance(camera.distance)}
             theme={theme}
           />
         </section>
@@ -2562,22 +2622,22 @@ const DEFAULT_MAP_CENTER = { lat: 31.5, lng: 35.2 }
 
 const MAP_THEME_PALETTE = {
   dark: {
-    fallbackBackdrop: 'linear-gradient(180deg, #241b10 0%, #19140d 100%)',
-    route: '#b88b3e',
-    markerDefault: '#a86f3a',
-    markerRelevant: '#cbb56f',
-    markerActive: '#f0d57b',
-    markerStroke: '#2d2215',
-    markerActiveStroke: '#fff7e2',
+    fallbackBackdrop: 'linear-gradient(180deg, #181d23 0%, #101318 100%)',
+    route: '#d7be7d',
+    markerDefault: '#a98b54',
+    markerRelevant: '#8fd3c8',
+    markerActive: '#f2efe6',
+    markerStroke: '#101318',
+    markerActiveStroke: '#f2efe6',
   },
   light: {
     fallbackBackdrop: 'linear-gradient(180deg, #f4ead7 0%, #e8ddc9 100%)',
-    route: '#9f7236',
-    markerDefault: '#a86f3a',
-    markerRelevant: '#c9b16a',
-    markerActive: '#f0d57b',
-    markerStroke: '#2d2215',
-    markerActiveStroke: '#fff7e2',
+    route: '#a98b54',
+    markerDefault: '#a98b54',
+    markerRelevant: '#5f7438',
+    markerActive: '#d7be7d',
+    markerStroke: '#2e372a',
+    markerActiveStroke: '#fffaf2',
   },
 } as const
 
@@ -3456,27 +3516,15 @@ function MapTab({
                   gestureHandling: 'greedy',
                 }}
               >
-                {visiblePlaces.map((place) => {
-                  const active = place.id === mapActivePlace?.id
-                  const relevant = relevantIds.has(place.id)
-                  return (
-                    <Marker
-                      key={place.id}
-                      position={{ lat: place.lat, lng: place.lng }}
-                      title={place.name}
-                      onClick={() => selectPlace(place.id)}
-                      animation={bounceId === place.id ? google.maps.Animation.BOUNCE : undefined}
-                      icon={{
-                        path: google.maps.SymbolPath.CIRCLE,
-                        scale: active ? 13 : relevant ? 10 : 8,
-                        fillColor: active ? palette.markerActive : relevant ? palette.markerRelevant : palette.markerDefault,
-                        fillOpacity: 1,
-                        strokeColor: active ? palette.markerActiveStroke : palette.markerStroke,
-                        strokeWeight: active ? 3 : 1.5,
-                      }}
-                    />
-                  )
-                })}
+                <MapMarkers
+                  places={visiblePlaces}
+                  palette={palette}
+                  theme={theme}
+                  relevantIds={relevantIds}
+                  activePlaceId={mapActivePlace?.id}
+                  bounceId={bounceId}
+                  onSelect={selectPlace}
+                />
                 {pathCoords.length > 1 && (
                   <Polyline
                     path={pathCoords}
@@ -3620,4 +3668,7 @@ function MapTab({
     </div>
   )
 }
+
+
+
 

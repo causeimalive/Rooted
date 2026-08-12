@@ -14,6 +14,8 @@ let wordIndex: Map<string, Verse[]> = new Map()
 let lexicon: Record<string, LexiconEntry> = {}
 let lexiconFuse: Fuse<LexiconEntry> | null = null
 
+const verseNetworkTerms = new Map<string, Set<string>>()
+
 const NETWORK_STOPWORDS = new Set([
   'the', 'and', 'that', 'with', 'from', 'have', 'this', 'unto', 'they', 'there', 'their', 'shall', 'which', 'will',
   'were', 'when', 'then', 'them', 'into', 'upon', 'what', 'your', 'thou', 'thee', 'his', 'her', 'for', 'but', 'not',
@@ -26,14 +28,30 @@ function tokenizeNetworkTerms(text: string): string[] {
   return (text.toLowerCase().match(/\b[a-z]{4,}\b/g) ?? []).filter((word) => !NETWORK_STOPWORDS.has(word))
 }
 
-function uniqueNetworkTerms(text: string): Set<string> {
-  return new Set(tokenizeNetworkTerms(text))
+export async function precomputeNetworkTerms(versesToIndex: Verse[]): Promise<void> {
+  verseNetworkTerms.clear()
+  for (const v of versesToIndex) {
+    verseNetworkTerms.set(v.id, new Set(tokenizeNetworkTerms(v.text)))
+  }
 }
 
-function sharedNetworkTerms(sourceText: string, candidateText: string): string[] {
-  const sourceTerms = uniqueNetworkTerms(sourceText)
-  const candidateTerms = uniqueNetworkTerms(candidateText)
-  return Array.from(sourceTerms).filter((term) => candidateTerms.has(term))
+function getCachedNetworkTerms(verse: Verse): Set<string> {
+  let terms = verseNetworkTerms.get(verse.id)
+  if (!terms) {
+    terms = new Set(tokenizeNetworkTerms(verse.text))
+    verseNetworkTerms.set(verse.id, terms)
+  }
+  return terms
+}
+
+function sharedNetworkTerms(source: Verse, candidate: Verse): string[] {
+  const sourceTerms = getCachedNetworkTerms(source)
+  const candidateTerms = getCachedNetworkTerms(candidate)
+  const shared: string[] = []
+  for (const term of sourceTerms) {
+    if (candidateTerms.has(term)) shared.push(term)
+  }
+  return shared
 }
 
 export type VerseMatch = {
@@ -74,6 +92,7 @@ export async function loadBible(): Promise<Verse[]> {
       else wordIndex.set(word, [v])
     }
   }
+  await precomputeNetworkTerms(verses)
   fuse = new Fuse(verses, {
     keys: [
       { name: 'text', weight: 0.7 },
@@ -310,7 +329,7 @@ export function getCrossReferenceMatches(verse: Verse, all: Verse[] = verses, li
     scored.set(candidate.id, {
       verse: candidate,
       score: curated.votes,
-      sharedTerms: sharedNetworkTerms(verse.text, candidate.text),
+      sharedTerms: sharedNetworkTerms(verse, candidate),
       source: 'curated',
     })
   }
@@ -318,7 +337,7 @@ export function getCrossReferenceMatches(verse: Verse, all: Verse[] = verses, li
   for (const candidate of all) {
     if (candidate.id === verse.id || scored.has(candidate.id)) continue
 
-    const sharedTerms = sharedNetworkTerms(verse.text, candidate.text)
+    const sharedTerms = sharedNetworkTerms(verse, candidate)
     if (!sharedTerms.length) continue
 
     const sameBook = verse.book === candidate.book
@@ -345,7 +364,7 @@ export function extractNetworkThemes(verses: Verse[], limit = 6): NetworkTheme[]
   const counts = new Map<string, { count: number; longest: number }>()
 
   for (const verse of verses) {
-    const seen = uniqueNetworkTerms(verse.text)
+    const seen = getCachedNetworkTerms(verse)
     for (const term of seen) {
       const entry = counts.get(term) ?? { count: 0, longest: 0 }
       entry.count += 1

@@ -14,8 +14,8 @@ const SOURCES = {
 const PHONE_ICON_SOURCE = 'C:\\Users\\cscla\\OneDrive\\Desktop\\Rooted\\Images\\Logos\\Rooted.png'
 
 const WORDMARK_SOURCES = {
-  tan: 'C:\\Users\\cscla\\OneDrive\\Desktop\\Rooted\\Images\\Logos\\RootedTanFull.png',
-  green: 'C:\\Users\\cscla\\OneDrive\\Desktop\\Rooted\\Images\\Logos\\RootedGreenFull.png',
+  tan: 'C:\\Users\\cscla\\OneDrive\\Desktop\\Rooted\\Images\\Logos\\MasterFullAbideTan.png',
+  green: 'C:\\Users\\cscla\\OneDrive\\Desktop\\Rooted\\Images\\Logos\\MasterFullAbideGreen.png',
 }
 
 const OUTPUT_DIR = path.join(rootDir, 'public', 'branding')

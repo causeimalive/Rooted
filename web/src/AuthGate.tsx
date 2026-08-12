@@ -299,8 +299,8 @@ function AuthGateContent({
 }) {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null | undefined>(undefined)
   const [showLogin, setShowLogin] = useState(false)
-  const [callbackError, setCallbackError] = useState<string | null>(null)
-  const { auth: yvAuth, processCallback } = useYVAuth()
+  const { auth: yvAuth } = useYVAuth()
+  const callbackError = yvAuth.error?.message ?? null
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
@@ -317,32 +317,14 @@ function AuthGateContent({
     return () => clearTimeout(timeout)
   }, [])
 
-  useEffect(() => {
-    const search = new URLSearchParams(window.location.search)
-    if (!search.has('code') && !search.has('error') && !search.has('state')) return
-    void processCallback()
-      .then((result) => {
-        if (result) {
-          console.info('YouVersion sign-in complete:', result.name)
-        }
-      })
-      .catch((error) => {
-        const message = error instanceof Error ? error.message : String(error)
-        console.error('YouVersion callback error:', error)
-        setCallbackError(`Sign-in failed: ${message}`)
-        setShowLogin(true)
-      })
-      .finally(() => {
-        const url = new URL(window.location.href)
-        url.searchParams.delete('code')
-        url.searchParams.delete('state')
-        url.searchParams.delete('error')
-        url.searchParams.delete('error_description')
-        window.history.replaceState({}, '', url.toString())
-      })
-  }, [processCallback])
+  const isAuthenticated = Boolean(firebaseUser) || yvAuth.isAuthenticated
+  const isOAuthCallback =
+    typeof window !== 'undefined' &&
+    (new URLSearchParams(window.location.search).has('state') ||
+      new URLSearchParams(window.location.search).has('code') ||
+      new URLSearchParams(window.location.search).has('error'))
 
-  if (firebaseUser === undefined) {
+  if (!isAuthenticated && (firebaseUser === undefined || yvAuth.isLoading || (isOAuthCallback && !callbackError))) {
     return (
       <div
         style={{
@@ -358,8 +340,6 @@ function AuthGateContent({
       </div>
     )
   }
-
-  const isAuthenticated = Boolean(firebaseUser) || yvAuth.isAuthenticated
 
   if (!isAuthenticated) {
     return (

@@ -42,7 +42,7 @@ export default function Landing({
   theme: 'dark' | 'light'
   onToggleTheme: () => void
 }) {
-  const brandingVersion = '20260803g'
+  const brandingVersion = '20260811a'
   const backdropLogo = theme === 'dark'
     ? `/branding/tan/logo-512.png?v=${brandingVersion}`
     : `/branding/green/logo-512.png?v=${brandingVersion}`

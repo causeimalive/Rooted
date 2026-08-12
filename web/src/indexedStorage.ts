@@ -15,7 +15,7 @@ const STORE_NOTES = 'notes'
 const STORE_BOOKMARKS = 'bookmarks'
 const STORE_RECENT = 'recentSearches'
 const STORE_DATA_CACHE = 'dataCache'
-const DATA_CACHE_VERSION = '20260805b'
+const DATA_CACHE_VERSION = '20260811b'
 
 let dbPromise: Promise<IDBDatabase> | null = null
 

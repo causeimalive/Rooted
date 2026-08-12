@@ -31,7 +31,7 @@ type ReaderPassageStackProps = {
   isLoadingSections: boolean
   selectedId?: string | null
   onSelectVerse?: (verseId: string) => void
-  onToggleBookmark?: (verseId: string) => void
+  onToggleBookmark?: (verseId: string, yvPassageId?: string) => void
   bookmarkedVerseIds?: Set<string>
   bookCodeById?: Record<string, string>
 }
@@ -105,6 +105,7 @@ function ReaderPassageStack({
                     {section.verses.map((verse) => {
                       const bookCode = bookCodeById?.[section.bookId] ?? section.bookId
                       const verseId = `${bookCode}.${section.chapter}.${verse.verse}`
+                      const yvPassageId = `${section.bookId}.${section.chapter}.${verse.verse}`
                       const selected = selectedId === verseId
                       const isBookmarked = bookmarkedVerseIds?.has(verseId) ?? false
                       const label = isBookmarked ? t('unbookmark') : t('bookmark')
@@ -128,7 +129,7 @@ function ReaderPassageStack({
                               aria-label={label}
                               onClick={(e) => {
                                 e.stopPropagation()
-                                onToggleBookmark?.(verseId)
+                                onToggleBookmark?.(verseId, yvPassageId)
                               }}
                             >
                               <Highlighter size={14} fill={isBookmarked ? 'currentColor' : 'none'} />
@@ -147,6 +148,7 @@ function ReaderPassageStack({
                     {section.verses.map((verse) => {
                       const bookCode = bookCodeById?.[section.bookId] ?? section.bookId
                       const verseId = `${bookCode}.${section.chapter}.${verse.verse}`
+                      const yvPassageId = `${section.bookId}.${section.chapter}.${verse.verse}`
                       const selected = selectedId === verseId
                       const isBookmarked = bookmarkedVerseIds?.has(verseId) ?? false
                       const label = isBookmarked ? t('unbookmark') : t('bookmark')
@@ -166,7 +168,7 @@ function ReaderPassageStack({
                               aria-label={label}
                               onClick={(e) => {
                                 e.stopPropagation()
-                                onToggleBookmark?.(verseId)
+                                onToggleBookmark?.(verseId, yvPassageId)
                               }}
                             >
                               <Highlighter size={14} fill={isBookmarked ? 'currentColor' : 'none'} />

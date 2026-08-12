@@ -1,4 +1,4 @@
-const DEFAULT_REDIRECT = 'https://rootedinchrist-faith-2026.web.app/'
+const DEFAULT_REDIRECT = 'https://rootedinchrist.faith/'
 
 const AUTHORIZED_REDIRECT_ORIGINS = [
   'https://rootedinchrist.faith',

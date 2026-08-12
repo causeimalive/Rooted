@@ -1,9 +1,9 @@
 {
-  "appId": "com.cscla.biblestudy",
+  "appId": "com.rooted.christ",
   "appName": "Rooted",
   "webDir": "dist",
   "server": {
-    "url": "https://rootedinchrist-faith-2026.web.app",
+    "url": "https://rootedinchrist.faith/",
     "allowNavigation": [
       "https://rootedinchrist.faith/*",
       "https://*.rootedinchrist.faith/*",
@@ -12,7 +12,6 @@
       "https://rootedinchrist-faith.firebaseapp.com/*",
       "https://rootedinchrist-faith-2026.firebaseapp.com/*",
       "http://localhost:5173/*",
-      "https://*.youversion.com/*",
       "https://*.firebaseapp.com/*"
     ]
   },

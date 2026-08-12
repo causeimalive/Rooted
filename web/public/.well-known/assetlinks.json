@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.rooted.christ",
+      "sha256_cert_fingerprints": ["9F:D9:B6:75:88:39:E4:92:82:AA:05:5C:E7:1C:25:E1:C4:62:AD:42:82:45:DC:D8:D4:DE:FF:79:05:14:7E:2C"]
+    }
+  }
+]

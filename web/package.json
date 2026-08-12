@@ -10,8 +10,11 @@
     "generate:logos": "node scripts/generate-logos.mjs"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.1",
     "@capacitor/core": "^8.5.0",
+    "@googlemaps/markerclusterer": "^2.6.2",
     "@react-google-maps/api": "^2.20.8",
+    "@types/three": "^0.185.4",
     "@youversion/platform-react-ui": "^2.5.0",
     "cytoscape": "^3.30.2",
     "d3": "^7.9.0",
@@ -19,7 +22,9 @@
     "fuse.js": "^7.0.0",
     "lucide-react": "^0.447.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "react-force-graph-3d": "^1.29.1",
+    "three": "^0.185.1"
   },
   "devDependencies": {
     "@capacitor/android": "^8.5.0",

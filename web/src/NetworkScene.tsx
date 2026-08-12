@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 
 type NetworkKind = 'center' | 'related' | 'theme' | 'echo' | 'ambient' | 'book' | 'chapter'
 
@@ -401,7 +401,7 @@ function pointInViewport(x: number, y: number, width: number, height: number) {
   return x >= 0 && x <= width && y >= 0 && y <= height
 }
 
-export default function NetworkScene({
+function NetworkScene({
   nodes,
   edges,
   focus,
@@ -472,6 +472,10 @@ export default function NetworkScene({
   )
   const [labels, setLabels] = useState<LabelState[]>([])
   const projectedRef = useRef<ProjectedNode[]>([])
+  const labelUpdateRef = useRef<number>(-100)
+  const cameraReportRef = useRef<number>(-100)
+  const renderDataRef = useRef({ worldNodes, worldEdges, focusWorld, selectedNode, selectedId, palette })
+  renderDataRef.current = { worldNodes, worldEdges, focusWorld, selectedNode, selectedId, palette }
   const hoverIdRef = useRef<string | null>(null)
   const dragRef = useRef<{
     active: boolean
@@ -677,19 +681,38 @@ export default function NetworkScene({
     resizeObserver.observe(wrapper)
     resize()
 
-    const nodePositions = new Float32Array(worldNodes.length * 3)
-    const nodeColors = new Float32Array(worldNodes.length * 3)
-    const nodeSizes = new Float32Array(worldNodes.length)
-    const nodeOpacities = new Float32Array(worldNodes.length)
-    const nodeSoftness = new Float32Array(worldNodes.length)
-    const nodeIsCenter = new Float32Array(worldNodes.length)
-    const linePositions = new Float32Array(worldEdges.length * 2 * 3)
-    const lineColors = new Float32Array(worldEdges.length * 2 * 3)
-    const lineOpacities = new Float32Array(worldEdges.length * 2)
+    let nodePositions = new Float32Array(0)
+    let nodeColors = new Float32Array(0)
+    let nodeSizes = new Float32Array(0)
+    let nodeOpacities = new Float32Array(0)
+    let nodeSoftness = new Float32Array(0)
+    let nodeIsCenter = new Float32Array(0)
+    let linePositions = new Float32Array(0)
+    let lineColors = new Float32Array(0)
+    let lineOpacities = new Float32Array(0)
 
     let animationFrame = 0
     const render = (timestampMs: number = 0) => {
-      resize()
+      const data = renderDataRef.current
+      const worldNodes = data.worldNodes
+      const worldEdges = data.worldEdges
+      const palette = data.palette
+      const selectedId = data.selectedId
+
+      if (nodePositions.length !== worldNodes.length * 3) {
+        nodePositions = new Float32Array(worldNodes.length * 3)
+        nodeColors = new Float32Array(worldNodes.length * 3)
+        nodeSizes = new Float32Array(worldNodes.length)
+        nodeOpacities = new Float32Array(worldNodes.length)
+        nodeSoftness = new Float32Array(worldNodes.length)
+        nodeIsCenter = new Float32Array(worldNodes.length)
+      }
+      if (linePositions.length !== worldEdges.length * 2 * 3) {
+        linePositions = new Float32Array(worldEdges.length * 2 * 3)
+        lineColors = new Float32Array(worldEdges.length * 2 * 3)
+        lineOpacities = new Float32Array(worldEdges.length * 2)
+      }
+
       const width = canvas.width
       const height = canvas.height
       const aspect = width / Math.max(height, 1)
@@ -703,7 +726,10 @@ export default function NetworkScene({
       camera.pitch = clamp(camera.pitch, -1.2, 1.1)
       camera.distance = clamp(camera.distance, 240, 5000)
 
-      onCameraChange?.({ yaw: camera.yaw, pitch: camera.pitch, distance: camera.distance })
+      if (timestampMs - cameraReportRef.current >= 100) {
+        onCameraChange?.({ yaw: camera.yaw, pitch: camera.pitch, distance: camera.distance })
+        cameraReportRef.current = timestampMs
+      }
 
       const eye = {
         x: camera.target.x + Math.cos(camera.pitch) * Math.sin(camera.yaw) * camera.distance,
@@ -798,7 +824,10 @@ export default function NetworkScene({
           detail: item.node.detail,
           kind: item.node.kind,
         }))
-      setLabels(nextLabels)
+      if (timestampMs - labelUpdateRef.current >= 100) {
+        setLabels(nextLabels)
+        labelUpdateRef.current = timestampMs
+      }
 
       gl.useProgram(lineProgram)
       gl.bindBuffer(gl.ARRAY_BUFFER, lineBufferPosition)
@@ -874,7 +903,7 @@ export default function NetworkScene({
       gl.deleteBuffer(lineBufferColor)
       gl.deleteBuffer(lineBufferOpacity)
     }
-  }, [focus, selectedId, selectedNode, focusWorld, worldEdges, worldNodes, palette])
+  }, [])
 
   useEffect(() => {
     onHoverNode?.(hoverIdRef.current)
@@ -1131,3 +1160,5 @@ export default function NetworkScene({
     </div>
   )
 }
+
+export default memo(NetworkScene)
