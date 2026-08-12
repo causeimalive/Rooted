@@ -50,9 +50,12 @@ function buildBookMaps() {
   const verses = readJson(biblePath)
   const bookCodeByNumber = new Map()
   const bookNameByCode = new Map()
+  const seenBooks = new Set()
   for (const v of verses) {
-    const next = bookCodeByNumber.size + 1
-    if (!bookCodeByNumber.has(next)) bookCodeByNumber.set(next, v.book)
+    if (!seenBooks.has(v.book)) {
+      seenBooks.add(v.book)
+      bookCodeByNumber.set(bookCodeByNumber.size + 1, v.book)
+    }
     if (!bookNameByCode.has(v.book)) bookNameByCode.set(v.book, v.bookName)
   }
   return { bookCodeByNumber, bookNameByCode }
