@@ -78,6 +78,12 @@ export interface Place {
   lng: number
   description: string
   passages: PassageMatch[]
+  category?: 'settlement' | 'region' | 'natural' | 'road' | 'uncertain' | string
+  modernName?: string
+  uncertainty?: number
+  sources?: string[]
+  openbibleId?: string
+  pleiadesId?: string
 }
 
 export interface CharacterEventDateView {

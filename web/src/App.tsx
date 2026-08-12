@@ -83,6 +83,7 @@ import {
   getBookmarks,
   getCurrentUserId,
   getRecentSearches,
+  importYouVersionHighlights,
   isBookmarked,
   syncUserData,
   toggleBookmark,
@@ -209,13 +210,64 @@ function SettingsMenu() {
   const [category, setCategory] = useState<'look-feel' | 'network' | 'youversion'>('look-feel')
   const [syncState, setSyncState] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle')
   const [syncMessage, setSyncMessage] = useState<string | null>(null)
+  const [importHighlights, setImportHighlights] = useState(false)
   const dialogRef = useRef<HTMLDialogElement | null>(null)
+
+  const lastReadVersion = Number(getUserPreference(userId, 'bible-study-yv-version'))
+  const lastReadBook = getUserPreference(userId, 'bible-study-yv-book') ?? ''
+  const lastReadChapter = Number(getUserPreference(userId, 'bible-study-yv-chapter'))
+  const lastReadPassageId = lastReadBook && Number.isFinite(lastReadChapter) ? `${lastReadBook}.${lastReadChapter}` : 'GEN.1'
+  const { highlights } = useHighlights(
+    { version_id: (Number.isFinite(lastReadVersion) ? lastReadVersion : 1) || 1, passage_id: lastReadPassageId },
+    { enabled: auth.isAuthenticated && importHighlights },
+  )
 
   const CATEGORIES: { id: 'look-feel' | 'network' | 'youversion'; label: string; icon: typeof Cog }[] = [
     { id: 'look-feel', label: 'Look & feel', icon: Palette },
     { id: 'network', label: 'Network', icon: Globe },
     { id: 'youversion', label: 'YouVersion', icon: BookOpen },
   ]
+
+  useEffect(() => {
+    if (!importHighlights) return
+    setImportHighlights(false)
+    if (!highlights?.data?.length) {
+      setSyncState('success')
+      setSyncMessage('Sync complete — no new highlights found')
+      return
+    }
+    const all = getAllVerses()
+    const unseen: { verseId: string; color?: string }[] = []
+    for (const h of highlights.data) {
+      const parts = h.passage_id.split('.')
+      const bookId = parts[0]
+      const chapter = Number(parts[1])
+      const versePart = parts[2]
+      const verse = Number(versePart?.split('-')[0])
+      if (!bookId || !Number.isFinite(chapter) || !Number.isFinite(verse)) continue
+      const match = all.find(
+        (v) =>
+          v.book.toUpperCase() === bookId.toUpperCase() &&
+          v.chapter === chapter &&
+          v.verse === verse,
+      )
+      if (!match) continue
+      unseen.push({ verseId: match.id, color: h.color })
+    }
+    if (!unseen.length) {
+      setSyncState('success')
+      setSyncMessage('Sync complete — no new highlights to import')
+      return
+    }
+    try {
+      importYouVersionHighlights(unseen, String(lastReadVersion), 'YouVersion')
+      setSyncState('success')
+      setSyncMessage(`Imported ${unseen.length} highlight${unseen.length === 1 ? '' : 's'}`)
+    } catch (err) {
+      setSyncState('error')
+      setSyncMessage(err instanceof Error ? err.message : String(err))
+    }
+  }, [importHighlights, highlights, lastReadVersion, lastReadBook, lastReadChapter])
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -277,11 +329,11 @@ function SettingsMenu() {
     const syncUserId = getCurrentUserId() ?? userId
     if (!syncUserId) return
     setSyncState('syncing')
-    setSyncMessage(null)
+    setSyncMessage('Syncing bookmarks...')
     try {
       await syncUserData(syncUserId)
-      setSyncState('success')
-      setSyncMessage('Sync complete')
+      setSyncMessage('Importing YouVersion highlights...')
+      setImportHighlights(true)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       console.error('Sync failed:', error)
@@ -874,12 +926,13 @@ export default function App() {
           {!isNative && (
             <>
               <button
+                type="button"
                 className="language-toggle"
                 onClick={() => setLanguage(language === 'en' ? 'es' : 'en')}
                 title={t('language')}
-                aria-label={t('language')}
+                aria-label={`${t('language')} (${language.toUpperCase()})`}
               >
-                {language.toUpperCase()}
+                <span aria-hidden="true">{language.toUpperCase()}</span>
               </button>
               <button className="theme-toggle" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} title={theme === 'dark' ? t('lightMode') : t('darkMode')}>
                 {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}

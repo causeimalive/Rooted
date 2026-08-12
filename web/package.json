@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "generate:logos": "node scripts/generate-logos.mjs"
+    "generate:logos": "node scripts/generate-logos.mjs",
+    "build:gazetteer": "node scripts/build-gazetteer.mjs",
+    "check:gazetteer": "node scripts/build-gazetteer.mjs --check"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",

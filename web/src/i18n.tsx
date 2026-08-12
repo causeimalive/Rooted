@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 
 export type Language = 'en' | 'es'
 
@@ -186,17 +186,40 @@ interface I18nContextType {
 const I18nContext = createContext<I18nContextType | undefined>(undefined)
 
 const LANG_KEY = 'bible-study-lang'
+const SUPPORTED: readonly Language[] = (Object.keys(translations) as Language[]).sort()
+
+function isLanguage(value: string | null): value is Language {
+  return typeof value === 'string' && SUPPORTED.includes(value as Language)
+}
+
+function getInitialLanguage(): Language {
+  try {
+    const saved = localStorage.getItem(LANG_KEY)
+    if (isLanguage(saved)) return saved
+  } catch { }
+  try {
+    const nav = typeof navigator !== 'undefined' ? navigator.language.toLowerCase() : ''
+    if (nav.startsWith('es')) return 'es'
+  } catch { }
+  return 'en'
+}
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Language>(() => {
-    const saved = localStorage.getItem(LANG_KEY) as Language | null
-    return saved === 'es' ? 'es' : 'en'
-  })
+  const [language, setLanguageState] = useState<Language>(getInitialLanguage)
 
   const setLanguage = (lang: Language) => {
-    localStorage.setItem(LANG_KEY, lang)
+    if (!SUPPORTED.includes(lang)) return
     setLanguageState(lang)
   }
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(LANG_KEY, language)
+    } catch { }
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = language
+    }
+  }, [language])
 
   const t = (key: string, vars?: Record<string, string>) => {
     let str = translations[language][key] ?? key
