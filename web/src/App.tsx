@@ -181,7 +181,7 @@ function serializeHash(verseId: string | null | undefined): string {
   return params.toString()
 }
 
-const BRANDING_ASSET_VERSION = '20260811a'
+const BRANDING_ASSET_VERSION = '20260811c'
 const YOUVERSION_APP_KEY = import.meta.env.VITE_YVP_APP_KEY?.trim() ?? ''
 const READER_FONT_SIZE_KEY = 'bible-study-yv-font-size'
 const UI_SCALE_KEY = 'bible-study-ui-scale'

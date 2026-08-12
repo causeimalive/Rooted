@@ -15,14 +15,18 @@ if (!Capacitor.isNativePlatform()) {
   const state = params.get('state')
   const code = params.get('code')
   const error = params.get('error')
-  if (code || error) {
-    const isAndroid = /Android/i.test(navigator.userAgent)
-    const deepLink = isAndroid
-      ? `intent://auth${window.location.search}#Intent;scheme=com.rooted.christ;package=com.rooted.christ;end`
-      : `com.rooted.christ://auth/${window.location.search}`
-    window.location.replace(deepLink)
-  } else if (state) {
-    window.location.replace(`https://api.youversion.com/auth/callback${window.location.search}`)
+  const storedState = localStorage.getItem('youversion-auth-state')
+  const isWebAuth = state && storedState === state
+  if (!isWebAuth) {
+    if (code || error) {
+      const isAndroid = /Android/i.test(navigator.userAgent)
+      const deepLink = isAndroid
+        ? `intent://auth${window.location.search}#Intent;scheme=com.rooted.christ;package=com.rooted.christ;end`
+        : `com.rooted.christ://auth/${window.location.search}`
+      window.location.replace(deepLink)
+    } else if (state) {
+      window.location.replace(`https://api.youversion.com/auth/callback${window.location.search}`)
+    }
   }
 }
 
