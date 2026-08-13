@@ -1,4 +1,4 @@
-import { Bookmark, Note, RecentSearch, Verse } from './types'
+import { Bookmark, Memory, Note, RecentSearch, Verse } from './types'
 import { getAllVerses } from './bible'
 import {
   ApiClient,
@@ -32,6 +32,7 @@ import {
 
 const NOTES_KEY = 'bible.notes'
 const BOOKMARKS_KEY = 'bible.bookmarks'
+const MEMORIES_KEY = 'bible.memories'
 const USER_KEY = 'bible.user'
 const RECENT_SEARCHES_KEY = 'bible.recentSearches'
 const MAX_RECENT_SEARCHES = 25
@@ -181,6 +182,7 @@ export async function importAllYouVersionHighlights(
   const apiClient = new ApiClient({
     appKey,
     apiHost: YouVersionPlatformConfiguration.apiHost,
+    installationId: YouVersionPlatformConfiguration.installationId,
     timeout: 15000,
   })
   const bibleClient = new BibleClient(apiClient)
@@ -397,4 +399,24 @@ export function clearRecentSearches() {
   localStorage.removeItem(RECENT_SEARCHES_KEY)
   void clearRecentSearchesDB().catch(() => {})
   if (currentUserId) void clearUserRecentSearches(currentUserId).catch(() => {})
+}
+
+export function getMemories(): Memory[] {
+  return get<Memory>(MEMORIES_KEY)
+}
+
+export function saveMemory(memory: Memory): Memory[] {
+  const memories = getMemories()
+  const existing = memories.find((m) => m.id === memory.id)
+  const next = existing
+    ? memories.map((m) => (m.id === memory.id ? { ...memory, updatedAt: new Date().toISOString() } : m))
+    : [memory, ...memories]
+  set(MEMORIES_KEY, next)
+  return next
+}
+
+export function deleteMemory(id: string): Memory[] {
+  const next = getMemories().filter((m) => m.id !== id)
+  set(MEMORIES_KEY, next)
+  return next
 }
