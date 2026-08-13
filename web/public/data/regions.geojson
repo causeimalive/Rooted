@@ -1,0 +1,101 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "id": "canaan", "name": "Canaan", "era": "Bronze/Iron Age", "color": "#c9a66b" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[34.5, 33.5], [36.5, 33.5], [36.5, 31.2], [34.5, 31.2], [34.5, 33.5]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "galilee", "name": "Galilee", "era": "Iron Age", "color": "#7bb36a" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[35.1, 33.3], [35.8, 33.3], [35.8, 32.7], [35.1, 32.7], [35.1, 33.3]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "samaria", "name": "Samaria", "era": "Iron Age", "color": "#d19a66" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[35.0, 32.6], [35.5, 32.6], [35.5, 32.0], [35.0, 32.0], [35.0, 32.6]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "judea", "name": "Judea", "era": "Iron Age", "color": "#d66a6a" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[34.8, 32.0], [35.5, 32.0], [35.5, 31.3], [34.8, 31.3], [34.8, 32.0]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "philistia", "name": "Philistia", "era": "Iron Age", "color": "#6a9bd6" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[34.4, 32.0], [35.0, 32.0], [35.0, 31.4], [34.4, 31.4], [34.4, 32.0]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "decapolis", "name": "Decapolis", "era": "Roman", "color": "#9b6ad6" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[35.5, 33.0], [36.5, 33.0], [36.5, 32.0], [35.5, 32.0], [35.5, 33.0]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "gilead", "name": "Gilead", "era": "Iron Age", "color": "#6ad6a6" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[35.5, 32.5], [36.8, 32.5], [36.8, 31.5], [35.5, 31.5], [35.5, 32.5]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "moab", "name": "Moab", "era": "Iron Age", "color": "#d6c06a" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[35.5, 32.0], [36.5, 32.0], [36.5, 31.0], [35.5, 31.0], [35.5, 32.0]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "edom", "name": "Edom", "era": "Iron Age", "color": "#d66a93" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[35.0, 31.0], [35.6, 31.0], [35.6, 29.5], [35.0, 29.5], [35.0, 31.0]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "assyria", "name": "Assyria", "era": "Iron Age", "color": "#d68a6a" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[41.0, 37.0], [46.0, 37.0], [46.0, 35.0], [41.0, 35.0], [41.0, 37.0]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "babylonia", "name": "Babylonia", "era": "Iron Age", "color": "#6a8ad6" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[44.0, 33.0], [46.0, 33.0], [46.0, 30.0], [44.0, 30.0], [44.0, 33.0]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "egypt", "name": "Egypt", "era": "Iron Age", "color": "#d6a66a" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[30.0, 31.5], [32.5, 31.5], [32.5, 29.0], [30.0, 29.0], [30.0, 31.5]]]
+      }
+    }
+  ]
+}

@@ -127,3 +127,13 @@ export interface Character {
   summary: string
   events: CharacterEvent[]
 }
+
+export interface Region {
+  id: string
+  name: string
+  aliases?: string[]
+  era?: string
+  description?: string
+  passages: PassageMatch[]
+  color?: string
+}
