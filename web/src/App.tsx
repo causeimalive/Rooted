@@ -71,7 +71,7 @@ import {
   loadCharacters,
   searchCharacters,
 } from './characters'
-import { getMapStyle } from './mapStyles'
+import { BASE_LAYERS, getMapOptions, type MapBaseLayer } from './mapTileLayers'
 import WikiMediaCard from './WikiMediaCard'
 import LexiconTab from './LexiconTab'
 import WayfinderTab from './WayfinderTab'
@@ -980,6 +980,7 @@ export default function App() {
 
           {tab === 'search' && (
             <aside className="sidebar verse-sidebar">
+              <LexiconTab query={query} onQuery={setQuery} onSelect={setSelectedId} />
               {detailVerse ? (
                 <>
                   <section className="detail-card detail-card-hero">
@@ -1436,7 +1437,7 @@ function SearchTab({
           </div>
         ) : (
           <>
-            <LexiconTab query={query} onQuery={onQuery} onSelect={onSelect} />
+
             {results.length === 0 ? (
               <div className="empty">{t('noResults')}</div>
             ) : (
@@ -3777,6 +3778,7 @@ function MapTab({
   const [showPlacePopup, setShowPlacePopup] = useState(false)
   const [selectionSource, setSelectionSource] = useState<'map' | 'search'>('map')
   const [isCompactMap, setIsCompactMap] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 720px)').matches)
+  const [baseLayer, setBaseLayer] = useState<MapBaseLayer>('antique')
 
   useEffect(() => {
     if (!activeCharacter) {
@@ -3973,18 +3975,44 @@ function MapTab({
                 <Loader2 className="spin" size={18} /> Loading places…
               </div>
             )}
-            {isLoaded && !useFallbackMap && allPlaces.length > 0 && (
+            {isLoaded && !useFallbackMap && allPlaces.length > 0 && (<>
+              <div
+                className="map-base-control"
+                style={{
+                  position: 'absolute',
+                  top: '0.75rem',
+                  right: '0.75rem',
+                  zIndex: 10,
+                }}
+              >
+                <select
+                  aria-label="Base map"
+                  value={baseLayer}
+                  onChange={(e) => setBaseLayer(e.target.value as MapBaseLayer)}
+                  style={{
+                    padding: '0.4rem 0.6rem',
+                    borderRadius: '0.5rem',
+                    border: '1px solid color-mix(in srgb, var(--accent) 22%, var(--muted))',
+                    background: 'var(--surface)',
+                    color: 'var(--text)',
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {BASE_LAYERS.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <GoogleMap
-                key={theme}
+                key={`${theme}-${baseLayer}`}
                 mapContainerStyle={{ width: '100%', height: '100%' }}
                 center={center}
                 zoom={4}
                 options={{
-                  styles: getMapStyle(theme),
-                  disableDefaultUI: true,
-                  zoomControl: true,
-                  clickableIcons: false,
-                  gestureHandling: 'greedy',
+                  ...getMapOptions(baseLayer, theme),
                   minZoom: 3,
                   maxZoom: 18,
                   ...(allPlacesBounds
@@ -4020,7 +4048,7 @@ function MapTab({
                   />
                 )}
               </GoogleMap>
-            )}
+          </>)}
           </div>
         </section>
 
