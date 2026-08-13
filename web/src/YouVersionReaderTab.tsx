@@ -837,14 +837,22 @@ export default function YouVersionReaderTab({
   const bookCodeById = useMemo(() => {
     const all = getAllVerses()
     const nameToCode = new Map<string, string>()
+    const usfmToCode = new Map<string, string>()
     for (const verse of all) {
       if (!nameToCode.has(verse.bookName)) {
         nameToCode.set(verse.bookName, verse.book)
       }
+      if (!usfmToCode.has(verse.book.toUpperCase())) {
+        usfmToCode.set(verse.book.toUpperCase(), verse.book)
+      }
     }
     return Object.fromEntries(
       books.map((book) => {
-        const code = nameToCode.get(book.title) || (book.abbreviation ? nameToCode.get(book.abbreviation) : undefined) || book.id
+        const code =
+          nameToCode.get(book.title) ||
+          (book.abbreviation ? nameToCode.get(book.abbreviation) : undefined) ||
+          usfmToCode.get(book.id.toUpperCase()) ||
+          book.id
         return [book.id, code]
       }),
     )

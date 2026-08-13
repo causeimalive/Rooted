@@ -1,11 +1,10 @@
-import { Bookmark, Note, RecentSearch } from './types'
+import { Bookmark, Note, RecentSearch, Verse } from './types'
 import { getAllVerses } from './bible'
 import {
   ApiClient,
   BibleClient,
   HighlightsClient,
   YouVersionPlatformConfiguration,
-  type Highlight,
 } from '@youversion/platform-core'
 import {
   clearRecentSearchesDB,
@@ -187,14 +186,19 @@ export async function importAllYouVersionHighlights(
 
   const books = await bibleClient.getBooks(versionId)
   const nameToCode = new Map<string, string>()
+  const usfmToCode = new Map<string, string>()
+  const verseByRef = new Map<string, Verse>()
   for (const v of all) {
     if (!nameToCode.has(v.bookName)) nameToCode.set(v.bookName, v.book)
+    if (!usfmToCode.has(v.book.toUpperCase())) usfmToCode.set(v.book.toUpperCase(), v.book)
+    verseByRef.set(`${v.book}:${v.chapter}:${v.verse}`, v)
   }
   const bookCodeById: Record<string, string> = {}
   for (const book of books.data) {
     const code =
       nameToCode.get(book.title) ||
       (book.abbreviation ? nameToCode.get(book.abbreviation) : undefined) ||
+      usfmToCode.get(book.id.toUpperCase()) ||
       book.id
     bookCodeById[book.id.toUpperCase()] = code
   }
@@ -233,12 +237,7 @@ export async function importAllYouVersionHighlights(
             if (!Number.isFinite(first)) continue
             const end = Number.isFinite(last) ? last : first
             for (let v = first; v <= end; v++) {
-              const match = all.find(
-                (verse) =>
-                  verse.book === localBookCode &&
-                  verse.chapter === chapter &&
-                  verse.verse === v,
-              )
+              const match = verseByRef.get(`${localBookCode}:${chapter}:${v}`)
               if (match) items.push({ verseId: match.id, color: h.color })
             }
           }
