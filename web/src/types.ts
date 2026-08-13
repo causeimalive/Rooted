@@ -44,6 +44,23 @@ export interface Bookmark {
   color?: string
 }
 
+export type MemoryType = 'note' | 'prayer' | 'highlight' | 'photo' | 'bookmark'
+export type ShareLevel = 'private' | 'friends' | 'public'
+
+export interface Memory {
+  id: string
+  verseId: string
+  type: MemoryType
+  body?: string
+  color?: string
+  tags?: string[]
+  mood?: string
+  photoUrl?: string
+  shareLevel: ShareLevel
+  createdAt: string
+  updatedAt?: string
+}
+
 export interface RecentSearch {
   id: string
   query: string

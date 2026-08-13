@@ -3,11 +3,14 @@ import { getAllCharacters, getCharacter, getCharacterPath, type CharacterPathSto
 import { getPlace, formatPassage } from './places'
 import { findVerse } from './bible'
 import { useI18n } from './i18n'
-import { Bookmark, Character, Verse } from './types'
+import { Character, Memory, MemoryType, Verse } from './types'
 
 type WayfinderTabProps = {
-  bookmarks: Bookmark[]
+  memories: Memory[]
+  selectedVerse?: Verse
   onSelect: (verseId: string) => void
+  onSaveMemory: (memory: Memory) => void
+  onDeleteMemory: (id: string) => void
 }
 
 function findFirstVerse(stop: CharacterPathStop): Verse | undefined {
@@ -23,10 +26,24 @@ function findFirstVerse(stop: CharacterPathStop): Verse | undefined {
   )
 }
 
-export default function WayfinderTab({ bookmarks, onSelect }: WayfinderTabProps) {
+const MEMORY_TYPE_LABELS: Record<MemoryType, string> = {
+  note: 'Note',
+  prayer: 'Prayer',
+  highlight: 'Highlight',
+  photo: 'Photo',
+  bookmark: 'Bookmark',
+}
+
+export default function WayfinderTab({ memories, selectedVerse, onSelect, onSaveMemory, onDeleteMemory }: WayfinderTabProps) {
   const { t } = useI18n()
   const [query, setQuery] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [showMemoryForm, setShowMemoryForm] = useState(false)
+  const [memoryType, setMemoryType] = useState<MemoryType>('note')
+  const [memoryBody, setMemoryBody] = useState('')
+  const [memoryTags, setMemoryTags] = useState('')
+  const [memoryMood, setMemoryMood] = useState('')
+  const [memoryColor, setMemoryColor] = useState('')
 
   const allCharacters = useMemo(() => getAllCharacters().sort((a, b) => a.name.localeCompare(b.name)), [])
   const filteredCharacters = useMemo(() => {
@@ -40,13 +57,34 @@ export default function WayfinderTab({ bookmarks, onSelect }: WayfinderTabProps)
   const selectedCharacter = useMemo(() => (selectedId ? getCharacter(selectedId) ?? null : null), [selectedId])
   const stops = useMemo<CharacterPathStop[]>(() => (selectedCharacter ? getCharacterPath(selectedCharacter) : []), [selectedCharacter])
 
-  const sortedBookmarks = useMemo(
+  const sortedMemories = useMemo(
     () =>
-      [...bookmarks]
-        .filter((b) => b.verseId)
-        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
-    [bookmarks],
+      [...memories]
+        .filter((m) => m.verseId)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    [memories],
   )
+
+  const handleSaveMemory = () => {
+    if (!selectedVerse) return
+    const memory: Memory = {
+      id: crypto.randomUUID(),
+      verseId: selectedVerse.id,
+      type: memoryType,
+      body: memoryBody.trim() || undefined,
+      color: memoryColor.trim() || undefined,
+      tags: memoryTags.split(',').map((s) => s.trim()).filter(Boolean),
+      mood: memoryMood.trim() || undefined,
+      shareLevel: 'private',
+      createdAt: new Date().toISOString(),
+    }
+    onSaveMemory(memory)
+    setMemoryBody('')
+    setMemoryTags('')
+    setMemoryMood('')
+    setMemoryColor('')
+    setShowMemoryForm(false)
+  }
 
   return (
     <div className="panel bubble-layout wayfinder-panel" style={{ gap: '0.75rem' }}>
@@ -85,20 +123,95 @@ export default function WayfinderTab({ bookmarks, onSelect }: WayfinderTabProps)
 
           <div className="bubble-card" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             <h3>My Journey</h3>
-            <div className="bubble-list" style={{ maxHeight: 200, overflowY: 'auto' }}>
-              {sortedBookmarks.length === 0 && <div className="empty">No bookmarks yet.</div>}
-              {sortedBookmarks.map((bookmark) => {
-                const verse = findVerse(bookmark.verseId)
+            {!selectedVerse ? (
+              <p style={{ fontSize: '0.88rem', opacity: 0.8 }}>Select a verse in the Reader to add a memory here.</p>
+            ) : (
+              <button
+                type="button"
+                className="secondary"
+                style={{ margin: '0.5rem 0' }}
+                onClick={() => setShowMemoryForm((s) => !s)}
+              >
+                {showMemoryForm ? 'Cancel' : 'Add memory'}
+              </button>
+            )}
+            {showMemoryForm && selectedVerse && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', margin: '0.5rem 0' }}>
+                <select value={memoryType} onChange={(e) => setMemoryType(e.target.value as MemoryType)} style={{ padding: '0.35rem' }}>
+                  {(['note', 'prayer', 'highlight', 'photo', 'bookmark'] as MemoryType[]).map((type) => (
+                    <option key={type} value={type}>{MEMORY_TYPE_LABELS[type]}</option>
+                  ))}
+                </select>
+                <textarea
+                  placeholder="Write a thought, prayer, or note…"
+                  value={memoryBody}
+                  onChange={(e) => setMemoryBody(e.target.value)}
+                  rows={3}
+                  style={{ padding: '0.4rem', resize: 'vertical' }}
+                />
+                <input
+                  type="text"
+                  placeholder="Tags (comma separated)"
+                  value={memoryTags}
+                  onChange={(e) => setMemoryTags(e.target.value)}
+                  style={{ padding: '0.35rem' }}
+                />
+                <input
+                  type="text"
+                  placeholder="Mood"
+                  value={memoryMood}
+                  onChange={(e) => setMemoryMood(e.target.value)}
+                  style={{ padding: '0.35rem' }}
+                />
+                <input
+                  type="text"
+                  placeholder="Color (e.g. #d7be7d)"
+                  value={memoryColor}
+                  onChange={(e) => setMemoryColor(e.target.value)}
+                  style={{ padding: '0.35rem' }}
+                />
+                <button type="button" className="primary" onClick={handleSaveMemory}>
+                  Save memory
+                </button>
+              </div>
+            )}
+            <div className="bubble-list" style={{ maxHeight: 240, overflowY: 'auto' }}>
+              {sortedMemories.length === 0 && <div className="empty">No memories yet.</div>}
+              {sortedMemories.map((memory) => {
+                const verse = findVerse(memory.verseId)
                 return (
-                  <button
-                    key={bookmark.id}
+                  <div
+                    key={memory.id}
                     className="bubble-list-item"
-                    onClick={() => onSelect(bookmark.verseId)}
-                    style={{ textAlign: 'left' }}
+                    style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 4 }}
                   >
-                    <span>{verse ? `${verse.bookName} ${verse.chapter}:${verse.verse}` : bookmark.verseId}</span>
-                    <small>{new Date(bookmark.createdAt).toLocaleDateString()}</small>
-                  </button>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <button
+                        className="unstyled"
+                        onClick={() => onSelect(memory.verseId)}
+                        style={{ textAlign: 'left', color: 'var(--text)', fontSize: '0.9rem' }}
+                      >
+                        <span>{verse ? `${verse.bookName} ${verse.chapter}:${verse.verse}` : memory.verseId}</span>
+                        <small style={{ display: 'block', opacity: 0.7 }}>{new Date(memory.createdAt).toLocaleDateString()} · {MEMORY_TYPE_LABELS[memory.type]}</small>
+                      </button>
+                      <button
+                        type="button"
+                        className="secondary"
+                        onClick={() => onDeleteMemory(memory.id)}
+                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                    {memory.body && <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.9 }}>{memory.body}</p>}
+                    {memory.tags && memory.tags.length > 0 && (
+                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                        {memory.tags.map((tag) => (
+                          <span key={tag} style={{ fontSize: '0.75rem', padding: '0.1rem 0.35rem', borderRadius: '0.5rem', background: 'var(--surface)', color: 'var(--accent)' }}>{tag}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 )
               })}
             </div>

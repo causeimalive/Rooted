@@ -82,16 +82,19 @@ import { AuthSignOutButton } from './AuthGate'
 import {
   addRecentSearch,
   clearCurrentUser,
+  deleteMemory,
   getBookmarks,
   getCurrentUserId,
+  getMemories,
   getRecentSearches,
   importAllYouVersionHighlights,
   isBookmarked,
+  saveMemory,
   syncUserData,
   toggleBookmark,
 } from './storage'
 import { auth } from './firebase'
-import { Bookmark as BookmarkType, Verse, type LexiconEntry, type Place, type RecentSearch } from './types'
+import { Bookmark as BookmarkType, Memory as MemoryType, Verse, type LexiconEntry, type Place, type RecentSearch } from './types'
 import type { Character } from './types'
 import { useI18n } from './i18n'
 import { getUserPreference, setUserPreference } from './userProfile'
@@ -556,6 +559,19 @@ export default function App() {
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>(getRecentSearches())
   const [bookmarks, setBookmarks] = useState<BookmarkType[]>(getBookmarks())
+  const [memories, setMemories] = useState<MemoryType[]>(() => {
+    const stored = getMemories()
+    if (stored.length) return stored
+    return getBookmarks().map((b) => ({
+      id: b.id,
+      verseId: b.verseId,
+      type: 'bookmark' as const,
+      body: b.label,
+      color: b.color,
+      createdAt: b.createdAt,
+      shareLevel: 'private' as const,
+    }))
+  })
   const [audioPlaying, setAudioPlaying] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
@@ -961,8 +977,11 @@ export default function App() {
           )}
           {tab === 'wayfinder' && (
             <WayfinderTab
-              bookmarks={bookmarks}
+              memories={memories}
+              selectedVerse={selected}
               onSelect={setSelectedId}
+              onSaveMemory={(m) => setMemories(saveMemory(m))}
+              onDeleteMemory={(id) => setMemories(deleteMemory(id))}
             />
           )}
           {tab === 'map' && (
