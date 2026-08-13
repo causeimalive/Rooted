@@ -1182,8 +1182,15 @@ export default function YouVersionReaderTab({
         setBookIntroReference(introPassageId)
         setBookIntroOpen(true)
       } catch (error) {
-        setBookIntroError(error instanceof Error ? error.message : String(error))
-        setBookIntroOpen(true)
+        const message = error instanceof Error ? error.message : String(error)
+        if (message.includes('404')) {
+          // Some versions (e.g. KJV) do not have book intros; ignore the 404.
+          setBookIntroError('')
+          setBookIntroOpen(false)
+        } else {
+          setBookIntroError(message)
+          setBookIntroOpen(true)
+        }
       } finally {
         setBookIntroLoading(false)
       }
