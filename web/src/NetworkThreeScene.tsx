@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { Html, Line, OrbitControls } from '@react-three/drei'
+import { Html, OrbitControls } from '@react-three/drei'
 import { OrbitControls as OrbitControlsClass } from 'three-stdlib'
 import {
   BufferGeometry,
@@ -10,13 +10,13 @@ import {
   InstancedMesh,
   LineBasicMaterial,
   LineSegments,
-  Mesh,
   MeshBasicMaterial,
   Object3D,
   Vector3,
 } from 'three'
 import { SCENE_PALETTE } from './relationshipGraph/palette'
 import { getNodeColor, getEdgeColor, getNodeTargetDistance, getNodeGeometryDetail, getMaxLabelsForQuality } from './graphFactories'
+import AnimatedPath from './NetworkThreeScene/AnimatedPath'
 
 type Verse = {
   id: string
@@ -64,7 +64,7 @@ type NetworkThreeSceneProps = {
   onSelect: (id: string) => void
   onHoverNode?: (id: string | null) => void
   onCameraChange?: (camera: { yaw: number; pitch: number; distance: number; target: { x: number; y: number; z: number } }) => void
-  paths?: { id: string; points: { x: number; y: number; z: number }[]; color: [number, number, number] }[]
+  paths?: { id: string; points: { x: number; y: number; z: number }[]; color: [number, number, number]; progress?: number }[]
   theme: 'dark' | 'light'
 }
 
@@ -398,42 +398,6 @@ function LODController({ onQuality }: { onQuality: (q: Quality) => void }) {
   return null
 }
 
-function AnimatedPath({
-  points,
-  color,
-}: {
-  points: { x: number; y: number; z: number }[]
-  color: [number, number, number]
-}) {
-  if (points.length < 2) return null
-  const vecPoints = useMemo(() => points.map((p) => new Vector3(p.x, p.y, p.z)), [points])
-  const materialColor = useMemo(() => new Color(color[0] / 255, color[1] / 255, color[2] / 255), [color])
-  const meshRef = useRef<Mesh>(null)
-  const progress = useRef(0)
-
-  useFrame((_, delta) => {
-    if (!meshRef.current || vecPoints.length < 2) return
-    progress.current += delta * 0.35
-    if (progress.current >= 1) progress.current = 0
-    const total = vecPoints.length - 1
-    const t = progress.current * total
-    const i = Math.floor(t)
-    const alpha = t - i
-    const a = vecPoints[i]
-    const b = vecPoints[i + 1] ?? a
-    meshRef.current.position.lerpVectors(a, b, alpha)
-  })
-
-  return (
-    <>
-      <Line points={vecPoints} color={materialColor} lineWidth={2} />
-      <mesh ref={meshRef}>
-        <icosahedronGeometry args={[0.9, 0]} />
-        <meshBasicMaterial color={materialColor} transparent opacity={0.9} />
-      </mesh>
-    </>
-  )
-}
 
 function SceneContent(props: NetworkThreeSceneProps & { quality: Quality }) {
   const { scene } = useThree()
@@ -473,7 +437,7 @@ function SceneContent(props: NetworkThreeSceneProps & { quality: Quality }) {
         quality={props.quality}
       />
       {props.paths?.map((path) => (
-        <AnimatedPath key={path.id} points={path.points} color={path.color} />
+        <AnimatedPath key={path.id} points={path.points} color={path.color} progress={path.progress ?? 0} />
       ))}
     </>
   )

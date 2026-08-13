@@ -64,6 +64,7 @@ import {
   searchPlaces,
 } from './places'
 import {
+  getAllCharacters,
   getCharacter,
   getCharacterPath,
   getCharactersForVerse,
@@ -958,7 +959,7 @@ export default function App() {
             )
           )}
           {tab === 'network' && (
-            <NetworkTab
+            <WayfinderTab
               selectedVerse={selected}
               fallbackVerse={results[0]?.verse ?? getAllVerses()[0]}
               onSelect={setSelectedId}
@@ -1724,7 +1725,7 @@ function angleBetween(a: Point, b: Point) {
   return Math.atan2(b.y - a.y, b.x - a.x)
 }
 
-function buildNetworkNodes(centerVerse: Verse, relatedMatches: VerseMatch[], themes: NetworkTheme[]): NetworkNode[] {
+function buildNetworkNodes(centerVerse: Verse, relatedMatches: VerseMatch[], themes: NetworkTheme[], selectedPersonId?: string): NetworkNode[] {
   const allVerses = getAllVerses()
   const nodes: NetworkNode[] = [
     {
@@ -1825,6 +1826,27 @@ function buildNetworkNodes(centerVerse: Verse, relatedMatches: VerseMatch[], the
       score: 0,
     })
   })
+
+  if (selectedPersonId) {
+    const selected = getCharacter(selectedPersonId)
+    const alreadyIncluded = people.some((p) => p.id === selectedPersonId)
+    if (selected && !alreadyIncluded) {
+      const angle = (hashString(selected.id) / 3600) * Math.PI * 2
+      const x = clamp(50 + Math.cos(angle) * 52, 5, 95)
+      const y = clamp(50 + Math.sin(angle) * 52 * 0.9, 5, 95)
+      nodes.push({
+        id: `person-${selected.id}`,
+        kind: 'person',
+        label: selected.name,
+        detail: selected.era || 'Person',
+        x,
+        y,
+        z: 30,
+        size: 72,
+        score: 0,
+      })
+    }
+  }
 
   const occupied = new Set(nodes.map((node) => node.verse?.id).filter((id): id is string => Boolean(id)))
   relatedMatches.slice(0, 6).forEach((match, parentIndex) => {
@@ -2071,7 +2093,7 @@ function buildBibleHierarchyNodes(allVerses: Verse[]): AmbientBibleData {
   return { bookNodes, chapterNodes, chapterByKey, verseByChapter }
 }
 
-function NetworkTab({
+function WayfinderTab({
   selectedVerse,
   fallbackVerse,
   onSelect,
@@ -2154,6 +2176,9 @@ function NetworkTab({
   const [canvasSize, setCanvasSize] = useState<Point>({ x: 1000, y: 640 })
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null)
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null)
+  const [pathProgress, setPathProgress] = useState(0)
+  const [pathPlaying, setPathPlaying] = useState(false)
+  const [characterQuery, setCharacterQuery] = useState('')
 
   const syncCamera = (next: Camera) => {
     cameraRef.current = next
@@ -2205,15 +2230,29 @@ function NetworkTab({
     [centerVerse, relatedVerses],
   )
 
+  const selectedPersonId = useMemo(
+    () => (focusedNodeId?.startsWith('person-') ? focusedNodeId.replace('person-', '') : undefined),
+    [focusedNodeId],
+  )
+
   const nodes = useMemo(
-    () => (centerVerse ? buildNetworkNodes(centerVerse, relatedMatches, themes) : []),
-    [centerVerse, relatedMatches, themes],
+    () => (centerVerse ? buildNetworkNodes(centerVerse, relatedMatches, themes, selectedPersonId) : []),
+    [centerVerse, relatedMatches, themes, selectedPersonId],
   )
 
   const edges = useMemo(
     () => (centerVerse ? buildNetworkEdges(centerVerse, relatedMatches, themes) : []),
     [centerVerse, relatedMatches, themes],
   )
+
+  const allCharacters = useMemo(() => getAllCharacters().sort((a, b) => a.name.localeCompare(b.name)), [])
+  const filteredCharacters = useMemo(() => {
+    const query = characterQuery.trim().toLowerCase()
+    if (!query) return allCharacters.slice(0, 80)
+    return allCharacters
+      .filter((c) => c.name.toLowerCase().includes(query) || c.aliases?.some((a) => a.toLowerCase().includes(query)))
+      .slice(0, 80)
+  }, [allCharacters, characterQuery])
 
   const ambientBible = useMemo(() => buildBibleHierarchyNodes(all), [all])
 
@@ -2351,6 +2390,16 @@ function NetworkTab({
     return [{ id: focusedNodeId ?? 'person-path', points, color }]
   }, [personPath, focusedNodeId, theme])
 
+  const currentPathStopIndex = useMemo(() => {
+    if (!personPath.length) return -1
+    return Math.min(personPath.length - 1, Math.floor(pathProgress * personPath.length))
+  }, [personPath.length, pathProgress])
+
+  const currentPathStop = useMemo(
+    () => (currentPathStopIndex >= 0 ? personPath[currentPathStopIndex] : null),
+    [currentPathStopIndex, personPath],
+  )
+
   const userJourneyNodes = useMemo<NetworkNode[]>(() => {
     if (!showUserJourney) return []
     const sorted = [...bookmarks]
@@ -2393,7 +2442,23 @@ function NetworkTab({
     return [{ id: 'user-journey', points, color }]
   }, [userJourneyNodes, showUserJourney, theme])
 
-  const scenePaths = useMemo(() => [...personPaths, ...userJourneyPaths], [personPaths, userJourneyPaths])
+  const scenePaths = useMemo(
+    () => [...personPaths, ...userJourneyPaths].map((path) => ({ ...path, progress: pathProgress })),
+    [personPaths, userJourneyPaths, pathProgress],
+  )
+
+  useEffect(() => {
+    if (!pathPlaying) return
+    const interval = window.setInterval(() => {
+      setPathProgress((p) => (p >= 1 ? 0 : Math.min(1, p + 0.008)))
+    }, 80)
+    return () => window.clearInterval(interval)
+  }, [pathPlaying])
+
+  useEffect(() => {
+    setPathProgress(0)
+    setPathPlaying(false)
+  }, [focusedNodeId, showUserJourney])
 
   const sceneNodes = useMemo(() => [...visibleAmbientNodes, ...nodes, ...personPath, ...userJourneyNodes], [visibleAmbientNodes, nodes, personPath, userJourneyNodes])
   const sceneNodeById = useMemo(() => new Map(sceneNodes.map((node) => [node.id, node])), [sceneNodes])
@@ -2694,13 +2759,6 @@ function NetworkTab({
             <span className="network-stat-chip">{relatedMatches.length} {t('networkConnections')}</span>
             <span className="network-stat-chip">{themes.length} {t('networkThemes')}</span>
             <span className="network-stat-chip">{strongestMatch ? `${t('networkStrength')} ${Math.round(strongestMatch.score)}` : t('networkStrength')}</span>
-            <button
-              type="button"
-              className={showUserJourney ? 'primary' : 'secondary'}
-              onClick={() => setShowUserJourney((s) => !s)}
-            >
-              {showUserJourney ? 'Hide my journey' : 'Show my journey'}
-            </button>
           </div>
 
           <div className="network-breadcrumb">
@@ -2820,6 +2878,90 @@ function NetworkTab({
             )}
 
             <div className="map-location-context" style={{ marginTop: '0.75rem' }}>{t('networkTapHint')}</div>
+          </div>
+
+          <div className="bubble-card wayfinder-card">
+            <h3>Wayfinder</h3>
+            <div className="network-helper-text">Pick a biblical figure to see their path through Scripture.</div>
+            <input
+              type="text"
+              value={characterQuery}
+              onChange={(e) => setCharacterQuery(e.target.value)}
+              placeholder="Search people…"
+              className="network-character-search"
+              style={{ width: '100%', margin: '0.65rem 0' }}
+            />
+            <div className="bubble-list network-character-list" style={{ maxHeight: 160, overflowY: 'auto' }}>
+              {filteredCharacters.map((character) => (
+                <button
+                  key={character.id}
+                  className="bubble-list-item network-context-item"
+                  onClick={() => {
+                    setFocusedNodeId(`person-${character.id}`)
+                    setMapFocusBookId(null)
+                    setMapFocusChapter(null)
+                    setCharacterQuery('')
+                  }}
+                >
+                  <span>{character.name}</span>
+                  <small>{character.era}{character.approxDateRange ? ` · ${character.approxDateRange}` : ''}</small>
+                </button>
+              ))}
+            </div>
+
+            {selectedCharacter && (
+              <div className="network-context-section" style={{ marginTop: '0.75rem' }}>
+                <h4>{selectedCharacter.name}</h4>
+                {personPath.length > 0 && (
+                  <div className="wayfinder-path-controls">
+                    <div className="network-path-buttons" style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                      <button type="button" className="secondary" onClick={() => setPathPlaying((p) => !p)} title={pathPlaying ? t('pausePath') : t('playPath')}>
+                        {pathPlaying ? <Pause size={16} /> : <Play size={16} />}
+                      </button>
+                      <button type="button" className="secondary" onClick={() => { setPathPlaying(false); setPathProgress((p) => Math.min(1, p + 0.05)) }} title="Step forward">
+                        <ChevronRight size={16} /> Step
+                      </button>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      value={pathProgress}
+                      onChange={(e) => { setPathProgress(Number(e.target.value)); setPathPlaying(false) }}
+                      style={{ width: '100%' }}
+                    />
+                    {currentPathStop && (
+                      <div className="network-timeline-stop" style={{ marginTop: '0.5rem' }}>
+                        <strong>{currentPathStop.label}</strong>
+                        <small>{currentPathStop.detail}</small>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="network-context-section" style={{ marginTop: '0.75rem' }}>
+              <h4>My Journey</h4>
+              <button type="button" className={showUserJourney ? 'primary' : 'secondary'} onClick={() => setShowUserJourney((s) => !s)}>
+                {showUserJourney ? 'Hide my journey' : 'Show my journey'}
+              </button>
+              {showUserJourney && userJourneyNodes.length > 0 && (
+                <div className="bubble-list network-character-list" style={{ maxHeight: 160, overflowY: 'auto', marginTop: '0.5rem' }}>
+                  {userJourneyNodes.map((node) => (
+                    <button
+                      key={node.id}
+                      className="bubble-list-item network-context-item"
+                      onClick={() => node.verse && onSelect(node.verse.id)}
+                    >
+                      <span>{node.label}</span>
+                      <small>{node.detail}</small>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {(focusedCharacters.length > 0 || focusedPlaces.length > 0 || focusedCharacterTimeline.length > 0) && (
