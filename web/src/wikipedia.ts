@@ -100,6 +100,17 @@ async function fetchWikipediaSummary(title: string): Promise<WikiSummary | null>
   }
 }
 
+const IRRELEVANT_IMAGE_PATTERNS = /(flag|map|location|locator|diagram|plan|seal|coat|emblem|symbol|shield|satellite|border|route|carte|location map|svg|signature|portrait of|coin|currency|logo|stamp|ticket|diagram)/i
+
+function isRelevantImage(file: string, width?: number, height?: number, mime?: string): boolean {
+  if (mime && !mime.startsWith('image/')) return false
+  if (mime?.includes('svg')) return false
+  if (IRRELEVANT_IMAGE_PATTERNS.test(file)) return false
+  if (width != null && width < 250) return false
+  if (height != null && height < 150) return false
+  return true
+}
+
 function commonsFileUrl(file: string, width?: number): string {
   const encoded = encodeURIComponent(file.replace(/ /g, '_'))
   return `https://commons.wikimedia.org/wiki/Special:FilePath/${encoded}${width ? `?width=${width}` : ''}`
@@ -108,12 +119,18 @@ function commonsFileUrl(file: string, width?: number): string {
 async function fetchWikidataSummary(title: string): Promise<WikiSummary | null> {
   try {
     const searchRes = await fetch(
-      `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(title)}&language=en&format=json&origin=*`,
+      `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(title)}&language=en&limit=5&format=json&origin=*`,
       { headers: { Accept: 'application/json' } },
     )
     if (!searchRes.ok) return null
-    const searchData = (await searchRes.json()) as { search?: Array<{ id: string }> }
-    const id = searchData.search?.[0]?.id
+    const searchData = (await searchRes.json()) as {
+      search?: Array<{ id: string; label?: string; description?: string }>
+    }
+    const results = searchData.search ?? []
+    if (!results.length) return null
+    const exact = results.find((r) => r.label?.toLowerCase() === title.toLowerCase())
+    const pick = exact ?? results[0]
+    const id = pick.id
     if (!id) return null
 
     const entityRes = await fetch(`https://www.wikidata.org/wiki/Special:EntityData/${id}.json`)
@@ -128,11 +145,9 @@ async function fetchWikidataSummary(title: string): Promise<WikiSummary | null> 
     const imageFiles: string[] = []
     const p18 = entity.claims?.P18?.[0]?.mainsnak?.datavalue?.value
     if (p18) imageFiles.push(p18)
-    const p41 = entity.claims?.P41?.[0]?.mainsnak?.datavalue?.value
-    if (p41 && !imageFiles.includes(p41)) imageFiles.push(p41)
 
     const images: WikiImage[] = imageFiles
-      .filter(Boolean)
+      .filter((file) => isRelevantImage(file))
       .map((file) => ({
         title: file,
         url: commonsFileUrl(file, 800),
@@ -242,7 +257,7 @@ async function fetchWikipediaImagesForTitle(title: string): Promise<WikiImage[] 
       imageinfo?: Array<{ url: string; thumburl?: string; width: number; height: number; mime: string }>
     }>) {
       const info = infoPage.imageinfo?.[0]
-      if (!info || !info.mime.startsWith('image/')) continue
+      if (!info || !isRelevantImage(infoPage.title, info.width, info.height, info.mime)) continue
       images.push({
         title: infoPage.title,
         url: info.url,
@@ -286,7 +301,7 @@ async function fetchWikimediaCommonsImages(title: string): Promise<WikiImage[] |
       imageinfo?: Array<{ url: string; thumburl?: string; width: number; height: number; mime: string }>
     }>) {
       const info = infoPage.imageinfo?.[0]
-      if (!info || !info.mime.startsWith('image/')) continue
+      if (!info || !isRelevantImage(infoPage.title, info.width, info.height, info.mime)) continue
       images.push({
         title: infoPage.title,
         url: info.url,

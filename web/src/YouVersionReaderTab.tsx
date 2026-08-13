@@ -881,9 +881,10 @@ export default function YouVersionReaderTab({
       const parts = h.passage_id.split('.')
       const bookId = parts[0]
       const chapter = Number(parts[1])
-      const verse = Number(parts[2])
+      const verse = Number(parts[2]?.split('-')[0])
       if (!bookId || !Number.isFinite(chapter) || !Number.isFinite(verse)) continue
-      const match = all.find((v) => v.book.toUpperCase() === bookId.toUpperCase() && v.chapter === chapter && v.verse === verse)
+      const localBookCode = bookCodeById[bookId.toUpperCase()] ?? bookId.toUpperCase()
+      const match = all.find((v) => v.book === localBookCode && v.chapter === chapter && v.verse === verse)
       if (!match || bookmarkedIds.has(match.id)) continue
       unseen.push({ verseId: match.id, color: h.color })
     }

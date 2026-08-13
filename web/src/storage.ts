@@ -1,4 +1,12 @@
 import { Bookmark, Note, RecentSearch } from './types'
+import { getAllVerses } from './bible'
+import {
+  ApiClient,
+  BibleClient,
+  HighlightsClient,
+  YouVersionPlatformConfiguration,
+  type Highlight,
+} from '@youversion/platform-core'
 import {
   clearRecentSearchesDB,
   deleteBookmarkDB,
@@ -156,6 +164,100 @@ export function importYouVersionHighlights(
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('bible-study-storage-hydrated'))
   }
+}
+
+export async function importAllYouVersionHighlights(
+  versionId: number,
+  onProgress?: (done: number, total: number, current: string) => void,
+): Promise<number> {
+  const all = getAllVerses()
+  if (!all.length) throw new Error('Bible data is not loaded yet')
+
+  const appKey = YouVersionPlatformConfiguration.appKey
+  if (!appKey) throw new Error('YouVersion app key is not configured')
+
+  const lat = YouVersionPlatformConfiguration.accessToken ?? undefined
+  const apiClient = new ApiClient({
+    appKey,
+    apiHost: YouVersionPlatformConfiguration.apiHost,
+    timeout: 15000,
+  })
+  const bibleClient = new BibleClient(apiClient)
+  const highlightsClient = new HighlightsClient(apiClient)
+
+  const books = await bibleClient.getBooks(versionId)
+  const nameToCode = new Map<string, string>()
+  for (const v of all) {
+    if (!nameToCode.has(v.bookName)) nameToCode.set(v.bookName, v.book)
+  }
+  const bookCodeById: Record<string, string> = {}
+  for (const book of books.data) {
+    const code =
+      nameToCode.get(book.title) ||
+      (book.abbreviation ? nameToCode.get(book.abbreviation) : undefined) ||
+      book.id
+    bookCodeById[book.id.toUpperCase()] = code
+  }
+
+  const chapterInfos: { bookId: string; passageId: string }[] = []
+  for (const book of books.data) {
+    const chapters = await bibleClient.getChapters(versionId, book.id)
+    for (const chapter of chapters.data) {
+      chapterInfos.push({ bookId: book.id, passageId: chapter.passage_id })
+    }
+  }
+
+  const CONCURRENCY = 5
+  let done = 0
+  let imported = 0
+  for (let i = 0; i < chapterInfos.length; i += CONCURRENCY) {
+    const batch = chapterInfos.slice(i, i + CONCURRENCY)
+    const results = await Promise.all(
+      batch.map(async (info) => {
+        try {
+          const { data } = await highlightsClient.getHighlights(
+            { version_id: versionId, passage_id: info.passageId },
+            lat,
+          )
+          const items: { verseId: string; color?: string }[] = []
+          for (const h of data) {
+            const parts = h.passage_id.split('.')
+            const bookId = parts[0]
+            const chapter = Number(parts[1])
+            const versePart = parts[2]
+            if (!bookId || !Number.isFinite(chapter) || !versePart) continue
+            const localBookCode = bookCodeById[bookId.toUpperCase()] ?? bookId.toUpperCase()
+            const [firstStr, lastStr] = versePart.split('-')
+            const first = Number(firstStr)
+            const last = lastStr ? Number(lastStr) : first
+            if (!Number.isFinite(first)) continue
+            const end = Number.isFinite(last) ? last : first
+            for (let v = first; v <= end; v++) {
+              const match = all.find(
+                (verse) =>
+                  verse.book === localBookCode &&
+                  verse.chapter === chapter &&
+                  verse.verse === v,
+              )
+              if (match) items.push({ verseId: match.id, color: h.color })
+            }
+          }
+          return items
+        } catch {
+          return []
+        } finally {
+          done++
+          onProgress?.(done, chapterInfos.length, info.passageId)
+        }
+      }),
+    )
+    const batchItems = results.flat()
+    if (batchItems.length) {
+      importYouVersionHighlights(batchItems, String(versionId), 'YouVersion')
+      imported += batchItems.length
+    }
+  }
+  return imported
 }
 
 export function clearCurrentUser() {

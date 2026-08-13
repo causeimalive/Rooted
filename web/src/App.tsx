@@ -5,7 +5,6 @@ import { Capacitor } from '@capacitor/core'
 import { App as CapacitorApp } from '@capacitor/app'
 import {
   BookOpen,
-  Book,
   Map as MapIcon,
   ExternalLink,
   Search,
@@ -39,6 +38,7 @@ import {
   loadBible,
   lookupLexicon,
   searchBible,
+  searchLexicon,
   type NetworkTheme,
   type VerseMatch,
 } from './bible'
@@ -72,7 +72,7 @@ import {
 } from './characters'
 import { getMapStyle } from './mapStyles'
 import WikiMediaCard from './WikiMediaCard'
-import LexiconTab from './LexiconTab'
+
 import YouVersionReaderTab from './YouVersionReaderTab'
 const NetworkThreeScene = lazy(() => import('./NetworkThreeScene'))
 import { SCENE_PALETTE } from './relationshipGraph/palette'
@@ -83,7 +83,7 @@ import {
   getBookmarks,
   getCurrentUserId,
   getRecentSearches,
-  importYouVersionHighlights,
+  importAllYouVersionHighlights,
   isBookmarked,
   syncUserData,
   toggleBookmark,
@@ -94,7 +94,7 @@ import type { Character } from './types'
 import { useI18n } from './i18n'
 import { getUserPreference, setUserPreference } from './userProfile'
 import { getWikipediaLink, useWikiImages, useWikiSummary, type WikiImage } from './wikipedia'
-import { useBibleClient, useBooks, useChapters, useHighlights, useVersion, useVersions, useYVAuth } from '@youversion/platform-react-hooks'
+import { useYVAuth } from '@youversion/platform-react-hooks'
 import { getYouVersionRedirectUrl } from './youversionRedirect'
 
 type Tab = 'search' | 'reader' | 'network' | 'map'
@@ -210,64 +210,15 @@ function SettingsMenu() {
   const [category, setCategory] = useState<'look-feel' | 'network' | 'youversion'>('look-feel')
   const [syncState, setSyncState] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle')
   const [syncMessage, setSyncMessage] = useState<string | null>(null)
-  const [importHighlights, setImportHighlights] = useState(false)
   const dialogRef = useRef<HTMLDialogElement | null>(null)
 
   const lastReadVersion = Number(getUserPreference(userId, 'bible-study-yv-version'))
-  const lastReadBook = getUserPreference(userId, 'bible-study-yv-book') ?? ''
-  const lastReadChapter = Number(getUserPreference(userId, 'bible-study-yv-chapter'))
-  const lastReadPassageId = lastReadBook && Number.isFinite(lastReadChapter) ? `${lastReadBook}.${lastReadChapter}` : 'GEN.1'
-  const { highlights } = useHighlights(
-    { version_id: (Number.isFinite(lastReadVersion) ? lastReadVersion : 1) || 1, passage_id: lastReadPassageId },
-    { enabled: auth.isAuthenticated && importHighlights },
-  )
 
   const CATEGORIES: { id: 'look-feel' | 'network' | 'youversion'; label: string; icon: typeof Cog }[] = [
     { id: 'look-feel', label: 'Look & feel', icon: Palette },
     { id: 'network', label: 'Network', icon: Globe },
     { id: 'youversion', label: 'YouVersion', icon: BookOpen },
   ]
-
-  useEffect(() => {
-    if (!importHighlights) return
-    setImportHighlights(false)
-    if (!highlights?.data?.length) {
-      setSyncState('success')
-      setSyncMessage('Sync complete — no new highlights found')
-      return
-    }
-    const all = getAllVerses()
-    const unseen: { verseId: string; color?: string }[] = []
-    for (const h of highlights.data) {
-      const parts = h.passage_id.split('.')
-      const bookId = parts[0]
-      const chapter = Number(parts[1])
-      const versePart = parts[2]
-      const verse = Number(versePart?.split('-')[0])
-      if (!bookId || !Number.isFinite(chapter) || !Number.isFinite(verse)) continue
-      const match = all.find(
-        (v) =>
-          v.book.toUpperCase() === bookId.toUpperCase() &&
-          v.chapter === chapter &&
-          v.verse === verse,
-      )
-      if (!match) continue
-      unseen.push({ verseId: match.id, color: h.color })
-    }
-    if (!unseen.length) {
-      setSyncState('success')
-      setSyncMessage('Sync complete — no new highlights to import')
-      return
-    }
-    try {
-      importYouVersionHighlights(unseen, String(lastReadVersion), 'YouVersion')
-      setSyncState('success')
-      setSyncMessage(`Imported ${unseen.length} highlight${unseen.length === 1 ? '' : 's'}`)
-    } catch (err) {
-      setSyncState('error')
-      setSyncMessage(err instanceof Error ? err.message : String(err))
-    }
-  }, [importHighlights, highlights, lastReadVersion, lastReadBook, lastReadChapter])
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -328,19 +279,29 @@ function SettingsMenu() {
   const handleSync = useCallback(async () => {
     const syncUserId = getCurrentUserId() ?? userId
     if (!syncUserId) return
+    const versionId = Number.isFinite(lastReadVersion) && lastReadVersion > 0 ? lastReadVersion : null
+    if (!versionId) {
+      setSyncState('error')
+      setSyncMessage('Open a chapter in the reader first so the app knows which Bible version to sync.')
+      return
+    }
     setSyncState('syncing')
-    setSyncMessage('Syncing bookmarks...')
+    setSyncMessage('Syncing local bookmarks...')
     try {
       await syncUserData(syncUserId)
-      setSyncMessage('Importing YouVersion highlights...')
-      setImportHighlights(true)
+      const imported = await importAllYouVersionHighlights(versionId, (done, total, current) => {
+        setSyncMessage(`Scanning YouVersion chapters... ${done} / ${total} (${current})`)
+      })
+      await syncUserData(syncUserId)
+      setSyncState('success')
+      setSyncMessage(`Sync complete — imported ${imported} highlight${imported === 1 ? '' : 's'}`)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       console.error('Sync failed:', error)
       setSyncState('error')
       setSyncMessage(message)
     }
-  }, [userId])
+  }, [userId, lastReadVersion])
 
   return (
     <>
@@ -1021,6 +982,7 @@ export default function App() {
 
           {tab === 'search' && (
             <aside className="sidebar verse-sidebar">
+              <LexiconQueryPanel query={query} onQuery={setQuery} />
               {detailVerse ? (
                 <>
                   <section className="detail-card detail-card-hero">
@@ -1316,7 +1278,7 @@ function SearchTab({
   recentSearches: RecentSearch[]
 }) {
   const { t } = useI18n()
-  const [mode, setMode] = useState<'verses' | 'bookmarks' | 'words'>('verses')
+  const [mode, setMode] = useState<'search' | 'bookmarks'>('search')
   const all = getAllVerses()
   const currentVersionId = readerVersion ? String(readerVersion.id) : ''
   const allBookmarkedVerses = useMemo(
@@ -1339,7 +1301,6 @@ function SearchTab({
   )
 
   const showingBookmarks = mode === 'bookmarks'
-  const showingWords = mode === 'words'
   const bookmarked = useMemo(
     () => (showingBookmarks ? new Set(allBookmarkedVerses.map((i) => i.verse.id)) : activeVersionBookmarked),
     [showingBookmarks, allBookmarkedVerses, activeVersionBookmarked],
@@ -1355,8 +1316,8 @@ function SearchTab({
       <div className="search-header">
         <div className="search-mode-toggle">
           <button
-            className={`search-mode-btn ${mode === 'verses' ? 'active' : ''}`}
-            onClick={() => setMode('verses')}
+            className={`search-mode-btn ${!showingBookmarks ? 'active' : ''}`}
+            onClick={() => setMode('search')}
           >
             <Search size={14} /> {t('search')}
           </button>
@@ -1365,12 +1326,6 @@ function SearchTab({
             onClick={() => setMode('bookmarks')}
           >
             <Bookmark size={14} /> {t('bookmarks')}
-          </button>
-          <button
-            className={`search-mode-btn ${showingWords ? 'active' : ''}`}
-            onClick={() => setMode('words')}
-          >
-            <Book size={14} /> {t('words')}
           </button>
         </div>
         <div className="search-bar">
@@ -1381,22 +1336,19 @@ function SearchTab({
             value={query}
             autoFocus
             onChange={(e) => onQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && mode === 'verses' && onSearch(query)}
+            onKeyDown={(e) => e.key === 'Enter' && !showingBookmarks && onSearch(query)}
           />
           {query && (
-            <button className="search-clear" onClick={() => { onQuery(''); setMode('verses') }}>
+            <button className="search-clear" onClick={() => { onQuery(''); setMode('search') }}>
               <X size={16} />
             </button>
           )}
         </div>
-        {(query.trim() || showingBookmarks) && !showingWords && resultCount > 0 && (
+        {(query.trim() || showingBookmarks) && resultCount > 0 && (
           <div className="result-count">{t('resultCount', { count: String(resultCount) })}</div>
         )}
       </div>
-      {showingWords ? (
-        <LexiconTab query={query} onQuery={onQuery} onSelect={onSelect} />
-      ) : (
-        <div className="verse-list">
+      <div className="verse-list">
           {showingBookmarks ? (
           allBookmarkedVerses.length === 0 ? (
             <div className="empty">{t('noBookmarks')}</div>
@@ -1518,8 +1470,49 @@ function SearchTab({
         )}
 
       </div>
-    )}
     </div>
+  )
+}
+
+function LexiconQueryPanel({
+  query,
+  onQuery,
+}: {
+  query: string
+  onQuery: (q: string) => void
+}) {
+  const { t } = useI18n()
+  const trimmed = query.trim()
+  const entry = useMemo(() => (trimmed ? lookupLexicon(trimmed) : null), [trimmed])
+  const suggestions = useMemo(() => (trimmed ? searchLexicon(trimmed) : []), [trimmed])
+
+  if (!trimmed) return null
+  if (!entry && suggestions.length === 0) return null
+
+  return (
+    <section className="detail-card">
+      <h4 className="section-title">{t('words')}</h4>
+      {entry ? (
+        <div className="meaning-box meaning-box-word-study" style={{ marginBottom: '0.5rem' }}>
+          <p className="word-study-word">{entry.word}</p>
+          {entry.kjvMeaning && <p className="word-study-kjv">{entry.kjvMeaning}</p>}
+          <p>{entry.modernMeaning}{entry.historicalContext ? ` . ${entry.historicalContext}` : ''}</p>
+        </div>
+      ) : (
+        <div className="meaning-box">
+          <p>{t('lexiconNotFound', { term: trimmed })}</p>
+        </div>
+      )}
+      {suggestions.length > 0 && (
+        <div className="lexicon-suggestions">
+          {suggestions.map((s) => (
+            <button key={s.word} className="suggestion" onClick={() => onQuery(s.word)}>
+              {s.word}
+            </button>
+          ))}
+        </div>
+      )}
+    </section>
   )
 }
 

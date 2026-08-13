@@ -65,7 +65,12 @@ export default function MapMarkers({
       algorithm: new SuperClusterAlgorithm({ radius: 80, maxZoom: 17, minPoints: 2 }),
       onClusterClick: (_event, cluster, clusterMap) => {
         const bounds = cluster.bounds
-        if (bounds) clusterMap.fitBounds(bounds, 48)
+        if (!bounds) return
+        clusterMap.fitBounds(bounds, 0)
+        google.maps.event.addListenerOnce(clusterMap, 'idle', () => {
+          const z = clusterMap.getZoom()
+          if (z != null) clusterMap.setZoom(Math.min(z + 1, 18))
+        })
       },
       renderer: {
         render: (cluster: { count: number; position: google.maps.LatLng }) => {
