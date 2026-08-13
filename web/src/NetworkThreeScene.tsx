@@ -239,7 +239,7 @@ function NodeInstancer({
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i]
       DUMMY.position.set(node.x, node.y, node.z)
-      const scale = Math.max(0.6, Math.sqrt(node.size) * 0.12)
+      const scale = Math.max(0.9, Math.sqrt(node.size) * 0.16)
       const isSelected = node.id === selectedId
       DUMMY.scale.setScalar(isSelected ? scale * 1.25 : scale)
       DUMMY.updateMatrix()
@@ -454,7 +454,7 @@ export default function NetworkThreeScene(props: NetworkThreeSceneProps) {
       style={{ width: '100%', height: '100%', minHeight: 460, background: `rgb(${r * 255}, ${g * 255}, ${b * 255})` }}
     >
       <Canvas
-        camera={{ fov: 45, near: 1, far: 4000, position: [props.focus.x, props.focus.y, props.focus.z + 800] }}
+        camera={{ fov: 45, near: 1, far: 4000, position: [props.focus.x, props.focus.y, props.focus.z + 240] }}
         style={{ width: '100%', height: '100%' }}
         gl={{ antialias: true, alpha: false }}
         dpr={quality === 'low' ? 1 : [1, 1.5]}
