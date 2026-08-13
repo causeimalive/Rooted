@@ -4,6 +4,7 @@ import {
   ApiClient,
   BibleClient,
   HighlightsClient,
+  YouVersionAPIUsers,
   YouVersionPlatformConfiguration,
 } from '@youversion/platform-core'
 import {
@@ -175,7 +176,12 @@ export async function importAllYouVersionHighlights(
   const appKey = YouVersionPlatformConfiguration.appKey
   if (!appKey) throw new Error('YouVersion app key is not configured')
 
+  const tokenFresh = await YouVersionAPIUsers.refreshTokenIfNeeded()
+  if (!tokenFresh) throw new Error('YouVersion token could not be refreshed. Please sign in again.')
+
   const lat = YouVersionPlatformConfiguration.accessToken ?? undefined
+  if (!lat) throw new Error('YouVersion token is missing. Please sign in again.')
+
   const apiClient = new ApiClient({
     appKey,
     apiHost: YouVersionPlatformConfiguration.apiHost,
@@ -218,36 +224,31 @@ export async function importAllYouVersionHighlights(
     const batch = chapterInfos.slice(i, i + CONCURRENCY)
     const results = await Promise.all(
       batch.map(async (info) => {
-        try {
-          const { data } = await highlightsClient.getHighlights(
-            { version_id: versionId, passage_id: info.passageId },
-            lat,
-          )
-          const items: { verseId: string; color?: string }[] = []
-          for (const h of data) {
-            const parts = h.passage_id.split('.')
-            const bookId = parts[0]
-            const chapter = Number(parts[1])
-            const versePart = parts[2]
-            if (!bookId || !Number.isFinite(chapter) || !versePart) continue
-            const localBookCode = bookCodeById[bookId.toUpperCase()] ?? bookId.toUpperCase()
-            const [firstStr, lastStr] = versePart.split('-')
-            const first = Number(firstStr)
-            const last = lastStr ? Number(lastStr) : first
-            if (!Number.isFinite(first)) continue
-            const end = Number.isFinite(last) ? last : first
-            for (let v = first; v <= end; v++) {
-              const match = verseByRef.get(`${localBookCode}:${chapter}:${v}`)
-              if (match) items.push({ verseId: match.id, color: h.color })
-            }
+        const { data } = await highlightsClient.getHighlights(
+          { version_id: versionId, passage_id: info.passageId },
+          lat,
+        )
+        done++
+        onProgress?.(done, chapterInfos.length, info.passageId)
+        const items: { verseId: string; color?: string }[] = []
+        for (const h of data) {
+          const parts = h.passage_id.split('.')
+          const bookId = parts[0]
+          const chapter = Number(parts[1])
+          const versePart = parts[2]
+          if (!bookId || !Number.isFinite(chapter) || !versePart) continue
+          const localBookCode = bookCodeById[bookId.toUpperCase()] ?? bookId.toUpperCase()
+          const [firstStr, lastStr] = versePart.split('-')
+          const first = Number(firstStr)
+          const last = lastStr ? Number(lastStr) : first
+          if (!Number.isFinite(first)) continue
+          const end = Number.isFinite(last) ? last : first
+          for (let v = first; v <= end; v++) {
+            const match = verseByRef.get(`${localBookCode}:${chapter}:${v}`)
+            if (match) items.push({ verseId: match.id, color: h.color })
           }
-          return items
-        } catch {
-          return []
-        } finally {
-          done++
-          onProgress?.(done, chapterInfos.length, info.passageId)
         }
+        return items
       }),
     )
     const batchItems = results.flat()
