@@ -12,7 +12,7 @@ export interface Keyword {
   meaning: string
 }
 
-export type Tab = 'search' | 'reader' | 'network' | 'map'
+export type Tab = 'search' | 'reader' | 'wayfinder' | 'map'
 export type ReaderView = 'html' | 'chapter' | 'verse'
 
 export interface Verse {

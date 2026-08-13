@@ -73,7 +73,8 @@ import {
 } from './characters'
 import { getMapStyle } from './mapStyles'
 import WikiMediaCard from './WikiMediaCard'
-
+import LexiconTab from './LexiconTab'
+import WayfinderTab from './WayfinderTab'
 import YouVersionReaderTab from './YouVersionReaderTab'
 const NetworkThreeScene = lazy(() => import('./NetworkThreeScene'))
 import { SCENE_PALETTE } from './relationshipGraph/palette'
@@ -98,9 +99,9 @@ import { getWikipediaLink, useWikiImages, useWikiSummary, type WikiImage } from 
 import { useYVAuth } from '@youversion/platform-react-hooks'
 import { getYouVersionRedirectUrl } from './youversionRedirect'
 
-type Tab = 'search' | 'reader' | 'network' | 'map'
+type Tab = 'search' | 'reader' | 'wayfinder' | 'map'
 
-const TABS: Tab[] = ['search', 'reader', 'network', 'map']
+const TABS: Tab[] = ['search', 'reader', 'wayfinder', 'map']
 
 const USFM_BOOK_NORMALIZE: Record<string, string> = {
   genesis: 'Gen', exodus: 'Exod', leviticus: 'Lev', numbers: 'Num', deuteronomy: 'Deut',
@@ -840,8 +841,8 @@ export default function App() {
           <button className={`tab ${tab === 'reader' ? 'active' : ''}`} onClick={() => setTab('reader')}>
             <BookOpen size={16} /> {t('reader')}
           </button>
-          <button className={`tab ${tab === 'network' ? 'active' : ''}`} onClick={() => setTab('network')}>
-            <Share2 size={16} /> {t('network')}
+          <button className={`tab ${tab === 'wayfinder' ? 'active' : ''}`} onClick={() => setTab('wayfinder')}>
+            <Share2 size={16} /> {t('wayfinder')}
           </button>
           <button className={`tab ${tab === 'map' ? 'active' : ''}`} onClick={() => setTab('map')}>
             <MapIcon size={16} /> {t('map')}
@@ -958,14 +959,10 @@ export default function App() {
               <div className="panel empty">Missing YouVersion app key. Add `VITE_YVP_APP_KEY` to `web/.env.local`.</div>
             )
           )}
-          {tab === 'network' && (
+          {tab === 'wayfinder' && (
             <WayfinderTab
-              selectedVerse={selected}
-              fallbackVerse={results[0]?.verse ?? getAllVerses()[0]}
-              onSelect={setSelectedId}
-              selectedId={selectedId}
               bookmarks={bookmarks}
-              theme={theme}
+              onSelect={setSelectedId}
             />
           )}
           {tab === 'map' && (
@@ -983,7 +980,6 @@ export default function App() {
 
           {tab === 'search' && (
             <aside className="sidebar verse-sidebar">
-              <LexiconQueryPanel query={query} onQuery={setQuery} />
               {detailVerse ? (
                 <>
                   <section className="detail-card detail-card-hero">
@@ -1387,8 +1383,6 @@ function SearchTab({
               </div>
             ))
           )
-        ) : results.length === 0 && query.trim() ? (
-          <div className="empty">{t('noResults')}</div>
         ) : !query.trim() ? (
           <div className="recent-searches">
             <div className="recent-searches-heading">
@@ -1441,33 +1435,40 @@ function SearchTab({
             )}
           </div>
         ) : (
-          results.map(({ verse }) => (
-            <div
-              key={verse.id}
-              className={`verse-card ${selectedId === verse.id ? 'active' : ''}`}
-              onClick={() => onSelect(verse.id)}
-              onDoubleClick={() => onSelectResult(verse.id, query)}
-              onPointerEnter={() => onHoverVerse(verse.id)}
-              onFocus={() => onHoverVerse(verse.id)}
-            >
-              <div className="verse-ref">
-                <span>{verse.bookName} {verse.chapter}:{verse.verse}</span>
-                {(readerVersion || verse.translation) && (
-                  <span className="verse-meta-pill" style={{ marginLeft: 'auto' }}>{readerVersion ? (readerVersion.abbreviation || readerVersion.name) : verse.translation.toUpperCase()}</span>
-                )}
-                <button
-                  className="secondary"
-                  onClick={(e) => { e.stopPropagation(); onToggleBookmark(verse.id, readerVersion ? String(readerVersion.id) : verse.translation, readerVersion ? (readerVersion.abbreviation || readerVersion.name) : verse.translation.toUpperCase()) }}
-                  aria-label={bookmarked.has(verse.id) ? t('unbookmark') : t('bookmark')}
+          <>
+            <LexiconTab query={query} onQuery={onQuery} onSelect={onSelect} />
+            {results.length === 0 ? (
+              <div className="empty">{t('noResults')}</div>
+            ) : (
+              results.map(({ verse }) => (
+                <div
+                  key={verse.id}
+                  className={`verse-card ${selectedId === verse.id ? 'active' : ''}`}
+                  onClick={() => onSelect(verse.id)}
+                  onDoubleClick={() => onSelectResult(verse.id, query)}
+                  onPointerEnter={() => onHoverVerse(verse.id)}
+                  onFocus={() => onHoverVerse(verse.id)}
                 >
-                  {bookmarked.has(verse.id) ? <Bookmark size={14} fill="currentColor" /> : <Bookmark size={14} />}
-                </button>
-              </div>
-              <div className="verse-text">
-                <Highlight text={verse.text} query={query} />
-              </div>
-            </div>
-          ))
+                  <div className="verse-ref">
+                    <span>{verse.bookName} {verse.chapter}:{verse.verse}</span>
+                    {(readerVersion || verse.translation) && (
+                      <span className="verse-meta-pill" style={{ marginLeft: 'auto' }}>{readerVersion ? (readerVersion.abbreviation || readerVersion.name) : verse.translation.toUpperCase()}</span>
+                    )}
+                    <button
+                      className="secondary"
+                      onClick={(e) => { e.stopPropagation(); onToggleBookmark(verse.id, readerVersion ? String(readerVersion.id) : verse.translation, readerVersion ? (readerVersion.abbreviation || readerVersion.name) : verse.translation.toUpperCase()) }}
+                      aria-label={bookmarked.has(verse.id) ? t('unbookmark') : t('bookmark')}
+                    >
+                      {bookmarked.has(verse.id) ? <Bookmark size={14} fill="currentColor" /> : <Bookmark size={14} />}
+                    </button>
+                  </div>
+                  <div className="verse-text">
+                    <Highlight text={verse.text} query={query} />
+                  </div>
+                </div>
+              ))
+            )}
+          </>
         )}
 
       </div>
@@ -2093,7 +2094,7 @@ function buildBibleHierarchyNodes(allVerses: Verse[]): AmbientBibleData {
   return { bookNodes, chapterNodes, chapterByKey, verseByChapter }
 }
 
-function WayfinderTab({
+function OldNetworkTab({
   selectedVerse,
   fallbackVerse,
   onSelect,
