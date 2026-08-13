@@ -4,7 +4,6 @@ import {
   ApiClient,
   BibleClient,
   HighlightsClient,
-  YouVersionAPIUsers,
   YouVersionPlatformConfiguration,
 } from '@youversion/platform-core'
 import {
@@ -176,10 +175,7 @@ export async function importAllYouVersionHighlights(
   const appKey = YouVersionPlatformConfiguration.appKey
   if (!appKey) throw new Error('YouVersion app key is not configured')
 
-  const tokenFresh = await YouVersionAPIUsers.refreshTokenIfNeeded()
-  if (!tokenFresh) throw new Error('YouVersion token could not be refreshed. Please sign in again.')
-
-  const lat = YouVersionPlatformConfiguration.accessToken ?? undefined
+  const lat = YouVersionPlatformConfiguration.accessToken
   if (!lat) throw new Error('YouVersion token is missing. Please sign in again.')
 
   const apiClient = new ApiClient({
