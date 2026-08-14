@@ -5,16 +5,17 @@ import { type BibleVersion } from '@youversion/platform-core'
 type SyncVersionMenuProps = {
   open: boolean
   lastReadVersion: number
+  lastReadBook: string
   onClose: () => void
   onSync: (versionIds: number[], bookIds?: string[], onlySavedChapters?: boolean) => void
 }
 
-export default function SyncVersionMenu({ open, lastReadVersion, onClose, onSync }: SyncVersionMenuProps) {
+export default function SyncVersionMenu({ open, lastReadVersion, lastReadBook, onClose, onSync }: SyncVersionMenuProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const [selected, setSelected] = useState<Set<number>>(new Set())
-  const [lastReadBook, setLastReadBook] = useState<string>('')
   const [syncCurrentBook, setSyncCurrentBook] = useState(false)
   const [syncSavedChapters, setSyncSavedChapters] = useState(false)
+  const [syncAll, setSyncAll] = useState(false)
 
   const { versions: versionCollection, loading, error } = useVersions('en', undefined, {
     all_available: true,
@@ -38,11 +39,10 @@ export default function SyncVersionMenu({ open, lastReadVersion, onClose, onSync
     const initial = new Set<number>()
     if (lastReadVersion > 0) initial.add(lastReadVersion)
     setSelected(initial)
-
-    const book = typeof window !== 'undefined' ? localStorage.getItem('bible-study-yv-book') ?? '' : ''
-    setLastReadBook(book)
-    setSyncCurrentBook(Boolean(book))
-  }, [open, lastReadVersion])
+    setSyncCurrentBook(Boolean(lastReadBook))
+    setSyncSavedChapters(false)
+    setSyncAll(false)
+  }, [open, lastReadVersion, lastReadBook])
 
   const toggle = (id: number) => {
     const next = new Set(selected)
@@ -55,12 +55,15 @@ export default function SyncVersionMenu({ open, lastReadVersion, onClose, onSync
     if (selected.size === 0) return
     if (syncSavedChapters) {
       onSync(Array.from(selected), undefined, true)
-    } else {
-      const bookIds = syncCurrentBook && lastReadBook ? [lastReadBook] : undefined
-      onSync(Array.from(selected), bookIds)
+    } else if (syncCurrentBook && lastReadBook) {
+      onSync(Array.from(selected), [lastReadBook])
+    } else if (syncAll) {
+      onSync(Array.from(selected))
     }
     onClose()
   }
+
+  const canSync = selected.size > 0 && (syncCurrentBook || syncSavedChapters || syncAll)
 
   return (
     <dialog
@@ -121,7 +124,7 @@ export default function SyncVersionMenu({ open, lastReadVersion, onClose, onSync
                 margin: 0,
                 padding: '0.25rem 0',
                 overflowY: 'auto',
-                maxHeight: '45vh',
+                maxHeight: '35vh',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '0.35rem',
@@ -153,7 +156,37 @@ export default function SyncVersionMenu({ open, lastReadVersion, onClose, onSync
               ))}
             </ul>
           )}
-          {lastReadBook && (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.35rem',
+            }}
+          >
+            {lastReadBook && (
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  cursor: 'pointer',
+                  padding: '0.35rem 0.5rem',
+                  borderRadius: '0.5rem',
+                  border: '1px solid color-mix(in srgb, var(--accent) 18%, var(--muted))',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={syncCurrentBook}
+                  onChange={() => {
+                    setSyncCurrentBook(true)
+                    setSyncSavedChapters(false)
+                    setSyncAll(false)
+                  }}
+                />
+                <span>Sync only the current book ({lastReadBook})</span>
+              </label>
+            )}
             <label
               style={{
                 display: 'flex',
@@ -167,31 +200,38 @@ export default function SyncVersionMenu({ open, lastReadVersion, onClose, onSync
             >
               <input
                 type="checkbox"
-                checked={syncCurrentBook && !syncSavedChapters}
-                disabled={syncSavedChapters}
-                onChange={() => setSyncCurrentBook((v) => !v)}
+                checked={syncSavedChapters}
+                onChange={() => {
+                  setSyncSavedChapters(true)
+                  setSyncCurrentBook(false)
+                  setSyncAll(false)
+                }}
               />
-              <span>Sync only the current book ({lastReadBook})</span>
+              <span>Sync only chapters with saved highlights</span>
             </label>
-          )}
-          <label
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              cursor: 'pointer',
-              padding: '0.35rem 0.5rem',
-              borderRadius: '0.5rem',
-              border: '1px solid color-mix(in srgb, var(--accent) 18%, var(--muted))',
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={syncSavedChapters}
-              onChange={() => setSyncSavedChapters((v) => !v)}
-            />
-            <span>Sync only chapters with saved highlights</span>
-          </label>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                cursor: 'pointer',
+                padding: '0.35rem 0.5rem',
+                borderRadius: '0.5rem',
+                border: '1px solid color-mix(in srgb, var(--accent) 18%, var(--muted))',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={syncAll}
+                onChange={() => {
+                  setSyncAll(true)
+                  setSyncCurrentBook(false)
+                  setSyncSavedChapters(false)
+                }}
+              />
+              <span>Sync all chapters in selected version(s)</span>
+            </label>
+          </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
             <button type="button" className="secondary" onClick={onClose}>
               Cancel
@@ -199,7 +239,7 @@ export default function SyncVersionMenu({ open, lastReadVersion, onClose, onSync
             <button
               type="button"
               onClick={handleSync}
-              disabled={selected.size === 0 || loading}
+              disabled={!canSync || loading}
             >
               Sync selected
             </button>

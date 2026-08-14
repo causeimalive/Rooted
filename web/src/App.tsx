@@ -196,7 +196,7 @@ const YOUVERSION_APP_KEY = import.meta.env.VITE_YVP_APP_KEY?.trim() ?? ''
 const READER_FONT_SIZE_KEY = 'bible-study-yv-font-size'
 const UI_SCALE_KEY = 'bible-study-ui-scale'
 
-function SettingsMenu() {
+function SettingsMenu({ lastReadBook }: { lastReadBook: string }) {
   const { auth, userInfo } = useYVAuth()
   const userId = userInfo?.userId
   const [isOpen, setIsOpen] = useState(false)
@@ -513,6 +513,7 @@ function SettingsMenu() {
           <SyncVersionMenu
             open={isVersionMenuOpen}
             lastReadVersion={lastReadVersion}
+            lastReadBook={lastReadBook}
             onClose={() => setIsVersionMenuOpen(false)}
             onSync={handleSyncSelected}
           />
@@ -585,6 +586,9 @@ export default function App() {
   const [audioLoading, setAudioLoading] = useState(false)
   const [audioError, setAudioError] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(() => parseHash().verseId ?? null)
+  const [lastReadBook, setLastReadBook] = useState<string>(() =>
+    typeof window !== 'undefined' ? localStorage.getItem('bible-study-yv-book') ?? '' : ''
+  )
   const [readerVersion, setReaderVersion] = useState<{ id: number; name: string; abbreviation: string } | null>(null)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>(getRecentSearches())
@@ -865,7 +869,7 @@ export default function App() {
               <button className="theme-toggle" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} title={theme === 'dark' ? t('lightMode') : t('darkMode')}>
                 {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
               </button>
-              {YOUVERSION_APP_KEY ? <SettingsMenu /> : null}
+              {YOUVERSION_APP_KEY ? <SettingsMenu lastReadBook={lastReadBook} /> : null}
               {YOUVERSION_APP_KEY ? <AuthSignOutButton /> : null}
             </span>
           )}
@@ -943,7 +947,7 @@ export default function App() {
               <button className="theme-toggle" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} title={theme === 'dark' ? t('lightMode') : t('darkMode')}>
                 {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
               </button>
-              {YOUVERSION_APP_KEY ? <SettingsMenu /> : null}
+              {YOUVERSION_APP_KEY ? <SettingsMenu lastReadBook={lastReadBook} /> : null}
               {YOUVERSION_APP_KEY ? <AuthSignOutButton /> : null}
             </>
           )}
@@ -996,6 +1000,7 @@ export default function App() {
                   audioTitle={audioTitle}
                   onToggleAudio={toggleAudio}
                   onVersionChange={setReaderVersion}
+                  onLastReadChange={(bookId) => setLastReadBook(bookId)}
                 />
               </YouVersionProvider>
             ) : (
