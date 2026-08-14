@@ -12,7 +12,8 @@
     "emulate": "npx firebase emulators:start --only functions"
   },
   "dependencies": {
-    "firebase-functions": "^6.0.1"
+    "firebase-functions": "^6.0.1",
+    "raw-body": "^4.0.0"
   },
   "devDependencies": {
     "typescript": "^5.4.5"

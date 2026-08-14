@@ -1,5 +1,6 @@
 import { onRequest } from 'firebase-functions/v2/https'
 import type { Request, Response } from 'express'
+import getRawBody from 'raw-body'
 import { logger } from 'firebase-functions'
 
 const ALLOWED_ORIGINS = new Set([
@@ -82,6 +83,8 @@ export const proxyYouVersion = onRequest(
       'x-yvp-sdk',
       'accept-language',
       'accept',
+      'content-type',
+      'content-length',
     ])
     const headers: Record<string, string> = {}
     for (const [key, value] of Object.entries(req.headers)) {
@@ -93,13 +96,24 @@ export const proxyYouVersion = onRequest(
       headers['x-yvp-sdk'] = 'ReactSDK=2.5.0'
     }
 
+    let body: Buffer | undefined
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+      try {
+        body = await getRawBody(req, { limit: '5mb' })
+        headers['content-length'] = String(body.length)
+      } catch (e) {
+        logger.warn('Could not read request body', e)
+      }
+    }
+
     try {
       logger.info(`Proxying ${req.method} ${yvUrl}`)
       const yvRes = await fetch(yvUrl, {
         method: req.method,
         headers,
+        body,
       })
-      const body = await yvRes.text()
+      const responseBody = await yvRes.text()
 
       res.status(yvRes.status)
       const contentType = yvRes.headers.get('content-type')
@@ -110,7 +124,7 @@ export const proxyYouVersion = onRequest(
       if (retryAfter) {
         res.setHeader('Retry-After', retryAfter)
       }
-      res.send(body)
+      res.send(responseBody)
     } catch (error: any) {
       logger.error('YouVersion proxy request failed', error)
       res.status(502).send(`Proxy request failed: ${error.message || String(error)}`)
