@@ -10,7 +10,7 @@ import { YouVersionProvider } from '@youversion/platform-react-ui'
 import { useYVAuth } from '@youversion/platform-react-hooks'
 import { auth } from './firebase'
 import Landing from './Landing'
-const YOUVERSION_API_HOST = 'rootedinchrist.faith/api/youversion'
+const YOUVERSION_API_HOST = 'api.youversion.com'
 import { getYouVersionRedirectUrl } from './youversionRedirect'
 
 type Theme = 'dark' | 'light'
