@@ -503,13 +503,13 @@ function SettingsMenu() {
               )}
             </div>
         </div>
-      </dialog>
       <SyncVersionMenu
         open={isVersionMenuOpen}
         lastReadVersion={lastReadVersion}
         onClose={() => setIsVersionMenuOpen(false)}
         onSync={handleSyncSelected}
       />
+      </dialog>
     </>
   )
 }
