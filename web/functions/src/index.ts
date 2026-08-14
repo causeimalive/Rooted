@@ -98,10 +98,14 @@ export const proxyYouVersion = onRequest(
 
     let body: Buffer | undefined
     if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
-      if (Buffer.isBuffer(req.body)) {
+      if (Buffer.isBuffer((req as any).rawBody)) {
+        body = (req as any).rawBody
+      } else if (Buffer.isBuffer(req.body)) {
         body = req.body
       } else if (typeof req.body === 'string' && req.body.length > 0) {
         body = Buffer.from(req.body)
+      } else if (typeof (req as any).rawBody === 'string' && (req as any).rawBody.length > 0) {
+        body = Buffer.from((req as any).rawBody)
       } else {
         try {
           body = await getRawBody(req, {
@@ -109,11 +113,13 @@ export const proxyYouVersion = onRequest(
             limit: '5mb',
           })
         } catch (e) {
-          logger.warn('Could not read request body: ' + ((e as Error).message || String(e)))
+          logger.warn('Could not read request body: ' + String(e) + ' ' + JSON.stringify(e))
         }
       }
       if (body) {
         headers['content-length'] = String(body.length)
+      } else {
+        logger.warn('Request body missing for ' + req.method + ' ' + req.path)
       }
     }
 
