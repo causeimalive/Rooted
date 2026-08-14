@@ -6,7 +6,7 @@ type SyncVersionMenuProps = {
   open: boolean
   lastReadVersion: number
   onClose: () => void
-  onSync: (versionIds: number[], bookIds?: string[]) => void
+  onSync: (versionIds: number[], bookIds?: string[], onlySavedChapters?: boolean) => void
 }
 
 export default function SyncVersionMenu({ open, lastReadVersion, onClose, onSync }: SyncVersionMenuProps) {
@@ -14,6 +14,7 @@ export default function SyncVersionMenu({ open, lastReadVersion, onClose, onSync
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [lastReadBook, setLastReadBook] = useState<string>('')
   const [syncCurrentBook, setSyncCurrentBook] = useState(false)
+  const [syncSavedChapters, setSyncSavedChapters] = useState(false)
 
   const { versions: versionCollection, loading, error } = useVersions('en', undefined, {
     all_available: true,
@@ -52,8 +53,12 @@ export default function SyncVersionMenu({ open, lastReadVersion, onClose, onSync
 
   const handleSync = () => {
     if (selected.size === 0) return
-    const bookIds = syncCurrentBook && lastReadBook ? [lastReadBook] : undefined
-    onSync(Array.from(selected), bookIds)
+    if (syncSavedChapters) {
+      onSync(Array.from(selected), undefined, true)
+    } else {
+      const bookIds = syncCurrentBook && lastReadBook ? [lastReadBook] : undefined
+      onSync(Array.from(selected), bookIds)
+    }
     onClose()
   }
 
@@ -162,12 +167,31 @@ export default function SyncVersionMenu({ open, lastReadVersion, onClose, onSync
             >
               <input
                 type="checkbox"
-                checked={syncCurrentBook}
+                checked={syncCurrentBook && !syncSavedChapters}
+                disabled={syncSavedChapters}
                 onChange={() => setSyncCurrentBook((v) => !v)}
               />
               <span>Sync only the current book ({lastReadBook})</span>
             </label>
           )}
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              cursor: 'pointer',
+              padding: '0.35rem 0.5rem',
+              borderRadius: '0.5rem',
+              border: '1px solid color-mix(in srgb, var(--accent) 18%, var(--muted))',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={syncSavedChapters}
+              onChange={() => setSyncSavedChapters((v) => !v)}
+            />
+            <span>Sync only chapters with saved highlights</span>
+          </label>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
             <button type="button" className="secondary" onClick={onClose}>
               Cancel

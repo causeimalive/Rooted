@@ -1,5 +1,5 @@
 import { Bookmark, Memory, Note, RecentSearch, Verse } from './types'
-import { getAllVerses } from './bible'
+import { findVerse, getAllVerses } from './bible'
 import {
   ApiClient,
   BibleClient,
@@ -170,6 +170,7 @@ export async function importAllYouVersionHighlights(
   versionId: number,
   onProgress?: (done: number, total: number, current: string) => void,
   bookIds?: string[],
+  onlySavedChapters?: boolean,
 ): Promise<number> {
   const all = getAllVerses()
   if (!all.length) throw new Error('Bible data is not loaded yet')
@@ -200,20 +201,39 @@ export async function importAllYouVersionHighlights(
     verseByRef.set(`${v.book}:${v.chapter}:${v.verse}`, v)
   }
   const bookCodeById: Record<string, string> = {}
-  for (const book of targetBooks) {
+  const localToYouVersionId: Record<string, string> = {}
+  for (const book of books.data) {
     const code =
       nameToCode.get(book.title) ||
       (book.abbreviation ? nameToCode.get(book.abbreviation) : undefined) ||
       usfmToCode.get(book.id.toUpperCase()) ||
       book.id
     bookCodeById[book.id.toUpperCase()] = code
+    localToYouVersionId[code] = book.id.toUpperCase()
   }
 
   const chapterInfos: { bookId: string; passageId: string }[] = []
-  for (const book of targetBooks) {
-    const chapters = await bibleClient.getChapters(versionId, book.id)
-    for (const chapter of chapters.data) {
-      chapterInfos.push({ bookId: book.id, passageId: chapter.passage_id })
+  if (onlySavedChapters) {
+    const saved = new Set<string>()
+    for (const b of getBookmarks()) {
+      const verse = findVerse(b.verseId)
+      if (!verse) continue
+      const youVersionBookId = localToYouVersionId[verse.book]
+      if (!youVersionBookId) continue
+      saved.add(`${youVersionBookId}.${verse.chapter}`)
+    }
+    for (const passageId of saved) {
+      const parts = passageId.split('.')
+      const bookId = parts[0]
+      if (!bookId) continue
+      chapterInfos.push({ bookId, passageId })
+    }
+  } else {
+    for (const book of targetBooks) {
+      const chapters = await bibleClient.getChapters(versionId, book.id)
+      for (const chapter of chapters.data) {
+        chapterInfos.push({ bookId: book.id, passageId: chapter.passage_id })
+      }
     }
   }
 
