@@ -129,17 +129,18 @@ export const proxyYouVersion = onRequest(
         method: req.method,
         headers,
         body,
+        redirect: 'manual',
       })
       const responseBody = await yvRes.text()
 
       res.status(yvRes.status)
-      const contentType = yvRes.headers.get('content-type')
-      if (contentType) {
-        res.setHeader('Content-Type', contentType)
-      }
-      const retryAfter = yvRes.headers.get('retry-after')
-      if (retryAfter) {
-        res.setHeader('Retry-After', retryAfter)
+      yvRes.headers.forEach((value, key) => {
+        const lower = key.toLowerCase()
+        if (['content-length', 'transfer-encoding', 'connection'].includes(lower)) return
+        res.setHeader(key, value)
+      })
+      if (!yvRes.headers.has('content-type') && responseBody) {
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8')
       }
       res.send(responseBody)
     } catch (error: any) {
