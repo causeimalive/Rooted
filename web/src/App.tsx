@@ -78,6 +78,7 @@ import WikiMediaCard from './WikiMediaCard'
 import LexiconTab from './LexiconTab'
 import WayfinderTab from './WayfinderTab'
 import YouVersionReaderTab from './YouVersionReaderTab'
+import SyncVersionMenu from './SyncVersionMenu'
 const NetworkThreeScene = lazy(() => import('./NetworkThreeScene'))
 import { SCENE_PALETTE } from './relationshipGraph/palette'
 import { AuthSignOutButton } from './AuthGate'
@@ -199,6 +200,7 @@ function SettingsMenu() {
   const { auth, userInfo } = useYVAuth()
   const userId = userInfo?.userId
   const [isOpen, setIsOpen] = useState(false)
+  const [isVersionMenuOpen, setIsVersionMenuOpen] = useState(false)
   const [fontSize, setFontSize] = useState(() => {
     const saved = Number(getUserPreference(userId, READER_FONT_SIZE_KEY))
     return Number.isFinite(saved) && saved > 0 ? saved : 1.02
@@ -283,32 +285,44 @@ function SettingsMenu() {
     setUiScale(Math.min(Math.max(next, 0.85), 1.35))
   }, [])
 
-  const handleSync = useCallback(async () => {
+  const handleOpenSyncMenu = useCallback(() => {
+    if (!auth.isAuthenticated) {
+      setSyncState('error')
+      setSyncMessage('Sign in to sync with YouVersion.')
+      return
+    }
+    setIsVersionMenuOpen(true)
+  }, [auth.isAuthenticated])
+
+  const handleSyncSelected = useCallback(async (versionIds: number[]) => {
     const syncUserId = getCurrentUserId() ?? userId
     if (!syncUserId) return
-    const versionId = Number.isFinite(lastReadVersion) && lastReadVersion > 0 ? lastReadVersion : null
-    if (!versionId) {
+    if (!versionIds.length) {
       setSyncState('error')
-      setSyncMessage('Open a chapter in the reader first so the app knows which Bible version to sync.')
+      setSyncMessage('Select at least one version to sync.')
       return
     }
     setSyncState('syncing')
     setSyncMessage('Syncing local bookmarks...')
     try {
       await syncUserData(syncUserId)
-      const imported = await importAllYouVersionHighlights(versionId, (done, total, current) => {
-        setSyncMessage(`Scanning YouVersion chapters... ${done} / ${total} (${current})`)
-      })
+      let totalImported = 0
+      for (const versionId of versionIds) {
+        const imported = await importAllYouVersionHighlights(versionId, (done, total, current) => {
+          setSyncMessage(`Version ${versionId}: ${done} / ${total} (${current})`)
+        })
+        totalImported += imported
+      }
       await syncUserData(syncUserId)
       setSyncState('success')
-      setSyncMessage(`Sync complete — imported ${imported} highlight${imported === 1 ? '' : 's'}`)
+      setSyncMessage(`Sync complete — imported ${totalImported} highlight${totalImported === 1 ? '' : 's'}`)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       console.error('Sync failed:', error)
       setSyncState('error')
       setSyncMessage(message)
     }
-  }, [userId, lastReadVersion])
+  }, [userId])
 
   return (
     <>
@@ -469,7 +483,7 @@ function SettingsMenu() {
                       type="button"
                       className="secondary"
                       disabled={!auth.isAuthenticated || syncState === 'syncing'}
-                      onClick={() => void handleSync()}
+                      onClick={() => void handleOpenSyncMenu()}
                     >
                       {syncState === 'syncing' ? <Loader2 size={16} className="spin" /> : 'Sync'}
                     </button>
@@ -490,6 +504,12 @@ function SettingsMenu() {
             </div>
         </div>
       </dialog>
+      <SyncVersionMenu
+        open={isVersionMenuOpen}
+        lastReadVersion={lastReadVersion}
+        onClose={() => setIsVersionMenuOpen(false)}
+        onSync={handleSyncSelected}
+      />
     </>
   )
 }
