@@ -9,6 +9,7 @@ const AUTHORIZED_REDIRECT_ORIGINS = [
   'https://rootedinchrist-faith.firebaseapp.com',
   'https://rootedinchrist-faith-2026.firebaseapp.com',
   'http://localhost:5173',
+  'com.rooted.christ://auth',
 ]
 
 function normalizeLocalhost(origin: string): string {
