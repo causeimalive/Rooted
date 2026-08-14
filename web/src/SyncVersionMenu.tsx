@@ -6,12 +6,14 @@ type SyncVersionMenuProps = {
   open: boolean
   lastReadVersion: number
   onClose: () => void
-  onSync: (versionIds: number[]) => void
+  onSync: (versionIds: number[], bookIds?: string[]) => void
 }
 
 export default function SyncVersionMenu({ open, lastReadVersion, onClose, onSync }: SyncVersionMenuProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const [selected, setSelected] = useState<Set<number>>(new Set())
+  const [lastReadBook, setLastReadBook] = useState<string>('')
+  const [syncCurrentBook, setSyncCurrentBook] = useState(false)
 
   const { versions: versionCollection, loading, error } = useVersions('en', undefined, {
     all_available: true,
@@ -35,6 +37,10 @@ export default function SyncVersionMenu({ open, lastReadVersion, onClose, onSync
     const initial = new Set<number>()
     if (lastReadVersion > 0) initial.add(lastReadVersion)
     setSelected(initial)
+
+    const book = typeof window !== 'undefined' ? localStorage.getItem('bible-study-yv-book') ?? '' : ''
+    setLastReadBook(book)
+    setSyncCurrentBook(Boolean(book))
   }, [open, lastReadVersion])
 
   const toggle = (id: number) => {
@@ -46,7 +52,8 @@ export default function SyncVersionMenu({ open, lastReadVersion, onClose, onSync
 
   const handleSync = () => {
     if (selected.size === 0) return
-    onSync(Array.from(selected))
+    const bookIds = syncCurrentBook && lastReadBook ? [lastReadBook] : undefined
+    onSync(Array.from(selected), bookIds)
     onClose()
   }
 
@@ -109,7 +116,7 @@ export default function SyncVersionMenu({ open, lastReadVersion, onClose, onSync
                 margin: 0,
                 padding: '0.25rem 0',
                 overflowY: 'auto',
-                maxHeight: '55vh',
+                maxHeight: '45vh',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '0.35rem',
@@ -140,6 +147,26 @@ export default function SyncVersionMenu({ open, lastReadVersion, onClose, onSync
                 </li>
               ))}
             </ul>
+          )}
+          {lastReadBook && (
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                cursor: 'pointer',
+                padding: '0.35rem 0.5rem',
+                borderRadius: '0.5rem',
+                border: '1px solid color-mix(in srgb, var(--accent) 18%, var(--muted))',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={syncCurrentBook}
+                onChange={() => setSyncCurrentBook((v) => !v)}
+              />
+              <span>Sync only the current book ({lastReadBook})</span>
+            </label>
           )}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
             <button type="button" className="secondary" onClick={onClose}>

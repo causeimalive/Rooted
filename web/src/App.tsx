@@ -294,7 +294,7 @@ function SettingsMenu() {
     setIsVersionMenuOpen(true)
   }, [auth.isAuthenticated])
 
-  const handleSyncSelected = useCallback(async (versionIds: number[]) => {
+  const handleSyncSelected = useCallback(async (versionIds: number[], bookIds?: string[]) => {
     const syncUserId = getCurrentUserId() ?? userId
     if (!syncUserId) return
     if (!versionIds.length) {
@@ -310,7 +310,7 @@ function SettingsMenu() {
       for (const versionId of versionIds) {
         const imported = await importAllYouVersionHighlights(versionId, (done, total, current) => {
           setSyncMessage(`Version ${versionId}: ${done} / ${total} (${current})`)
-        })
+        }, bookIds)
         totalImported += imported
       }
       await syncUserData(syncUserId)

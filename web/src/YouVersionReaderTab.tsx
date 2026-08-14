@@ -910,6 +910,16 @@ export default function YouVersionReaderTab({
     () => books.find((book) => book.id === activeBookId) ?? currentIndexBook,
     [activeBookId, books, currentIndexBook],
   )
+
+  useEffect(() => {
+    if (!activeBook || !activeBook.id) return
+    if (typeof window === 'undefined') return
+    localStorage.setItem('bible-study-yv-book', activeBook.id)
+    if (Number.isFinite(activeChapter) && activeChapter > 0) {
+      localStorage.setItem('bible-study-yv-chapter', String(activeChapter))
+    }
+  }, [activeBook, activeChapter])
+
   const [mobileChromeVisible, setMobileChromeVisible] = useState(false)
   const [isCompactMobile, setIsCompactMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches)
   const focusedPassageTitle = useMemo(() => {

@@ -169,6 +169,7 @@ export function importYouVersionHighlights(
 export async function importAllYouVersionHighlights(
   versionId: number,
   onProgress?: (done: number, total: number, current: string) => void,
+  bookIds?: string[],
 ): Promise<number> {
   const all = getAllVerses()
   if (!all.length) throw new Error('Bible data is not loaded yet')
@@ -189,6 +190,7 @@ export async function importAllYouVersionHighlights(
   const highlightsClient = new HighlightsClient(apiClient)
 
   const books = await bibleClient.getBooks(versionId)
+  const targetBooks = bookIds?.length ? books.data.filter((b) => bookIds.includes(b.id)) : books.data
   const nameToCode = new Map<string, string>()
   const usfmToCode = new Map<string, string>()
   const verseByRef = new Map<string, Verse>()
@@ -198,7 +200,7 @@ export async function importAllYouVersionHighlights(
     verseByRef.set(`${v.book}:${v.chapter}:${v.verse}`, v)
   }
   const bookCodeById: Record<string, string> = {}
-  for (const book of books.data) {
+  for (const book of targetBooks) {
     const code =
       nameToCode.get(book.title) ||
       (book.abbreviation ? nameToCode.get(book.abbreviation) : undefined) ||
@@ -208,7 +210,7 @@ export async function importAllYouVersionHighlights(
   }
 
   const chapterInfos: { bookId: string; passageId: string }[] = []
-  for (const book of books.data) {
+  for (const book of targetBooks) {
     const chapters = await bibleClient.getChapters(versionId, book.id)
     for (const chapter of chapters.data) {
       chapterInfos.push({ bookId: book.id, passageId: chapter.passage_id })
