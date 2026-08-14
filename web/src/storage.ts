@@ -30,6 +30,32 @@ import {
   saveUserRecentSearch,
 } from './cloudStorage'
 
+const OSIS_TO_USFM: Record<string, string> = {
+  Gen: 'GEN', Exod: 'EXO', Lev: 'LEV', Num: 'NUM', Deut: 'DEU', Josh: 'JOS',
+  Judg: 'JDG', Ruth: 'RUT', '1Sam': '1SA', '2Sam': '2SA', '1Kgs': '1KI',
+  '2Kgs': '2KI', '1Chr': '1CH', '2Chr': '2CH', Ezra: 'EZR', Neh: 'NEH',
+  Esth: 'EST', Job: 'JOB', Ps: 'PSA', Prov: 'PRO', Eccl: 'ECC', Song: 'SNG',
+  Isa: 'ISA', Jer: 'JER', Lam: 'LAM', Ezek: 'EZE', Dan: 'DAN', Hos: 'HOS',
+  Joel: 'JOL', Amos: 'AMO', Obad: 'OBA', Jonah: 'JON', Mic: 'MIC', Nah: 'NAM',
+  Hab: 'HAB', Zeph: 'ZEP', Hag: 'HAG', Zech: 'ZEC', Mal: 'MAL', Matt: 'MAT',
+  Mark: 'MRK', Luke: 'LUK', John: 'JHN', Acts: 'ACT', Rom: 'ROM', '1Cor': '1CO',
+  '2Cor': '2CO', Gal: 'GAL', Eph: 'EPH', Phil: 'PHP', Col: 'COL', '1Thess': '1TH',
+  '2Thess': '2TH', '1Tim': '1TI', '2Tim': '2TI', Titus: 'TIT', Phlm: 'PHM',
+  Heb: 'HEB', Jas: 'JAS', '1Pet': '1PE', '2Pet': '2PE', '1John': '1JN',
+  '2John': '2JN', '3John': '3JN', Jude: 'JUD', Rev: 'REV',
+}
+
+function osisToUsfm(osis: string): string {
+  return OSIS_TO_USFM[osis] ?? osis.toUpperCase()
+}
+
+function normalizePassageId(passageId: string): string {
+  const parts = passageId.split('.')
+  if (!parts[0]) return passageId
+  parts[0] = osisToUsfm(parts[0])
+  return parts.join('.')
+}
+
 const NOTES_KEY = 'bible.notes'
 const BOOKMARKS_KEY = 'bible.bookmarks'
 const MEMORIES_KEY = 'bible.memories'
@@ -190,21 +216,18 @@ export async function importAllYouVersionHighlights(
   const bibleClient = new BibleClient(apiClient)
   const highlightsClient = new HighlightsClient(apiClient)
 
-  const nameToCode = new Map<string, string>()
-  const usfmToCode = new Map<string, string>()
   const verseByRef = new Map<string, Verse>()
+  const usfmToCode: Record<string, string> = {}
   for (const v of all) {
-    if (!nameToCode.has(v.bookName)) nameToCode.set(v.bookName, v.book)
-    if (!usfmToCode.has(v.book.toUpperCase())) usfmToCode.set(v.book.toUpperCase(), v.book)
+    const usfm = osisToUsfm(v.book)
+    if (!usfmToCode[usfm]) usfmToCode[usfm] = v.book
     verseByRef.set(`${v.book}:${v.chapter}:${v.verse}`, v)
   }
 
-  const bookCodeById: Record<string, string> = {}
+  const bookCodeById: Record<string, string> = { ...usfmToCode }
   const localToYouVersionId: Record<string, string> = {}
   for (const v of all) {
-    const id = v.book.toUpperCase()
-    bookCodeById[id] = v.book
-    localToYouVersionId[v.book] = id
+    localToYouVersionId[v.book] = osisToUsfm(v.book)
   }
 
   const chapterInfos: { bookId: string; passageId: string }[] = []
@@ -234,13 +257,8 @@ export async function importAllYouVersionHighlights(
   } else {
     const books = await bibleClient.getBooks(versionId)
     for (const book of books.data) {
-      const code =
-        nameToCode.get(book.title) ||
-        (book.abbreviation ? nameToCode.get(book.abbreviation) : undefined) ||
-        usfmToCode.get(book.id.toUpperCase()) ||
-        book.id
+      const code = usfmToCode[book.id.toUpperCase()] ?? book.id
       bookCodeById[book.id.toUpperCase()] = code
-      localToYouVersionId[code] = book.id.toUpperCase()
     }
     for (const book of books.data) {
       const chapters = await bibleClient.getChapters(versionId, book.id)
@@ -261,7 +279,7 @@ export async function importAllYouVersionHighlights(
     while (retries <= MAX_RETRIES) {
       try {
         const { data } = await highlightsClient.getHighlights(
-          { version_id: versionId, passage_id: info.passageId },
+          { version_id: versionId, passage_id: normalizePassageId(info.passageId) },
           lat,
         )
         for (const h of data) {
