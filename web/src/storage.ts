@@ -215,20 +215,20 @@ export async function importAllYouVersionHighlights(
     }
   }
 
-  const CONCURRENCY = 5
+  const REQUEST_DELAY_MS = 1200
+  const MAX_RETRIES = 2
+  const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
   let done = 0
   let imported = 0
-  for (let i = 0; i < chapterInfos.length; i += CONCURRENCY) {
-    const batch = chapterInfos.slice(i, i + CONCURRENCY)
-    const results = await Promise.all(
-      batch.map(async (info) => {
+  for (const info of chapterInfos) {
+    let retries = 0
+    let items: { verseId: string; color?: string }[] = []
+    while (retries <= MAX_RETRIES) {
+      try {
         const { data } = await highlightsClient.getHighlights(
           { version_id: versionId, passage_id: info.passageId },
           lat,
         )
-        done++
-        onProgress?.(done, chapterInfos.length, info.passageId)
-        const items: { verseId: string; color?: string }[] = []
         for (const h of data) {
           const parts = h.passage_id.split('.')
           const bookId = parts[0]
@@ -246,13 +246,28 @@ export async function importAllYouVersionHighlights(
             if (match) items.push({ verseId: match.id, color: h.color })
           }
         }
-        return items
-      }),
-    )
-    const batchItems = results.flat()
-    if (batchItems.length) {
-      importYouVersionHighlights(batchItems, String(versionId), 'YouVersion')
-      imported += batchItems.length
+        break
+      } catch (error: any) {
+        const status = error?.status ?? error?.response?.status
+        if (status === 429) {
+          const retryAfter = Number(error?.headers?.['retry-after'] ?? error?.response?.headers?.['retry-after'] ?? 60)
+          onProgress?.(done, chapterInfos.length, `throttled - waiting ${retryAfter}s`)
+          await delay(retryAfter * 1000)
+          retries++
+          continue
+        }
+        console.warn('YouVersion highlights fetch failed for', info.passageId, error)
+        break
+      }
+    }
+    done++
+    onProgress?.(done, chapterInfos.length, info.passageId)
+    if (items.length) {
+      importYouVersionHighlights(items, String(versionId), 'YouVersion')
+      imported += items.length
+    }
+    if (done < chapterInfos.length) {
+      await delay(REQUEST_DELAY_MS)
     }
   }
   return imported

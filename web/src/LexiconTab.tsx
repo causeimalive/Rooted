@@ -16,6 +16,7 @@ type LexiconTabProps = {
   query: string
   onQuery: (value: string) => void
   onSelect: (verseId: string) => void
+  mode?: 'names' | 'entry'
 }
 
 const NAME_GROUPS: Array<{
