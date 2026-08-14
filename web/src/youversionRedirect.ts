@@ -1,4 +1,4 @@
-const DEFAULT_REDIRECT = 'https://rootedinchrist.faith/'
+const DEFAULT_REDIRECT = 'https://rootedinchrist.faith'
 
 const AUTHORIZED_REDIRECT_ORIGINS = [
   'https://rootedinchrist.faith',
@@ -38,12 +38,12 @@ function isKnownLocalOrCapacitor(origin: string): boolean {
 export function getYouVersionRedirectUrl(): string {
   const override = import.meta.env.VITE_YVP_REDIRECT_URL?.trim()
   if (override) {
-    return override.endsWith('/') ? override : `${override}/`
+    return override.replace(/\/$/, '')
   }
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
   const normalized = normalizeLocalhost(origin)
   if (AUTHORIZED_REDIRECT_ORIGINS.includes(normalized)) {
-    return `${normalized}/`
+    return normalized
   }
   if (isKnownLocalOrCapacitor(origin)) {
     return DEFAULT_REDIRECT
