@@ -7,6 +7,9 @@ node_modules
 dist
 dist-ssr
 *.local
+web/functions/lib
+web/.firebase
+web/tsconfig.tsbuildinfo
 
 # Environment
 .env

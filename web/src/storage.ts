@@ -183,7 +183,7 @@ export async function importAllYouVersionHighlights(
 
   const apiClient = new ApiClient({
     appKey,
-    apiHost: YouVersionPlatformConfiguration.apiHost,
+    apiHost: 'rootedinchrist.faith/api/youversion',
     installationId: YouVersionPlatformConfiguration.installationId,
     timeout: 15000,
   })
