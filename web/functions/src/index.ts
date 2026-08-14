@@ -2,8 +2,6 @@ import { onRequest } from 'firebase-functions/v2/https'
 import type { Request, Response } from 'express'
 import { logger } from 'firebase-functions'
 
-const YV_BASE = 'https://api.youversion.com'
-
 const ALLOWED_ORIGINS = new Set([
   'https://rootedinchrist.faith',
   'https://www.rootedinchrist.faith',
@@ -61,9 +59,11 @@ export const proxyYouVersion = onRequest(
       return
     }
 
+    const rawHost = req.query.host
+    const host = (Array.isArray(rawHost) ? rawHost[0] : rawHost) ?? 'api.youversion.com'
     const query = new URLSearchParams()
     for (const [key, value] of Object.entries(req.query)) {
-      if (key === 'path') continue
+      if (key === 'path' || key === 'host') continue
       if (typeof value === 'string') {
         query.append(key, value)
       } else if (Array.isArray(value)) {
@@ -73,7 +73,7 @@ export const proxyYouVersion = onRequest(
       }
     }
     const queryString = query.toString()
-    const yvUrl = `${YV_BASE}${path}${queryString ? `?${queryString}` : ''}`
+    const yvUrl = `https://${host}${path}${queryString ? `?${queryString}` : ''}`
 
     const forwardHeaders = new Set([
       'authorization',

@@ -1,4 +1,4 @@
-export const YOUVERSION_API_BASE = 'https://api.youversion.com/v1'
+export const YOUVERSION_API_BASE = 'https://rootedinchrist.faith/api/youversion/v1'
 export const DEFAULT_YOUVERSION_LANGUAGE_RANGES = 'en'
 
 export interface YouVersionVersion {
@@ -193,13 +193,15 @@ async function requestYouVersionLegacy<T>(
   path: string,
   query?: Record<string, string | number | boolean | undefined>,
 ): Promise<T> {
-  const url = new URL(path, base)
+  const host = new URL(base).host
+  const url = new URL('/api/youversion' + path, 'https://rootedinchrist.faith')
   if (query) {
     for (const [key, value] of Object.entries(query)) {
       if (value === undefined || value === '') continue
       url.searchParams.set(key, String(value))
     }
   }
+  url.searchParams.set('host', host)
   const response = await fetch(url.toString(), {
     headers: { 'X-YVP-App-Key': getAppKey() },
   })
