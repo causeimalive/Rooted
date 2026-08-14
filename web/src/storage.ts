@@ -190,8 +190,6 @@ export async function importAllYouVersionHighlights(
   const bibleClient = new BibleClient(apiClient)
   const highlightsClient = new HighlightsClient(apiClient)
 
-  const books = await bibleClient.getBooks(versionId)
-  const targetBooks = bookIds?.length ? books.data.filter((b) => bookIds.includes(b.id)) : books.data
   const nameToCode = new Map<string, string>()
   const usfmToCode = new Map<string, string>()
   const verseByRef = new Map<string, Verse>()
@@ -200,19 +198,17 @@ export async function importAllYouVersionHighlights(
     if (!usfmToCode.has(v.book.toUpperCase())) usfmToCode.set(v.book.toUpperCase(), v.book)
     verseByRef.set(`${v.book}:${v.chapter}:${v.verse}`, v)
   }
+
   const bookCodeById: Record<string, string> = {}
   const localToYouVersionId: Record<string, string> = {}
-  for (const book of books.data) {
-    const code =
-      nameToCode.get(book.title) ||
-      (book.abbreviation ? nameToCode.get(book.abbreviation) : undefined) ||
-      usfmToCode.get(book.id.toUpperCase()) ||
-      book.id
-    bookCodeById[book.id.toUpperCase()] = code
-    localToYouVersionId[code] = book.id.toUpperCase()
+  for (const v of all) {
+    const id = v.book.toUpperCase()
+    bookCodeById[id] = v.book
+    localToYouVersionId[v.book] = id
   }
 
   const chapterInfos: { bookId: string; passageId: string }[] = []
+
   if (onlySavedChapters) {
     const saved = new Set<string>()
     for (const b of getBookmarks()) {
@@ -228,8 +224,25 @@ export async function importAllYouVersionHighlights(
       if (!bookId) continue
       chapterInfos.push({ bookId, passageId })
     }
+  } else if (bookIds?.length) {
+    for (const bookId of bookIds) {
+      const chapters = await bibleClient.getChapters(versionId, bookId)
+      for (const chapter of chapters.data) {
+        chapterInfos.push({ bookId, passageId: chapter.passage_id })
+      }
+    }
   } else {
-    for (const book of targetBooks) {
+    const books = await bibleClient.getBooks(versionId)
+    for (const book of books.data) {
+      const code =
+        nameToCode.get(book.title) ||
+        (book.abbreviation ? nameToCode.get(book.abbreviation) : undefined) ||
+        usfmToCode.get(book.id.toUpperCase()) ||
+        book.id
+      bookCodeById[book.id.toUpperCase()] = code
+      localToYouVersionId[code] = book.id.toUpperCase()
+    }
+    for (const book of books.data) {
       const chapters = await bibleClient.getChapters(versionId, book.id)
       for (const chapter of chapters.data) {
         chapterInfos.push({ bookId: book.id, passageId: chapter.passage_id })
