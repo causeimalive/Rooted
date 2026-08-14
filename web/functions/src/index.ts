@@ -98,11 +98,22 @@ export const proxyYouVersion = onRequest(
 
     let body: Buffer | undefined
     if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
-      try {
-        body = await getRawBody(req, { limit: '5mb' })
+      if (Buffer.isBuffer(req.body)) {
+        body = req.body
+      } else if (typeof req.body === 'string' && req.body.length > 0) {
+        body = Buffer.from(req.body)
+      } else {
+        try {
+          body = await getRawBody(req, {
+            length: Number(req.headers['content-length']) || undefined,
+            limit: '5mb',
+          })
+        } catch (e) {
+          logger.warn('Could not read request body: ' + ((e as Error).message || String(e)))
+        }
+      }
+      if (body) {
         headers['content-length'] = String(body.length)
-      } catch (e) {
-        logger.warn('Could not read request body', e)
       }
     }
 
