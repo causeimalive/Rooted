@@ -22,6 +22,8 @@ type ReaderToolButtonsProps = {
   splitLayout?: boolean
   hideCompareButton?: boolean
   hideAutoScrollButton?: boolean
+  hideHoverButton?: boolean
+  hideAudioButton?: boolean
   audioUrl?: string
   audioPlaying?: boolean
   audioLoading?: boolean
@@ -63,6 +65,8 @@ function ReaderToolButtons({
   splitLayout,
   hideCompareButton,
   hideAutoScrollButton,
+  hideHoverButton,
+  hideAudioButton,
   audioUrl,
   audioPlaying,
   audioLoading,
@@ -119,9 +123,10 @@ function ReaderToolButtons({
 
   const toolButtons = (
     <>
-      <button
-        type="button"
-        className={`yv-reader-meta-icon-button ${hoverHighlightEnabled ? 'active' : ''}`}
+      {!hideHoverButton ? (
+        <button
+          type="button"
+          className={`yv-reader-meta-icon-button ${hoverHighlightEnabled ? 'active' : ''}`}
         aria-pressed={hoverHighlightEnabled}
         aria-label={hoverHighlightEnabled ? 'Turn hover highlight off' : 'Turn hover highlight on'}
         title={hoverHighlightEnabled ? 'Hover highlight on' : 'Hover highlight off'}
@@ -129,6 +134,7 @@ function ReaderToolButtons({
       >
         <MousePointer2 size={15} />
       </button>
+      ) : null}
       {!hideAutoScrollButton ? (
         <button
           type="button"
@@ -161,7 +167,7 @@ function ReaderToolButtons({
       >
         <Tag size={15} />
       </button>
-      {onToggleAudio && (
+      {onToggleAudio && !hideAudioButton && (
         <button
           type="button"
           className={`yv-reader-meta-icon-button ${audioPlaying ? 'active' : ''}`}

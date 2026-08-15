@@ -1260,6 +1260,8 @@ export default function YouVersionReaderTab({
         bookInfoOpen={bookIntroOpen}
         hideCompareButton={isCompactMobile}
         hideAutoScrollButton={isCompactMobile}
+        hideHoverButton={isCompactMobile}
+        hideAudioButton={isCompactMobile}
         audioUrl={audioUrl}
         audioPlaying={audioPlaying}
         audioLoading={audioLoading}
