@@ -20,7 +20,6 @@ export default function SyncVersionMenu({ open, lastReadVersion, lastReadBook, o
   const bibleClient = useBibleClient()
 
   const { versions: versionCollection, loading, error } = useVersions('en', undefined, {
-    all_available: true,
     page_size: 99,
   })
 
@@ -32,7 +31,7 @@ export default function SyncVersionMenu({ open, lastReadVersion, lastReadBook, o
     let cancelled = false
     const fetchMore = async (nextToken: string) => {
       try {
-        const page = await bibleClient.getVersions('en', undefined, { all_available: true, page_size: 99, page_token: nextToken })
+        const page = await bibleClient.getVersions('en', undefined, { page_size: 99, page_token: nextToken })
         if (cancelled) return
         setExtraVersionPages((prev) => [...prev, ...page.data])
         if (page.next_page_token) await fetchMore(page.next_page_token)

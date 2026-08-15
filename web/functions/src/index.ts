@@ -63,13 +63,15 @@ export const proxyYouVersion = onRequest(
     const rawHost = req.query.host
     const host = (Array.isArray(rawHost) ? rawHost[0] : rawHost) ?? 'api.youversion.com'
     const query = new URLSearchParams()
+    const arrayKey = (key: string) => (key.endsWith('[]') ? key : `${key}[]`)
     for (const [key, value] of Object.entries(req.query)) {
       if (key === 'path' || key === 'host') continue
       if (typeof value === 'string') {
         query.append(key, value)
       } else if (Array.isArray(value)) {
+        const useKey = arrayKey(key)
         for (const item of value) {
-          query.append(key, String(item))
+          query.append(useKey, String(item))
         }
       }
     }
@@ -137,7 +139,7 @@ export const proxyYouVersion = onRequest(
       res.status(yvRes.status)
       yvRes.headers.forEach((value, key) => {
         const lower = key.toLowerCase()
-        if (['content-length', 'transfer-encoding', 'connection'].includes(lower)) return
+        if (['content-length', 'transfer-encoding', 'connection', 'content-encoding', 'keep-alive', 'accept-ranges'].includes(lower)) return
         res.setHeader(key, value)
       })
       if (!yvRes.headers.has('content-type') && responseBuffer.length > 0) {

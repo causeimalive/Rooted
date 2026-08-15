@@ -757,8 +757,7 @@ export default function App() {
     let cancelled = false
     setAudioLoading(true)
     setAudioError('')
-    const savedVersion = Number(window.localStorage.getItem('bible-study-yv-version'))
-    const versionId = Number.isFinite(savedVersion) && savedVersion > 0 ? savedVersion : 1
+    const versionId = readerVersion?.id ?? 111
     fetchYouVersionAudioChapter(versionId, chapterReferenceForAudio(selected))
       .then((audio) => {
         if (cancelled) return
@@ -781,7 +780,7 @@ export default function App() {
       cancelled = true
       setAudioLoading(false)
     }
-  }, [selected])
+  }, [selected, readerVersion])
 
   const runSearch = (q: string) => {
     setQuery(q)
