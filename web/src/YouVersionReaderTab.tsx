@@ -1260,9 +1260,13 @@ export default function YouVersionReaderTab({
         bookInfoOpen={bookIntroOpen}
         hideCompareButton={isCompactMobile}
         hideAutoScrollButton={isCompactMobile}
+        audioUrl={audioUrl}
+        audioPlaying={audioPlaying}
+        audioLoading={audioLoading}
+        onToggleAudio={onToggleAudio}
       />
     ),
-    [readerView, compareOpen, autoScrollEnabled, redLetterEnabled, hoverHighlightEnabled, entityHighlightsEnabled, currentBookInfoLabel, bookIntroOpen, handleOpenBookInfo, handleSetReaderView, handleToggleCompare, handleToggleAutoScroll, handleToggleRedLetter, handleToggleEntityHighlights, handleToggleHoverHighlight, isCompactMobile],
+    [readerView, compareOpen, autoScrollEnabled, redLetterEnabled, hoverHighlightEnabled, entityHighlightsEnabled, currentBookInfoLabel, bookIntroOpen, handleOpenBookInfo, handleSetReaderView, handleToggleCompare, handleToggleAutoScroll, handleToggleRedLetter, handleToggleEntityHighlights, handleToggleHoverHighlight, isCompactMobile, audioUrl, audioPlaying, audioLoading, onToggleAudio],
   )
 
 
@@ -2243,6 +2247,10 @@ export default function YouVersionReaderTab({
         bookInfoOpen={bookIntroOpen}
         chapterLabel={currentChapterLabel}
         splitLayout
+        audioUrl={audioUrl}
+        audioPlaying={audioPlaying}
+        audioLoading={audioLoading}
+        onToggleAudio={onToggleAudio}
       />
     ),
     [
@@ -2262,6 +2270,10 @@ export default function YouVersionReaderTab({
       handleToggleRedLetter,
       handleToggleEntityHighlights,
       handleToggleHoverHighlight,
+      audioUrl,
+      audioPlaying,
+      audioLoading,
+      onToggleAudio,
     ],
   )
 

@@ -85,6 +85,7 @@ export const proxyYouVersion = onRequest(
       'accept',
       'content-type',
       'content-length',
+      'range',
     ])
     const headers: Record<string, string> = {}
     for (const [key, value] of Object.entries(req.headers)) {
@@ -131,7 +132,7 @@ export const proxyYouVersion = onRequest(
         body,
         redirect: 'manual',
       })
-      const responseBody = await yvRes.text()
+      const responseBuffer = Buffer.from(await yvRes.arrayBuffer())
 
       res.status(yvRes.status)
       yvRes.headers.forEach((value, key) => {
@@ -139,10 +140,10 @@ export const proxyYouVersion = onRequest(
         if (['content-length', 'transfer-encoding', 'connection'].includes(lower)) return
         res.setHeader(key, value)
       })
-      if (!yvRes.headers.has('content-type') && responseBody) {
+      if (!yvRes.headers.has('content-type') && responseBuffer.length > 0) {
         res.setHeader('Content-Type', 'text/plain; charset=utf-8')
       }
-      res.send(responseBody)
+      res.send(responseBuffer)
     } catch (error: any) {
       logger.error('YouVersion proxy request failed', error)
       res.status(502).send(`Proxy request failed: ${error.message || String(error)}`)

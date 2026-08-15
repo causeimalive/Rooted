@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { AlignJustify, ArrowLeftRight, BookOpen, MousePointer2, Quote, RefreshCw, Tag, Type } from 'lucide-react'
+import { AlignJustify, ArrowLeftRight, BookOpen, Loader2, MousePointer2, Pause, Play, Quote, RefreshCw, Tag, Type } from 'lucide-react'
 import type { ReaderView } from './types'
 
 type ReaderToolButtonsProps = {
@@ -22,6 +22,10 @@ type ReaderToolButtonsProps = {
   splitLayout?: boolean
   hideCompareButton?: boolean
   hideAutoScrollButton?: boolean
+  audioUrl?: string
+  audioPlaying?: boolean
+  audioLoading?: boolean
+  onToggleAudio?: () => void
 }
 
 type LegendItem = {
@@ -59,6 +63,10 @@ function ReaderToolButtons({
   splitLayout,
   hideCompareButton,
   hideAutoScrollButton,
+  audioUrl,
+  audioPlaying,
+  audioLoading,
+  onToggleAudio,
 }: ReaderToolButtonsProps) {
   const legendOpen = entityHighlightsEnabled
 
@@ -153,6 +161,19 @@ function ReaderToolButtons({
       >
         <Tag size={15} />
       </button>
+      {onToggleAudio && (
+        <button
+          type="button"
+          className={`yv-reader-meta-icon-button ${audioPlaying ? 'active' : ''}`}
+          aria-pressed={audioPlaying}
+          aria-label={audioPlaying ? 'Pause audio' : audioLoading ? 'Loading audio' : audioUrl ? 'Play audio' : 'No audio'}
+          title={audioPlaying ? 'Pause audio' : audioLoading ? 'Loading audio' : audioUrl ? 'Play audio' : 'No audio'}
+          onClick={onToggleAudio}
+          disabled={!audioUrl || audioLoading}
+        >
+          {audioLoading ? <Loader2 size={15} className="spin" /> : audioPlaying ? <Pause size={15} /> : <Play size={15} />}
+        </button>
+      )}
     </>
   )
 

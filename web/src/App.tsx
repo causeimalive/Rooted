@@ -165,6 +165,18 @@ function chapterReferenceForAudio(verse: Verse): string {
   return `${usfmBook}.${verse.chapter}`
 }
 
+function proxyMediaUrl(url: string): string {
+  try {
+    const u = new URL(url)
+    const proxied = new URL(u.pathname, 'https://rootedinchrist.faith/api/youversion')
+    u.searchParams.forEach((value, key) => proxied.searchParams.set(key, value))
+    proxied.searchParams.set('host', u.host)
+    return proxied.toString()
+  } catch {
+    return url
+  }
+}
+
 function pickAudioUrl(audio: YouVersionAudioChapter): { url: string; title: string } | undefined {
   const entry = audio.audio?.[0]
   if (!entry) return undefined
@@ -752,7 +764,7 @@ export default function App() {
         if (cancelled) return
         const picked = pickAudioUrl(audio)
         if (picked) {
-          setAudioUrl(picked.url)
+          setAudioUrl(proxyMediaUrl(picked.url))
           setAudioTitle(`${picked.title} — ${selected.bookName} ${selected.chapter}`)
         } else {
           setAudioError('No audio available for this chapter.')
@@ -1378,7 +1390,7 @@ function SearchTab({
             className={`search-mode-btn ${mode === 'lexicon' ? 'active' : ''}`}
             onClick={() => setMode('lexicon')}
           >
-            <BookOpen size={14} /> {t('lexicon')}
+            <BookOpen size={14} /> Lexicon
           </button>
         </div>
         <div className="search-bar">
