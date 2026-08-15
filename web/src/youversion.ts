@@ -252,13 +252,25 @@ export interface YouVersionAudioChapter {
   }>
 }
 
+interface YouVersionLegacyEnvelope<T> {
+  response: {
+    code: number
+    data: T
+    buildtime?: string
+  }
+}
+
 export async function fetchYouVersionAudioChapter(
   versionId: number,
   reference: string,
 ): Promise<YouVersionAudioChapter> {
-  return requestYouVersionLegacy<YouVersionAudioChapter>(
+  const result = await requestYouVersionLegacy<YouVersionLegacyEnvelope<YouVersionAudioChapter>>(
     'https://audio-bible.youversionapi.com',
     '/3.1/chapter.json',
     { version_id: versionId, reference },
   )
+  if (result.response.code !== 200) {
+    throw new Error(`Audio request failed: ${result.response.code}`)
+  }
+  return result.response.data
 }
