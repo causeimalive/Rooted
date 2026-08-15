@@ -507,7 +507,7 @@ export default function YouVersionReaderTab({
   audioTitle?: string
   onToggleAudio?: () => void
   onVersionChange?: (version: { id: number; name: string; abbreviation: string }) => void
-  onLastReadChange?: (bookId: string, chapter: number) => void
+  onLastReadChange?: (bookId: string, chapter: number, bookName: string) => void
 }) {
   const { t, language, setLanguage } = useI18n()
   const handleToggleLanguage = () => setLanguage(language === 'en' ? 'es' : 'en')
@@ -922,7 +922,7 @@ export default function YouVersionReaderTab({
     if (Number.isFinite(activeChapter) && activeChapter > 0) {
       localStorage.setItem('bible-study-yv-chapter', String(activeChapter))
     }
-    onLastReadChange?.(activeBookId, activeChapter)
+    onLastReadChange?.(activeBookId, activeChapter, currentIndexBook ? getBookLabel(currentIndexBook) : activeBookId)
   }, [activeBookId, activeChapter, onLastReadChange])
 
   const [mobileChromeVisible, setMobileChromeVisible] = useState(false)

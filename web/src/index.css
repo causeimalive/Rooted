@@ -6919,13 +6919,21 @@ button.suggestion:hover {
     padding: 0 0.75rem;
   }
 
+  .yv-reader-mobile-footer-nav .yv-reader-chapter-nav-button.previous {
+    justify-self: start;
+  }
+
+  .yv-reader-mobile-footer-nav .yv-reader-chapter-nav-button.next {
+    justify-self: end;
+  }
+
   .yv-reader-mobile-tools {
     display: flex;
     align-items: center;
     justify-content: center;
-    justify-self: center;
+    justify-self: stretch;
     min-width: 0;
-    width: auto;
+    width: 100%;
     max-width: 100%;
     min-height: 2.8rem;
     padding: 0.35rem 0.75rem;

@@ -601,6 +601,13 @@ export default function App() {
   const [lastReadBook, setLastReadBook] = useState<string>(() =>
     typeof window !== 'undefined' ? localStorage.getItem('bible-study-yv-book') ?? '' : ''
   )
+  const [lastReadChapter, setLastReadChapter] = useState<number>(() => {
+    const saved = typeof window !== 'undefined' ? Number(localStorage.getItem('bible-study-yv-chapter')) : 0
+    return Number.isFinite(saved) && saved > 0 ? saved : 1
+  })
+  const [lastReadBookName, setLastReadBookName] = useState<string>(() =>
+    typeof window !== 'undefined' ? localStorage.getItem('bible-study-yv-book-name') ?? '' : ''
+  )
   const [readerVersion, setReaderVersion] = useState<{ id: number; name: string; abbreviation: string } | null>(null)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>(getRecentSearches())
@@ -748,7 +755,13 @@ export default function App() {
   }, [query])
 
   useEffect(() => {
-    if (!selected) {
+    const bookReference = selected
+      ? chapterReferenceForAudio(selected)
+      : lastReadBook && Number.isFinite(lastReadChapter) && lastReadChapter > 0
+        ? `${lastReadBook}.${lastReadChapter}`
+        : ''
+    const bookName = selected ? selected.bookName : lastReadBookName || lastReadBook
+    if (!bookReference) {
       setAudioUrl('')
       setAudioTitle('')
       setAudioError('')
@@ -758,13 +771,13 @@ export default function App() {
     setAudioLoading(true)
     setAudioError('')
     const versionId = readerVersion?.id ?? 111
-    fetchYouVersionAudioChapter(versionId, chapterReferenceForAudio(selected))
+    fetchYouVersionAudioChapter(versionId, bookReference)
       .then((audio) => {
         if (cancelled) return
         const picked = pickAudioUrl(audio)
         if (picked) {
           setAudioUrl(proxyMediaUrl(picked.url))
-          setAudioTitle(`${picked.title} — ${selected.bookName} ${selected.chapter}`)
+          setAudioTitle(`${picked.title} — ${bookName} ${selected ? selected.chapter : lastReadChapter}`)
         } else {
           setAudioError('No audio available for this chapter.')
         }
@@ -780,7 +793,7 @@ export default function App() {
       cancelled = true
       setAudioLoading(false)
     }
-  }, [selected, readerVersion])
+  }, [selected, readerVersion, lastReadBook, lastReadChapter, lastReadBookName])
 
   const runSearch = (q: string) => {
     setQuery(q)
@@ -1011,7 +1024,14 @@ export default function App() {
                   audioTitle={audioTitle}
                   onToggleAudio={toggleAudio}
                   onVersionChange={setReaderVersion}
-                  onLastReadChange={(bookId) => setLastReadBook(bookId)}
+                  onLastReadChange={(bookId, chapter, bookName) => {
+                    setLastReadBook(bookId)
+                    setLastReadChapter(chapter)
+                    setLastReadBookName(bookName)
+                    window.localStorage.setItem('bible-study-yv-book', bookId)
+                    window.localStorage.setItem('bible-study-yv-chapter', String(chapter))
+                    window.localStorage.setItem('bible-study-yv-book-name', bookName)
+                  }}
                 />
               </YouVersionProvider>
             ) : (
