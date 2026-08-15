@@ -739,7 +739,10 @@ export default function YouVersionReaderTab({
   }, [availableVersions])
 
   const resolvedVersionId = useMemo(
-    () => availableVersions.find((v) => v.id === versionId)?.id ?? availableVersions[0]?.id ?? null,
+    () => {
+      const preferred = versionId ?? 111
+      return availableVersions.find((v) => v.id === preferred)?.id ?? availableVersions[0]?.id ?? null
+    },
     [availableVersions, versionId],
   )
   const selectedVersion = useMemo(
