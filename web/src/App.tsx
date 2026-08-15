@@ -1029,19 +1029,6 @@ export default function App() {
           )}
           {tab === 'search' && (
             <aside className="sidebar verse-sidebar">
-              {query.trim() && (
-                <details className="lexicon-details">
-                  <summary style={{ cursor: 'pointer', padding: '0.5rem 0', fontSize: '0.9rem', color: 'var(--text-muted)', userSelect: 'none' }}>
-                    Lexicon
-                  </summary>
-                  <LexiconTab
-                    query={query}
-                    onQuery={setQuery}
-                    onSelect={setSelectedId}
-                    mode="names"
-                  />
-                </details>
-              )}
               {detailVerse ? (
                 <>
                   <section className="detail-card detail-card-hero">
@@ -1337,7 +1324,7 @@ function SearchTab({
   recentSearches: RecentSearch[]
 }) {
   const { t } = useI18n()
-  const [mode, setMode] = useState<'search' | 'bookmarks'>('search')
+  const [mode, setMode] = useState<'search' | 'bookmarks' | 'lexicon'>('search')
   const all = getAllVerses()
   const currentVersionId = readerVersion ? String(readerVersion.id) : ''
   const allBookmarkedVerses = useMemo(
@@ -1360,14 +1347,15 @@ function SearchTab({
   )
 
   const showingBookmarks = mode === 'bookmarks'
+  const showingLexicon = mode === 'lexicon'
   const bookmarked = useMemo(
     () => (showingBookmarks ? new Set(allBookmarkedVerses.map((i) => i.verse.id)) : activeVersionBookmarked),
     [showingBookmarks, allBookmarkedVerses, activeVersionBookmarked],
   )
 
   const resultCount = useMemo(
-    () => (showingBookmarks ? allBookmarkedVerses.length : query.trim() ? results.length : recentSearchCount),
-    [showingBookmarks, allBookmarkedVerses.length, query, results.length, recentSearchCount],
+    () => (showingLexicon ? 0 : showingBookmarks ? allBookmarkedVerses.length : query.trim() ? results.length : recentSearchCount),
+    [showingLexicon, showingBookmarks, allBookmarkedVerses.length, query, results.length, recentSearchCount],
   )
 
   return (
@@ -1375,16 +1363,22 @@ function SearchTab({
       <div className="search-header">
         <div className="search-mode-toggle">
           <button
-            className={`search-mode-btn ${!showingBookmarks ? 'active' : ''}`}
+            className={`search-mode-btn ${mode === 'search' ? 'active' : ''}`}
             onClick={() => setMode('search')}
           >
             <Search size={14} /> {t('search')}
           </button>
           <button
-            className={`search-mode-btn ${showingBookmarks ? 'active' : ''}`}
+            className={`search-mode-btn ${mode === 'bookmarks' ? 'active' : ''}`}
             onClick={() => setMode('bookmarks')}
           >
             <Bookmark size={14} /> {t('bookmarks')}
+          </button>
+          <button
+            className={`search-mode-btn ${mode === 'lexicon' ? 'active' : ''}`}
+            onClick={() => setMode('lexicon')}
+          >
+            <BookOpen size={14} /> {t('lexicon')}
           </button>
         </div>
         <div className="search-bar">
@@ -1395,7 +1389,7 @@ function SearchTab({
             value={query}
             autoFocus
             onChange={(e) => onQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && !showingBookmarks && onSearch(query)}
+            onKeyDown={(e) => e.key === 'Enter' && !showingBookmarks && !showingLexicon && onSearch(query)}
           />
           {query && (
             <button className="search-clear" onClick={() => { onQuery(''); setMode('search') }}>
@@ -1403,7 +1397,7 @@ function SearchTab({
             </button>
           )}
         </div>
-        {(query.trim() || showingBookmarks) && resultCount > 0 && (
+        {!showingLexicon && (query.trim() || showingBookmarks) && resultCount > 0 && (
           <div className="result-count">{t('resultCount', { count: String(resultCount) })}</div>
         )}
       </div>
@@ -1445,6 +1439,8 @@ function SearchTab({
               </div>
             ))
           )
+        ) : showingLexicon ? (
+          <LexiconTab query={query} onQuery={onQuery} onSelect={onSelect} mode="entry" />
         ) : !query.trim() ? (
           <div className="recent-searches">
             <div className="recent-searches-heading">
