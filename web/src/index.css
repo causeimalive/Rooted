@@ -6933,7 +6933,7 @@ button.suggestion:hover {
     align-items: center;
     justify-content: center;
     min-width: 0;
-    width: auto;
+    width: 100%;
     min-height: 2.8rem;
     padding: 0.35rem 0.75rem;
     border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--muted));
@@ -6947,6 +6947,7 @@ button.suggestion:hover {
   .yv-reader-mobile-tools .yv-reader-nav-tools {
     display: flex;
     min-width: 0;
+    width: 100%;
     padding: 0;
     border: none;
     border-radius: 0.75rem;
