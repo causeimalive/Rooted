@@ -42,8 +42,8 @@ public class MainActivity extends BridgeActivity {
     }
 
     String query = data.getEncodedQuery();
-    if (query == null || (!query.contains("code=") && !query.contains("error="))) {
-      Log.d(TAG, "Ignoring intermediate state-only deep link");
+    if (query == null) {
+      Log.d(TAG, "Ignoring deep link with no query");
       return;
     }
 
