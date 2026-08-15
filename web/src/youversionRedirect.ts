@@ -2,7 +2,7 @@ import { Capacitor } from '@capacitor/core'
 import { YouVersionPlatformConfiguration } from '@youversion/platform-core'
 
 const DEFAULT_REDIRECT = 'https://rootedinchrist.faith/'
-const NATIVE_REDIRECT = 'com.rooted.christ://auth'
+const NATIVE_BRIDGE_SCHEME = 'com.rooted.christ://auth/'
 
 const AUTHORIZED_REDIRECT_ORIGINS = [
   'https://rootedinchrist.faith',
@@ -45,7 +45,7 @@ export function getYouVersionRedirectUrl(): string {
     return override.endsWith('/') ? override : `${override}/`
   }
   if (Capacitor.isNativePlatform()) {
-    return NATIVE_REDIRECT
+    return DEFAULT_REDIRECT
   }
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
   const normalized = normalizeLocalhost(origin)
@@ -91,7 +91,7 @@ export async function beginYouVersionSignIn(
 
   const codeVerifier = randomURLSafeString(32)
   const codeChallengeValue = await pkceChallenge(codeVerifier)
-  const state = randomURLSafeString(24)
+  const state = randomURLSafeString(24) + (Capacitor.isNativePlatform() ? ':app' : '')
   const nonce = randomURLSafeString(24)
 
   localStorage.setItem('youversion-auth-code-verifier', codeVerifier)
