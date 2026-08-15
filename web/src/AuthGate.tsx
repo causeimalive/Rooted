@@ -11,7 +11,7 @@ import { useYVAuth } from '@youversion/platform-react-hooks'
 import { auth } from './firebase'
 import Landing from './Landing'
 const YOUVERSION_API_HOST = 'api.youversion.com'
-import { getYouVersionRedirectUrl } from './youversionRedirect'
+import { beginYouVersionSignIn, getYouVersionRedirectUrl } from './youversionRedirect'
 
 type Theme = 'dark' | 'light'
 
@@ -180,7 +180,7 @@ function LoginScreen({
 }
 
 export function AuthSignInButton() {
-  const { auth: yvAuth, signIn } = useYVAuth()
+  const { auth: yvAuth } = useYVAuth()
 
   if (yvAuth.isAuthenticated) return null
 
@@ -190,12 +190,7 @@ export function AuthSignInButton() {
       className="secondary header-signin"
       onClick={async () => {
         const redirectUrl = getYouVersionRedirectUrl()
-        console.info('YouVersion sign-in redirectUrl:', redirectUrl)
-        await signIn({
-          redirectUrl,
-          scopes: ['openid', 'profile'] as any,
-          permissions: ['highlights'],
-        })
+        await beginYouVersionSignIn(redirectUrl, ['openid', 'profile'], ['highlights'])
       }}
       title="Sign in with YouVersion"
       aria-label="Sign in with YouVersion"
@@ -372,16 +367,9 @@ function AuthEntryScreen({
   onBack: () => void
   callbackError: string | null
 }) {
-  const { signIn } = useYVAuth()
-
   const handleYouVersionLogin = async () => {
     const redirectUrl = getYouVersionRedirectUrl()
-    console.info('YouVersion sign-in redirectUrl:', redirectUrl)
-    await signIn({
-      redirectUrl,
-      scopes: ['openid', 'profile'] as any,
-      permissions: ['highlights'],
-    })
+    await beginYouVersionSignIn(redirectUrl, ['openid', 'profile'], ['highlights'])
   }
 
   return showLogin ? (

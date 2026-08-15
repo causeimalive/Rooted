@@ -14,7 +14,7 @@ import { useBibleClient, useBooks, useChapters, useHighlights, useVersion, useVe
 import { getUserPreference, removeUserPreference, setUserPreference } from './userProfile'
 import { transformBibleHtml, type BiblePassage, type BibleVersion } from '@youversion/platform-core'
 import { getTestamentForBook, type Testament } from './bookTaxonomy'
-import { getYouVersionRedirectUrl } from './youversionRedirect'
+import { beginYouVersionSignIn, getYouVersionRedirectUrl } from './youversionRedirect'
 import { applyRedLetterMarkup } from './redLetter'
 import { applyEntityMarkup } from './entityMarkup'
 import { useEntityData } from './useEntityData'
@@ -513,7 +513,7 @@ export default function YouVersionReaderTab({
   const handleToggleLanguage = () => setLanguage(language === 'en' ? 'es' : 'en')
   const { tagPositionsByVerseId } = useEntityData()
   const hasEntityData = Object.keys(tagPositionsByVerseId).length > 0
-  const { auth, signIn, signOut, userInfo } = useYVAuth()
+  const { auth, signOut, userInfo } = useYVAuth()
 
   useEffect(() => {
     if (hasEntityData) {
@@ -1237,13 +1237,8 @@ export default function YouVersionReaderTab({
 
   const handleYouVersionSignIn = useCallback(async () => {
     const redirectUrl = getYouVersionRedirectUrl()
-    console.info('YouVersion sign-in redirectUrl:', redirectUrl)
-    await signIn({
-      redirectUrl,
-      scopes: ['openid', 'profile'] as any,
-      permissions: ['highlights'],
-    })
-  }, [signIn])
+    await beginYouVersionSignIn(redirectUrl, ['openid', 'profile'], ['highlights'])
+  }, [])
 
   const readerToolButtons = useMemo(
     () => (
