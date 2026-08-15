@@ -1030,12 +1030,17 @@ export default function App() {
           {tab === 'search' && (
             <aside className="sidebar verse-sidebar">
               {query.trim() && (
-                <LexiconTab
-                  query={query}
-                  onQuery={setQuery}
-                  onSelect={setSelectedId}
-                  mode="names"
-                />
+                <details className="lexicon-details">
+                  <summary style={{ cursor: 'pointer', padding: '0.5rem 0', fontSize: '0.9rem', color: 'var(--text-muted)', userSelect: 'none' }}>
+                    Lexicon
+                  </summary>
+                  <LexiconTab
+                    query={query}
+                    onQuery={setQuery}
+                    onSelect={setSelectedId}
+                    mode="names"
+                  />
+                </details>
               )}
               {detailVerse ? (
                 <>
@@ -1491,41 +1496,36 @@ function SearchTab({
               </div>
             )}
           </div>
+        ) : results.length === 0 ? (
+          <div className="empty">{t('noResults')}</div>
         ) : (
-          <>
-            <LexiconTab query={query} onQuery={onQuery} onSelect={onSelect} mode="entry" />
-            {results.length === 0 ? (
-              <div className="empty">{t('noResults')}</div>
-            ) : (
-              results.map(({ verse }) => (
-                <div
-                  key={verse.id}
-                  className={`verse-card ${selectedId === verse.id ? 'active' : ''}`}
-                  onClick={() => onSelect(verse.id)}
-                  onDoubleClick={() => onSelectResult(verse.id, query)}
-                  onPointerEnter={() => onHoverVerse(verse.id)}
-                  onFocus={() => onHoverVerse(verse.id)}
+          results.map(({ verse }) => (
+            <div
+              key={verse.id}
+              className={`verse-card ${selectedId === verse.id ? 'active' : ''}`}
+              onClick={() => onSelect(verse.id)}
+              onDoubleClick={() => onSelectResult(verse.id, query)}
+              onPointerEnter={() => onHoverVerse(verse.id)}
+              onFocus={() => onHoverVerse(verse.id)}
+            >
+              <div className="verse-ref">
+                <span>{verse.bookName} {verse.chapter}:{verse.verse}</span>
+                {(readerVersion || verse.translation) && (
+                  <span className="verse-meta-pill" style={{ marginLeft: 'auto' }}>{readerVersion ? (readerVersion.abbreviation || readerVersion.name) : verse.translation.toUpperCase()}</span>
+                )}
+                <button
+                  className="secondary"
+                  onClick={(e) => { e.stopPropagation(); onToggleBookmark(verse.id, readerVersion ? String(readerVersion.id) : verse.translation, readerVersion ? (readerVersion.abbreviation || readerVersion.name) : verse.translation.toUpperCase()) }}
+                  aria-label={bookmarked.has(verse.id) ? t('unbookmark') : t('bookmark')}
                 >
-                  <div className="verse-ref">
-                    <span>{verse.bookName} {verse.chapter}:{verse.verse}</span>
-                    {(readerVersion || verse.translation) && (
-                      <span className="verse-meta-pill" style={{ marginLeft: 'auto' }}>{readerVersion ? (readerVersion.abbreviation || readerVersion.name) : verse.translation.toUpperCase()}</span>
-                    )}
-                    <button
-                      className="secondary"
-                      onClick={(e) => { e.stopPropagation(); onToggleBookmark(verse.id, readerVersion ? String(readerVersion.id) : verse.translation, readerVersion ? (readerVersion.abbreviation || readerVersion.name) : verse.translation.toUpperCase()) }}
-                      aria-label={bookmarked.has(verse.id) ? t('unbookmark') : t('bookmark')}
-                    >
-                      {bookmarked.has(verse.id) ? <Bookmark size={14} fill="currentColor" /> : <Bookmark size={14} />}
-                    </button>
-                  </div>
-                  <div className="verse-text">
-                    <Highlight text={verse.text} query={query} />
-                  </div>
-                </div>
-              ))
-            )}
-          </>
+                  {bookmarked.has(verse.id) ? <Bookmark size={14} fill="currentColor" /> : <Bookmark size={14} />}
+                </button>
+              </div>
+              <div className="verse-text">
+                <Highlight text={verse.text} query={query} />
+              </div>
+            </div>
+          ))
         )}
 
       </div>

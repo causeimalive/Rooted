@@ -98,7 +98,8 @@ function categoryTitle(category: OpenBibleNameCategory): string {
   return NAME_GROUPS.find((group) => group.category === category)?.title ?? category
 }
 
-export default function LexiconTab({ query, onQuery, onSelect }: LexiconTabProps) {
+export default function LexiconTab({ query, onQuery, onSelect, mode = 'entry' }: LexiconTabProps) {
+  const isCompact = mode === 'names'
   const { t } = useI18n()
   const [debouncedQuery, setDebouncedQuery] = useState(query)
   const [testamentFilter, setTestamentFilter] = useState<TestamentFilter>('all')
@@ -215,7 +216,7 @@ export default function LexiconTab({ query, onQuery, onSelect }: LexiconTabProps
         </div>
       )}
 
-      {entry && (
+      {entry && !isCompact && (
         <section style={cardStyle}>
           <div className="lexicon-card-heading" style={{ marginBottom: '0.35rem' }}>
             <h3 style={{ margin: 0, color: 'var(--accent)', textTransform: 'capitalize' }}>{entry.word}</h3>
@@ -282,7 +283,7 @@ export default function LexiconTab({ query, onQuery, onSelect }: LexiconTabProps
         </section>
       )}
 
-      {trimmedQuery && !entry && verses.length > 0 && (
+      {trimmedQuery && !entry && verses.length > 0 && !isCompact && (
         <section style={cardStyle}>
           <div className="lexicon-card-heading" style={{ marginBottom: '0.35rem' }}>
             <h4 className="section-title" style={{ marginBottom: 0 }}>

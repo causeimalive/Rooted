@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useVersions } from '@youversion/platform-react-hooks'
+import { useBibleClient, useVersions } from '@youversion/platform-react-hooks'
 import { type BibleVersion } from '@youversion/platform-core'
 
 type SyncVersionMenuProps = {
@@ -17,12 +17,34 @@ export default function SyncVersionMenu({ open, lastReadVersion, lastReadBook, o
   const [syncSavedChapters, setSyncSavedChapters] = useState(false)
   const [syncAll, setSyncAll] = useState(false)
 
+  const bibleClient = useBibleClient()
+
   const { versions: versionCollection, loading, error } = useVersions('en', undefined, {
     all_available: true,
     page_size: 99,
   })
 
-  const versions = (versionCollection?.data ?? []) as BibleVersion[]
+  const [extraVersionPages, setExtraVersionPages] = useState<BibleVersion[]>([])
+  useEffect(() => {
+    setExtraVersionPages([])
+    const token = versionCollection?.next_page_token
+    if (!token) return
+    let cancelled = false
+    const fetchMore = async (nextToken: string) => {
+      try {
+        const page = await bibleClient.getVersions('en', undefined, { all_available: true, page_size: 99, page_token: nextToken })
+        if (cancelled) return
+        setExtraVersionPages((prev) => [...prev, ...page.data])
+        if (page.next_page_token) await fetchMore(page.next_page_token)
+      } catch {
+        // stop fetching on error
+      }
+    }
+    fetchMore(token)
+    return () => { cancelled = true }
+  }, [bibleClient, versionCollection])
+
+  const versions = [...(versionCollection?.data ?? []), ...extraVersionPages] as BibleVersion[]
 
   useEffect(() => {
     const dialog = dialogRef.current
