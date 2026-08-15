@@ -6924,6 +6924,7 @@ button.suggestion:hover {
     bottom: 0;
     left: 0.75rem;
     width: 2.5rem;
+    z-index: 2;
   }
 
   .yv-reader-mobile-footer-nav .yv-reader-chapter-nav-button.next {
@@ -6932,6 +6933,7 @@ button.suggestion:hover {
     bottom: 0;
     right: 0.75rem;
     width: 2.5rem;
+    z-index: 2;
   }
 
   .yv-reader-mobile-tools {
