@@ -29,6 +29,7 @@ import {
 import { GoogleMap, Polyline, useJsApiLoader } from '@react-google-maps/api'
 import MapMarkers from './MapMarkers'
 import MapRegions from './MapRegions'
+import MapRoutes from './MapRoutes'
 import { YouVersionProvider } from '@youversion/platform-react-ui'
 import {
   findVerse,
@@ -3863,6 +3864,7 @@ function MapTab({
   const [isCompactMap, setIsCompactMap] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 720px)').matches)
   const [baseLayer, setBaseLayer] = useState<MapBaseLayer>('antique')
   const [showRegions, setShowRegions] = useState(false)
+  const [showRoutes, setShowRoutes] = useState(false)
 
   useEffect(() => {
     if (!activeCharacter) {
@@ -4107,6 +4109,24 @@ function MapTab({
                   />
                   Regions
                 </label>
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    marginTop: '0.35rem',
+                    fontSize: '0.8rem',
+                    color: 'var(--text)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={showRoutes}
+                    onChange={(e) => setShowRoutes(e.target.checked)}
+                  />
+                  Roads
+                </label>
               </div>
               <GoogleMap
                 key={`${theme}-${baseLayer}`}
@@ -4150,6 +4170,7 @@ function MapTab({
                   />
                 )}
                 <MapRegions show={showRegions} theme={theme} />
+                <MapRoutes show={showRoutes} theme={theme} />
               </GoogleMap>
           </>)}
           </div>

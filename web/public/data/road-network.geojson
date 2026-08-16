@@ -1,0 +1,149 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "id": "via-maris", "name": "Via Maris", "kind": "road", "era": "Iron Age / Roman" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [34.3, 31.5],
+          [34.5, 31.6],
+          [34.6, 31.8],
+          [34.8, 32.0],
+          [34.9, 32.5],
+          [35.1, 32.9],
+          [35.2, 33.3],
+          [35.4, 33.6],
+          [35.5, 33.9],
+          [35.7, 34.5],
+          [36.0, 35.0],
+          [36.1, 36.2]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "kings-highway", "name": "King's Highway", "kind": "road", "era": "Iron Age / Roman" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [35.0, 29.5],
+          [35.4, 30.2],
+          [35.5, 30.6],
+          [35.7, 31.0],
+          [35.8, 31.4],
+          [36.0, 31.8],
+          [36.1, 32.3],
+          [36.2, 32.9],
+          [36.3, 33.5]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "coastal-egypt", "name": "Coastal road to Egypt", "kind": "road", "era": "Iron Age" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [29.9, 31.2],
+          [30.5, 31.2],
+          [31.2, 31.2],
+          [32.0, 31.2],
+          [32.5, 31.1],
+          [33.5, 31.2],
+          [34.3, 31.5]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "way-of-the-wilderness", "name": "Wilderness / Negev route", "kind": "road", "era": "Iron Age" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [34.3, 31.5],
+          [34.6, 31.3],
+          [34.9, 31.2],
+          [35.1, 30.9],
+          [35.2, 30.5],
+          [35.0, 30.0],
+          [34.5, 29.5],
+          [33.8, 29.0]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "antioch-tarsus-ephesus", "name": "Roman road Antioch - Ephesus", "kind": "road", "era": "Roman" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [36.1, 36.2],
+          [35.0, 36.5],
+          [34.6, 36.9],
+          [33.9, 37.2],
+          [32.5, 37.9],
+          [29.0, 37.0],
+          [27.3, 37.9]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "antioch-damascus-arabia", "name": "Antioch - Damascus - Arabia", "kind": "road", "era": "Roman" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [36.1, 36.2],
+          [36.3, 35.5],
+          [36.3, 33.5],
+          [37.0, 32.5],
+          [38.0, 31.5],
+          [39.5, 30.5]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "jordan-valley", "name": "Jordan Valley route", "kind": "road", "era": "Iron Age" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [35.5, 33.0],
+          [35.6, 32.5],
+          [35.6, 32.0],
+          [35.6, 31.5],
+          [35.6, 31.0],
+          [35.5, 30.5],
+          [35.4, 30.0]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "caesarea-rome-sea", "name": "Caesarea to Rome (sea)", "kind": "sea", "era": "Roman" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [34.9, 32.5],
+          [25.0, 34.5],
+          [18.0, 36.0],
+          [12.5, 41.9]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "alexandria-corinth-sea", "name": "Alexandria to Corinth (sea)", "kind": "sea", "era": "Roman" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [29.9, 31.2],
+          [26.0, 33.0],
+          [22.9, 37.9]
+        ]
+      }
+    }
+  ]
+}
