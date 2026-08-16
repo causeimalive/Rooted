@@ -6911,11 +6911,9 @@ button.suggestion:hover {
   }
 
   .yv-reader-mobile-footer-nav {
-    display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 0.5rem;
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-items: center;
     min-height: 2.8rem;
     padding: 0.55rem 0.75rem;
   }
@@ -6926,15 +6924,16 @@ button.suggestion:hover {
   }
 
   .yv-reader-mobile-footer-nav .yv-reader-meta-icon-button {
-    width: 100%;
-    height: auto;
-    aspect-ratio: 1;
+    width: 2.5rem;
+    height: 2.5rem;
     border-radius: 0.85rem;
   }
 
   .yv-reader-mobile-footer-nav .yv-reader-chapter-nav-button.compact {
-    width: 100%;
-    height: auto;
+    width: 2.5rem;
+    height: 2.5rem;
+    min-width: auto;
+    min-height: auto;
     aspect-ratio: 1;
     padding: 0;
   }
