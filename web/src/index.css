@@ -6998,16 +6998,33 @@ button.suggestion:hover {
     aspect-ratio: auto;
     padding: 0;
     justify-content: center;
-    border: none;
-    border-radius: 0.8rem;
-    background: color-mix(in srgb, var(--accent) 10%, transparent);
-    box-shadow: none;
+    border: 1px solid color-mix(in srgb, var(--accent) 38%, transparent);
+    border-radius: 0.85rem;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 22%, var(--surface)), color-mix(in srgb, var(--accent) 10%, var(--surface)));
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, #fff 12%, transparent),
+      0 4px 10px color-mix(in srgb, var(--accent) 18%, transparent);
     color: var(--accent);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  }
+
+  .yv-reader-mobile-footer-nav .yv-reader-chapter-nav-button.compact:active:not(:disabled) {
+    transform: scale(0.94);
+    box-shadow: inset 0 2px 6px color-mix(in srgb, var(--accent) 25%, transparent);
+  }
+
+  .yv-reader-mobile-footer-nav .yv-reader-chapter-nav-button.compact .yv-reader-chapter-nav-icon {
+    width: 1.35rem;
+    height: 1.35rem;
+    flex-basis: 1.35rem;
   }
 
   .yv-reader-mobile-footer-nav .yv-reader-chapter-nav-button.compact:disabled {
+    border-color: color-mix(in srgb, var(--muted) 60%, transparent);
     background: transparent;
+    box-shadow: none;
     color: var(--muted);
+    opacity: 0.5;
   }
 
   .yv-reader-chapter-nav-button.compact {
