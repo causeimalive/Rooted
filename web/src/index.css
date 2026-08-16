@@ -6912,11 +6912,10 @@ button.suggestion:hover {
 
   .yv-reader-mobile-footer-nav {
     display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 0.4rem;
     align-items: stretch;
-    justify-items: stretch;
-    padding: 0.4rem 0;
+    padding: 0.4rem;
     border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--muted));
     border-radius: 1.1rem;
     background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 96%, var(--bg)), color-mix(in srgb, var(--bg) 88%, var(--surface)));
@@ -6925,9 +6924,31 @@ button.suggestion:hover {
       0 0 22px color-mix(in srgb, var(--accent) 20%, transparent);
   }
 
-  .yv-reader-mobile-tools,
+  .yv-reader-mobile-tools {
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+    gap: 0.35rem;
+    min-width: 0;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+
   .yv-reader-mobile-tools .yv-reader-nav-tools {
-    display: contents;
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+    gap: 0.35rem;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
   }
 
   .yv-reader-mobile-tools .yv-reader-entity-legend {
@@ -6935,7 +6956,9 @@ button.suggestion:hover {
   }
 
   .yv-reader-mobile-footer-nav .yv-reader-meta-icon-button {
-    width: 100%;
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
     height: 2.75rem;
     border: none;
     border-radius: 0.8rem;
@@ -6955,11 +6978,11 @@ button.suggestion:hover {
   }
 
   .yv-reader-mobile-footer-nav .yv-reader-chapter-nav-button.compact {
-    width: 100%;
+    width: 2.75rem;
     height: 2.75rem;
     min-width: 0;
     min-height: 0;
-    aspect-ratio: auto;
+    aspect-ratio: 1;
     padding: 0;
     justify-content: center;
     border: none;

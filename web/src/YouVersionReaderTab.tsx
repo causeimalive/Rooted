@@ -2788,7 +2788,7 @@ export default function YouVersionReaderTab({
                     onClick={goPrevious}
                     compact
                   />
-                  <div className="yv-reader-current-chapter-spot yv-reader-mobile-tools" aria-label="Current chapter">
+                  <div className="yv-reader-mobile-tools" aria-label="Current chapter">
                     {readerToolButtons}
                   </div>
                   <ChapterNavButton
