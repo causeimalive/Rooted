@@ -6926,15 +6926,14 @@ button.suggestion:hover {
   }
 
   .yv-reader-mobile-footer-nav .yv-reader-meta-icon-button {
-    width: 100%;
-    height: auto;
-    aspect-ratio: 1;
+    width: 2rem;
+    height: 2rem;
     border-radius: 0.85rem;
   }
 
   .yv-reader-mobile-footer-nav .yv-reader-chapter-nav-button.compact {
-    width: 100%;
-    height: auto;
+    width: 2rem;
+    height: 2rem;
     min-width: 0;
     min-height: 0;
     aspect-ratio: 1;
