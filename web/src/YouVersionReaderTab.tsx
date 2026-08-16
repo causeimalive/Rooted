@@ -643,6 +643,7 @@ export default function YouVersionReaderTab({
   const loadingMoreRef = useRef(false)
   const hasPrimedScrollRef = useRef(false)
   const isSyncingScrollRef = useRef(false)
+  const suppressChromeHideUntilRef = useRef(0)
   const [sections, setSections] = useState<ReaderSection[]>([])
   const [focusedSectionKey, setFocusedSectionKey] = useState('')
   const [focusedPassage, setFocusedPassage] = useState<{ bookId: string; chapter: number } | null>(null)
@@ -999,6 +1000,7 @@ export default function YouVersionReaderTab({
 
   useEffect(() => {
     setMobileChromeVisible(true)
+    suppressChromeHideUntilRef.current = Date.now() + 700
   }, [activeBookId, activeChapter, resolvedVersionId, compareVersionId, compareOpen, readerView])
 
   useEffect(() => {
@@ -1030,6 +1032,11 @@ export default function YouVersionReaderTab({
       const currentScrollTop = source.scrollTop
       const lastScrollTop = lastScrollTops.get(source) ?? currentScrollTop
       const delta = currentScrollTop - lastScrollTop
+
+      if (Date.now() < suppressChromeHideUntilRef.current) {
+        lastScrollTops.set(source, currentScrollTop)
+        return
+      }
 
       if (currentScrollTop <= 12) {
         setMobileChromeVisible(false)
