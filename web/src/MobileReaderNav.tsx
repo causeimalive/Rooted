@@ -100,6 +100,7 @@ function MobileReaderNav({
         options={bookOptions}
         activeValue={activeBookId}
         onSelect={onSelectBook}
+        closeOnSelect={false}
       />
       <MobileWheelPicker
         open={open === 'version'}
@@ -108,6 +109,7 @@ function MobileReaderNav({
         options={versionOptions}
         activeValue={activeVersionId ?? -1}
         onSelect={onSelectVersion}
+        closeOnSelect={false}
       />
       <MobileWheelPicker
         open={open === 'chapterVerse'}
@@ -123,7 +125,7 @@ function MobileReaderNav({
         secondaryOptions={verseOptions}
         secondaryActiveValue={activeVerse}
         onSelectSecondary={onSelectVerse}
-        secondaryCloseOnSelect={true}
+        secondaryCloseOnSelect={false}
       />
       {showCompare && compareVersionOptions && onSelectCompareVersion ? (
         <MobileWheelPicker
@@ -133,6 +135,7 @@ function MobileReaderNav({
           options={compareVersionOptions}
           activeValue={activeCompareVersionId ?? -1}
           onSelect={onSelectCompareVersion}
+          closeOnSelect={false}
         />
       ) : null}
     </div>
