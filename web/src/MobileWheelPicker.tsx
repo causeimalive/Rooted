@@ -151,7 +151,9 @@ function WheelColumn<T extends string | number>({
                 data-option-index={index}
                 data-active={isActive}
                 className={`mobile-wheel-item ${isActive ? 'active' : ''}`}
-                onClick={() => {
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={(event) => {
+                  event.stopPropagation()
                   triggerHaptic()
                   onSelect(option.value)
                   if (closeOnSelect) onClose()
@@ -200,12 +202,13 @@ function MobileWheelPicker<T extends string | number>({
   const isSplit = Boolean(secondaryOptions && onSelectSecondary && secondaryActiveValue !== undefined)
 
   return createPortal(
-    <div className="mobile-wheel-backdrop" onPointerDown={onClose}>
+    <div className="mobile-wheel-backdrop" onClick={onClose}>
       <div
         className={`mobile-wheel-sheet ${isSplit ? 'split' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-label={isSplit ? `${title} / ${secondaryTitle}` : title}
+        onClick={(event) => event.stopPropagation()}
         onPointerDown={(event) => event.stopPropagation()}
       >
         <div className="mobile-wheel-sheet-header">
@@ -237,7 +240,7 @@ function MobileWheelPicker<T extends string | number>({
             <X size={18} />
           </button>
         </div>
-        <div className={`mobile-wheel-body ${isSplit ? 'split' : ''}`}>
+        <div className={`mobile-wheel-body ${isSplit ? 'split' : ''}`} onClick={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()}>
           <WheelColumn
             options={options}
             activeValue={activeValue}
