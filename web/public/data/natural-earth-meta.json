@@ -1,0 +1,14 @@
+{
+  "updatedAt": "2026-08-16T18:24:00.764Z",
+  "counts": {
+    "coastline": 9,
+    "river": 2,
+    "border": 61
+  },
+  "bbox": {
+    "west": -12,
+    "east": 63,
+    "south": 12,
+    "north": 45
+  }
+}
