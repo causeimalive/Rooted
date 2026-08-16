@@ -6925,6 +6925,20 @@ button.suggestion:hover {
     display: contents;
   }
 
+  .yv-reader-mobile-footer-nav .yv-reader-meta-icon-button {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+    border-radius: 0.85rem;
+  }
+
+  .yv-reader-mobile-footer-nav .yv-reader-chapter-nav-button.compact {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+    padding: 0;
+  }
+
   .yv-reader-mobile-tools .yv-reader-entity-legend {
     display: none;
   }
