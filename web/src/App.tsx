@@ -3386,14 +3386,22 @@ function FallbackMapView({
   const markerPoints = useMemo(() => {
     if (!viewport.width || !viewport.height) return []
 
-    return places.map((place) => {
-      const projected = latLngToWorld(place.lat, place.lng, FALLBACK_MAP_ZOOM)
-      return {
-        place,
-        x: (projected.x - visibleTopLeft.x) * scale,
-        y: (projected.y - visibleTopLeft.y) * scale,
-      }
-    })
+    return places
+      .map((place) => {
+        const projected = latLngToWorld(place.lat, place.lng, FALLBACK_MAP_ZOOM)
+        return {
+          place,
+          x: (projected.x - visibleTopLeft.x) * scale,
+          y: (projected.y - visibleTopLeft.y) * scale,
+        }
+      })
+      .filter(
+        (point) =>
+          point.x >= -64 &&
+          point.x <= viewport.width + 64 &&
+          point.y >= -64 &&
+          point.y <= viewport.height + 64,
+      )
   }, [places, scale, visibleTopLeft.x, visibleTopLeft.y, viewport.height, viewport.width])
 
   const pathPixels = useMemo(() => {
