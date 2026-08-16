@@ -4069,7 +4069,7 @@ function MapTab({
                 style={{
                   position: 'absolute',
                   top: '0.75rem',
-                  right: '0.75rem',
+                  left: '0.75rem',
                   zIndex: 10,
                 }}
               >
