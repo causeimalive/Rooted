@@ -6916,7 +6916,7 @@ button.suggestion:hover {
     gap: 0.4rem;
     align-items: stretch;
     justify-items: stretch;
-    padding: 0.4rem;
+    padding: 0.4rem 0;
     border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--muted));
     border-radius: 1.1rem;
     background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 96%, var(--bg)), color-mix(in srgb, var(--bg) 88%, var(--surface)));
@@ -7058,6 +7058,10 @@ button.suggestion:hover {
     grid-template-columns: repeat(5, minmax(0, 1fr));
     padding: 0.5rem 0.65rem;
     overflow-x: visible;
+  }
+
+  .yv-reader-mobile-footer {
+    padding: 0.4rem 0.65rem 0.6rem;
   }
 
   .mobile-reader-nav.mobile-reader-nav--compare-open {
