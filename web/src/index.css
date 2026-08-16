@@ -6913,11 +6913,11 @@ button.suggestion:hover {
   .yv-reader-mobile-footer-nav {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 0.5rem;
+    gap: 1rem;
     align-items: center;
     justify-items: center;
     min-height: 2.8rem;
-    padding: 0.55rem 0.75rem;
+    padding: 0.55rem 1rem;
   }
 
   .yv-reader-mobile-tools,
