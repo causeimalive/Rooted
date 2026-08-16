@@ -6912,7 +6912,7 @@ button.suggestion:hover {
 
   .yv-reader-mobile-footer-nav {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 0.4rem;
     align-items: stretch;
     padding: 0.4rem;
@@ -6924,11 +6924,20 @@ button.suggestion:hover {
       0 0 22px color-mix(in srgb, var(--accent) 20%, transparent);
   }
 
+  .yv-reader-mobile-footer-nav .yv-reader-chapter-nav-button.compact.previous {
+    grid-column: 1 / 2;
+  }
+
+  .yv-reader-mobile-footer-nav .yv-reader-chapter-nav-button.compact.next {
+    grid-column: 7 / 8;
+  }
+
   .yv-reader-mobile-tools {
     display: flex;
+    grid-column: 2 / 7;
     align-items: stretch;
     justify-content: stretch;
-    gap: 0.35rem;
+    gap: 0.4rem;
     min-width: 0;
     width: 100%;
     padding: 0;
@@ -6942,7 +6951,7 @@ button.suggestion:hover {
     display: flex;
     align-items: stretch;
     justify-content: stretch;
-    gap: 0.35rem;
+    gap: 0.4rem;
     width: 100%;
     padding: 0;
     margin: 0;
@@ -6978,11 +6987,11 @@ button.suggestion:hover {
   }
 
   .yv-reader-mobile-footer-nav .yv-reader-chapter-nav-button.compact {
-    width: 2.75rem;
+    width: 100%;
     height: 2.75rem;
     min-width: 0;
     min-height: 0;
-    aspect-ratio: 1;
+    aspect-ratio: auto;
     padding: 0;
     justify-content: center;
     border: none;
