@@ -6911,50 +6911,16 @@ button.suggestion:hover {
   }
 
   .yv-reader-mobile-footer-nav {
-    position: relative;
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
     min-height: 2.8rem;
     padding: 0.55rem 0.75rem;
   }
 
-  .yv-reader-mobile-footer-nav .yv-reader-chapter-nav-button.previous {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0.75rem;
-    width: 2.5rem;
-    height: 2.5rem;
-    margin: auto 0;
-  }
-
-  .yv-reader-mobile-footer-nav .yv-reader-chapter-nav-button.next {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    right: 0.75rem;
-    width: 2.5rem;
-    height: 2.5rem;
-    margin: auto 0;
-  }
-
-  .yv-reader-mobile-tools {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-  }
-
+  .yv-reader-mobile-tools,
   .yv-reader-mobile-tools .yv-reader-nav-tools {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0;
-    border: none;
-    border-radius: 0;
-    background: transparent;
+    display: contents;
   }
 
   .yv-reader-mobile-footer-nav .yv-reader-meta-icon-button {
