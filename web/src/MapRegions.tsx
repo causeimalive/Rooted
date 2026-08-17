@@ -24,7 +24,16 @@ const REGION_COLORS: Record<string, string> = {
 export default function MapRegions({ show, theme }: MapRegionsProps) {
   const map = useGoogleMap()
   const dataLayerRef = useRef<google.maps.Data | null>(null)
-  const [info, setInfo] = useState<{ lat: number; lng: number; name: string } | null>(null)
+  const [info, setInfo] = useState<{
+    lat: number
+    lng: number
+    id: string
+    name: string
+    color: string
+    format: string
+    maxConfidence?: number
+    minConfidence?: number
+  } | null>(null)
 
   useEffect(() => {
     if (!map || !show) return
@@ -49,9 +58,24 @@ export default function MapRegions({ show, theme }: MapRegionsProps) {
 
     data.addListener('click', (event: google.maps.Data.MouseEvent) => {
       const name = (event.feature.getProperty('name') as string) ?? ''
+      const id = (event.feature.getProperty('id') as string) ?? ''
+      const color =
+        (event.feature.getProperty('color') as string) ?? REGION_COLORS[id] ?? '#888'
+      const format = (event.feature.getProperty('format') as string) ?? ''
+      const maxConfidence = (event.feature.getProperty('max_confidence') as number) ?? undefined
+      const minConfidence = (event.feature.getProperty('min_confidence') as number) ?? undefined
       const latLng = event.latLng
       if (latLng && name) {
-        setInfo({ lat: latLng.lat(), lng: latLng.lng(), name })
+        setInfo({
+          lat: latLng.lat(),
+          lng: latLng.lng(),
+          id,
+          name,
+          color,
+          format,
+          maxConfidence,
+          minConfidence,
+        })
       }
     })
 
@@ -63,13 +87,70 @@ export default function MapRegions({ show, theme }: MapRegionsProps) {
 
   if (!info) return null
 
+  const confidenceText =
+    info.minConfidence != null && info.maxConfidence != null
+      ? `Confidence: ${info.minConfidence}–${info.maxConfidence}%`
+      : null
+
   return (
     <InfoWindow
       position={{ lat: info.lat, lng: info.lng }}
       onCloseClick={() => setInfo(null)}
-      options={{ pixelOffset: new google.maps.Size(0, -10) }}
+      options={{
+        pixelOffset: new google.maps.Size(0, -12),
+        maxWidth: 220,
+      }}
     >
-      <div style={{ fontWeight: 600, padding: '0.25rem 0.5rem' }}>{info.name}</div>
+      <div
+        style={{
+          fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+          minWidth: '8.5rem',
+          padding: '0.5rem 0.25rem',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            marginBottom: '0.375rem',
+          }}
+        >
+          <span
+            style={{
+              width: '0.875rem',
+              height: '0.875rem',
+              borderRadius: '50%',
+              background: info.color,
+              boxShadow: `0 0 0.5rem ${info.color}80`,
+              flexShrink: 0,
+            }}
+          />
+          <span
+            style={{
+              fontSize: '1.05rem',
+              fontWeight: 700,
+              color: '#2a2a2a',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            {info.name}
+          </span>
+        </div>
+        <div
+          style={{
+            fontSize: '0.75rem',
+            color: '#6b6b6b',
+            lineHeight: 1.4,
+          }}
+        >
+          <div style={{ fontWeight: 500 }}>Biblical region</div>
+          {confidenceText ? <div style={{ marginTop: '0.125rem' }}>{confidenceText}</div> : null}
+          <div style={{ marginTop: '0.25rem', fontSize: '0.68rem', opacity: 0.7 }}>
+            Source: OpenBible Geocoding Data
+          </div>
+        </div>
+      </div>
     </InfoWindow>
   )
 }
