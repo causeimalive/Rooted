@@ -1,17 +1,37 @@
 {
-  "updatedAt": "2026-08-17T17:21:28.875Z",
+  "updatedAt": "2026-08-17T17:34:29.451Z",
   "source": "OpenBible Bible Geocoding Data (CC-BY)",
   "sourceUrl": "https://github.com/openbibleinfo/Bible-Geocoding-Data",
   "regions": [
+    {
+      "id": "abarim",
+      "name": "Abarim",
+      "file": "g3d49f6.isobands.geojson"
+    },
+    {
+      "id": "abilene",
+      "name": "Abilene",
+      "file": "ge72c1b.isobands.geojson"
+    },
     {
       "id": "achaia",
       "name": "Achaia",
       "file": "g6b9f35.geometry.geojson"
     },
     {
+      "id": "amalek",
+      "name": "Amalek",
+      "file": "g3ccc7b.isobands.geojson"
+    },
+    {
       "id": "ammon",
       "name": "Ammon",
       "file": "gadb142.isobands.geojson"
+    },
+    {
+      "id": "arabah",
+      "name": "Arabah",
+      "file": "g333df2.geometry.geojson"
     },
     {
       "id": "arabia",
@@ -22,6 +42,16 @@
       "id": "aram",
       "name": "Aram",
       "file": "g15edcb.isobands.geojson"
+    },
+    {
+      "id": "ararat",
+      "name": "Ararat",
+      "file": "g03ac48.isobands.geojson"
+    },
+    {
+      "id": "argob",
+      "name": "Argob",
+      "file": "g8a8940.isobands.geojson"
     },
     {
       "id": "asia",
@@ -44,9 +74,29 @@
       "file": "g76bdaf.isobands.geojson"
     },
     {
+      "id": "batanea",
+      "name": "Batanea",
+      "file": "g3e5460.isobands.geojson"
+    },
+    {
+      "id": "beth",
+      "name": "Beth-eden",
+      "file": "ga277ef.isobands.geojson"
+    },
+    {
+      "id": "beyond",
+      "name": "Beyond the River",
+      "file": "ge8859c.isobands.geojson"
+    },
+    {
       "id": "bithynia",
       "name": "Bithynia",
       "file": "g933f6d.isobands.geojson"
+    },
+    {
+      "id": "cabul",
+      "name": "Cabul 2",
+      "file": "ge980ef.isobands.geojson"
     },
     {
       "id": "canaan",
@@ -74,6 +124,11 @@
       "file": "g4b4d59.isobands.geojson"
     },
     {
+      "id": "dalmatia",
+      "name": "Dalmatia",
+      "file": "g759c47.isobands.geojson"
+    },
+    {
       "id": "decapolis",
       "name": "Decapolis",
       "file": "ga00ceb.isobands.geojson"
@@ -89,6 +144,26 @@
       "file": "g40d263.isobands.geojson"
     },
     {
+      "id": "elam",
+      "name": "Elam",
+      "file": "g727b1f.isobands.geojson"
+    },
+    {
+      "id": "ephraim",
+      "name": "Ephraim 3",
+      "file": "g3fb3df.isobands.geojson"
+    },
+    {
+      "id": "ethiopia",
+      "name": "Ethiopia",
+      "file": "g80ab8b.isobands.geojson"
+    },
+    {
+      "id": "etruria",
+      "name": "Etruria",
+      "file": "g0351db.geometry.geojson"
+    },
+    {
       "id": "galatia",
       "name": "Galatia",
       "file": "ga2818f.isobands.geojson"
@@ -99,14 +174,119 @@
       "file": "g99a57f.isobands.geojson"
     },
     {
+      "id": "geshur",
+      "name": "Geshur",
+      "file": "g307887.isobands.geojson"
+    },
+    {
       "id": "gilead",
       "name": "Gilead 1",
       "file": "ge7afb2.isobands.geojson"
     },
     {
+      "id": "goshen",
+      "name": "Goshen 1",
+      "file": "g9a0f06.isobands.geojson"
+    },
+    {
+      "id": "greece",
+      "name": "Greece",
+      "file": "gd87a62.geometry.geojson"
+    },
+    {
+      "id": "gutium",
+      "name": "Gutium",
+      "file": "g06a14c.isobands.geojson"
+    },
+    {
+      "id": "hatti",
+      "name": "Hatti",
+      "file": "gfb335d.geometry.geojson"
+    },
+    {
+      "id": "hauran",
+      "name": "Hauran",
+      "file": "g25b264.isobands.geojson"
+    },
+    {
+      "id": "havvoth",
+      "name": "Havvoth-jair",
+      "file": "g858c01.isobands.geojson"
+    },
+    {
+      "id": "idumea",
+      "name": "Idumea",
+      "file": "g5e98fb.geometry.geojson"
+    },
+    {
+      "id": "illyricum",
+      "name": "Illyricum",
+      "file": "g857eea.isobands.geojson"
+    },
+    {
+      "id": "italy",
+      "name": "Italy",
+      "file": "g776ba1.geometry.geojson"
+    },
+    {
+      "id": "ituraea",
+      "name": "Ituraea",
+      "file": "gb731f9.isobands.geojson"
+    },
+    {
+      "id": "javan",
+      "name": "Javan",
+      "file": "g8e7709.geometry.geojson"
+    },
+    {
+      "id": "jeruel",
+      "name": "Jeruel",
+      "file": "gf2ea0e.isobands.geojson"
+    },
+    {
+      "id": "jeshimon",
+      "name": "Jeshimon",
+      "file": "gffa031.isobands.geojson"
+    },
+    {
+      "id": "jordan",
+      "name": "Jordan Valley",
+      "file": "gda936b.geometry.geojson"
+    },
+    {
       "id": "judea",
       "name": "Judea 2",
       "file": "gb88bb1.isobands.geojson"
+    },
+    {
+      "id": "kedar",
+      "name": "Kedar",
+      "file": "gd4e2eb.isobands.geojson"
+    },
+    {
+      "id": "kings",
+      "name": "King’s Valley",
+      "file": "g22657e.geometry.geojson"
+    },
+    {
+      "id": "kue",
+      "name": "Kue",
+      "file": "g830d01.isobands.geojson"
+    },
+    {
+      "id": "lebanon",
+      "name": "Lebanon",
+      "file": "g32a9d3.isobands.geojson"
+    },
+    {
+      "id": "libya",
+      "name": "Libya",
+      "file": "g47a69b.geometry.geojson"
+    },
+    {
+      "id": "lycaonia",
+      "name": "Lycaonia",
+      "file": "gced2db.isobands.geojson"
     },
     {
       "id": "lycia",
@@ -119,9 +299,24 @@
       "file": "gcd335e.geometry.geojson"
     },
     {
+      "id": "maacah",
+      "name": "Maacah",
+      "file": "ge2a5b0.isobands.geojson"
+    },
+    {
       "id": "macedonia",
       "name": "Macedonia",
       "file": "g1a6676.geometry.geojson"
+    },
+    {
+      "id": "media",
+      "name": "Media",
+      "file": "g64db35.geometry.geojson"
+    },
+    {
+      "id": "midian",
+      "name": "Midian",
+      "file": "g4fc33f.isobands.geojson"
     },
     {
       "id": "moab",
@@ -129,14 +324,64 @@
       "file": "g228665.isobands.geojson"
     },
     {
+      "id": "mount",
+      "name": "Mount Ephraim",
+      "file": "g4ddbf8.isobands.geojson"
+    },
+    {
       "id": "mysia",
       "name": "Mysia",
       "file": "g3a5d8d.geometry.geojson"
     },
     {
+      "id": "naphoth",
+      "name": "Naphoth-dor",
+      "file": "gaa7aa2.isobands.geojson"
+    },
+    {
+      "id": "negeb",
+      "name": "Negeb",
+      "file": "gf328fd.isobands.geojson"
+    },
+    {
+      "id": "north",
+      "name": "North",
+      "file": "g044645.geometry.geojson"
+    },
+    {
+      "id": "nuhashe",
+      "name": "Nuhashe",
+      "file": "g9ca219.isobands.geojson"
+    },
+    {
+      "id": "ophir",
+      "name": "Ophir",
+      "file": "gdd394c.isobands.geojson"
+    },
+    {
       "id": "pamphylia",
       "name": "Pamphylia",
       "file": "g0c3f61.geometry.geojson"
+    },
+    {
+      "id": "paran",
+      "name": "Paran",
+      "file": "g0f45b2.isobands.geojson"
+    },
+    {
+      "id": "pathros",
+      "name": "Pathros",
+      "file": "g4f25ac.geometry.geojson"
+    },
+    {
+      "id": "pekod",
+      "name": "Pekod",
+      "file": "gbb2516.isobands.geojson"
+    },
+    {
+      "id": "persia",
+      "name": "Persia",
+      "file": "g0e6b24.geometry.geojson"
     },
     {
       "id": "philistia",
@@ -164,14 +409,114 @@
       "file": "ga08869.isobands.geojson"
     },
     {
+      "id": "punt",
+      "name": "Punt",
+      "file": "g43da41.geometry.geojson"
+    },
+    {
       "id": "samaria",
       "name": "Samaria 2",
       "file": "gf5df80.isobands.geojson"
     },
     {
+      "id": "scythia",
+      "name": "Scythia",
+      "file": "gd33034.geometry.geojson"
+    },
+    {
+      "id": "sharon",
+      "name": "Sharon 1",
+      "file": "g528234.geometry.geojson"
+    },
+    {
+      "id": "sheba",
+      "name": "Sheba 1",
+      "file": "g718940.isobands.geojson"
+    },
+    {
+      "id": "shephelah",
+      "name": "Shephelah",
+      "file": "g9764d8.isobands.geojson"
+    },
+    {
+      "id": "shur",
+      "name": "Shur",
+      "file": "g3d355b.isobands.geojson"
+    },
+    {
+      "id": "sin",
+      "name": "Sin",
+      "file": "g42f2b5.geometry.geojson"
+    },
+    {
+      "id": "south",
+      "name": "South 3",
+      "file": "gd70643.geometry.geojson"
+    },
+    {
+      "id": "spain",
+      "name": "Spain",
+      "file": "g504a8f.geometry.geojson"
+    },
+    {
       "id": "syria",
       "name": "Syria 2",
       "file": "g841f86.geometry.geojson"
+    },
+    {
+      "id": "tibhath",
+      "name": "Tibhath",
+      "file": "gbef0d0.geometry.geojson"
+    },
+    {
+      "id": "tophel",
+      "name": "Tophel",
+      "file": "g538b55.geometry.geojson"
+    },
+    {
+      "id": "trachonitis",
+      "name": "Trachonitis",
+      "file": "gb23fb1.geometry.geojson"
+    },
+    {
+      "id": "trogyllium",
+      "name": "Trogyllium",
+      "file": "g8d00f0.geometry.geojson"
+    },
+    {
+      "id": "tubal",
+      "name": "Tubal",
+      "file": "g5e91ea.isobands.geojson"
+    },
+    {
+      "id": "upu",
+      "name": "Upu",
+      "file": "g9a278d.isobands.geojson"
+    },
+    {
+      "id": "uz",
+      "name": "Uz",
+      "file": "gff53f7.geometry.geojson"
+    },
+    {
+      "id": "valley",
+      "name": "Valley of Aijalon",
+      "file": "g68cf68.isobands.geojson"
+    },
+    {
+      "id": "wilderness",
+      "name": "Wilderness of Maon",
+      "file": "ga7e226.isobands.geojson"
+    },
+    {
+      "id": "zin",
+      "name": "Zin 1",
+      "file": "g51b30d.isobands.geojson"
+    },
+    {
+      "id": "zobah",
+      "name": "Zobah",
+      "file": "gffb7d8.isobands.geojson"
     }
   ]
 }

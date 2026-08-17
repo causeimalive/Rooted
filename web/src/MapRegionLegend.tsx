@@ -89,9 +89,10 @@ export default function MapRegionLegend({
         borderRadius: '0.625rem',
         color: fg,
         fontSize: '0.82rem',
-        width: '19rem',
-        maxHeight: 'none',
-        overflow: 'visible',
+        width: '20rem',
+        maxHeight: 'min(78vh, 30rem)',
+        overflowY: 'auto',
+        overflowX: 'hidden',
         boxShadow: isDark
           ? '0 0.35rem 1.25rem rgba(0, 0, 0, 0.55)'
           : '0 0.35rem 1.25rem rgba(0, 0, 0, 0.18)',

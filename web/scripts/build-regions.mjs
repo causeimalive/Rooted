@@ -68,7 +68,7 @@ function hashColor(id) {
     hash = id.charCodeAt(i) + ((hash << 5) - hash)
   }
   const hue = Math.abs(hash) % 360
-  return `hsl(${hue}, 60%, 55%)`
+  return `hsl(${hue}, 42%, 55%)`
 }
 
 function coordInBbox(coord) {
@@ -103,8 +103,7 @@ function normalizeId(name) {
 }
 
 function isWanted(name) {
-  const id = normalizeId(name)
-  return WANTED_REGIONS_SET.has(id)
+  return true
 }
 
 async function fetchText(url) {
