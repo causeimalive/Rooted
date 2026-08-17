@@ -2928,6 +2928,42 @@ button.secondary {
   max-width: min(980px, calc(100% - 7.5rem));
 }
 
+.map-place-lightbox-image-wrap {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+  max-height: calc(100vh - 4rem);
+}
+
+.map-place-lightbox-image-click-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.map-place-lightbox-image-click-zone-left {
+  left: 0;
+  cursor: w-resize;
+}
+
+.map-place-lightbox-image-click-zone-right {
+  right: 0;
+  cursor: e-resize;
+}
+
+.map-place-lightbox-image-click-zone-left:hover {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.06), transparent);
+}
+
+.map-place-lightbox-image-click-zone-right:hover {
+  background: linear-gradient(270deg, rgba(255, 255, 255, 0.06), transparent);
+}
+
 .map-place-lightbox-zone {
   align-self: stretch;
   width: 3rem;
