@@ -30,9 +30,16 @@ type RouteCollection = {
 
 const ROAD_COLOR = { dark: '#c4a87a', light: '#8c6d3f' }
 const SEA_COLOR = { dark: '#6e8c9c', light: '#4a6c7c' }
+const RIVER_COLOR = { dark: '#5a9c8c', light: '#3f7c6d' }
+
+function isWaterRoute(kind: string) {
+  return kind === 'sea' || kind === 'river'
+}
 
 function colorFor(kind: string, theme: 'dark' | 'light') {
-  return kind === 'sea' ? SEA_COLOR[theme] : ROAD_COLOR[theme]
+  if (kind === 'sea') return SEA_COLOR[theme]
+  if (kind === 'river') return RIVER_COLOR[theme]
+  return ROAD_COLOR[theme]
 }
 
 export default function MapRoutes({ show, theme, selectedRouteIds }: MapRoutesProps) {
@@ -59,7 +66,7 @@ export default function MapRoutes({ show, theme, selectedRouteIds }: MapRoutesPr
         const polylines = new Map<string, google.maps.Polyline>()
         for (const feature of data.features) {
           const kind = feature.properties.kind ?? 'road'
-          const isSea = kind === 'sea'
+          const isSea = isWaterRoute(kind)
           const color = colorFor(kind, theme)
           const path = feature.geometry.coordinates.map(([lng, lat]) => ({ lat, lng }))
 
@@ -99,7 +106,7 @@ export default function MapRoutes({ show, theme, selectedRouteIds }: MapRoutesPr
 
           listeners.push(
             polyline.addListener('mouseover', () => {
-              const isSeaRoute = feature.properties.kind === 'sea'
+              const isSeaRoute = isWaterRoute(feature.properties.kind)
               polyline.setOptions({
                 strokeWeight: isSeaRoute ? 8 : 3.4,
                 strokeOpacity: isSeaRoute ? 0.08 : 1,
@@ -245,7 +252,7 @@ export default function MapRoutes({ show, theme, selectedRouteIds }: MapRoutesPr
           </div>
           <div style={{ color: muted }}>
             <div style={{ fontWeight: 500 }}>
-              {kind === 'sea' ? 'Sea route' : 'Overland route'}
+              {kind === 'sea' ? 'Sea route' : kind === 'river' ? 'River route' : 'Overland route'}
               {properties.era ? ` \u00b7 ${properties.era}` : ''}
             </div>
             {properties.description ? (

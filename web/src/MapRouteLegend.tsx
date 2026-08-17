@@ -18,6 +18,17 @@ type MapRouteLegendProps = {
 
 const ROAD_COLOR = { dark: '#c4a87a', light: '#8c6d3f' }
 const SEA_COLOR = { dark: '#6e8c9c', light: '#4a6c7c' }
+const RIVER_COLOR = { dark: '#5a9c8c', light: '#3f7c6d' }
+
+function isWaterRoute(kind: string) {
+  return kind === 'sea' || kind === 'river'
+}
+
+function colorFor(kind: string, theme: 'dark' | 'light') {
+  if (kind === 'sea') return SEA_COLOR[theme]
+  if (kind === 'river') return RIVER_COLOR[theme]
+  return ROAD_COLOR[theme]
+}
 
 export default function MapRouteLegend({
   visible,
@@ -56,9 +67,6 @@ export default function MapRouteLegend({
   const fg = isDark ? '#f5f5f5' : '#1a1a1a'
   const muted = isDark ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.55)'
   const border = isDark ? 'rgba(255, 255, 255, 0.14)' : 'rgba(0, 0, 0, 0.1)'
-  const roadColor = ROAD_COLOR[theme]
-  const seaColor = SEA_COLOR[theme]
-
   function toggle(id: string) {
     const next = new Set(selectedIds ?? allIds)
     if (next.has(id)) next.delete(id)
@@ -143,9 +151,9 @@ export default function MapRouteLegend({
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
         {routes.map((feature) => {
           const id = feature.properties.id
-          const isSea = feature.properties.kind === 'sea'
+          const isSea = isWaterRoute(feature.properties.kind)
           const isSelected = selectedIds ? selectedIds.has(id) : true
-          const color = isSea ? seaColor : roadColor
+          const color = colorFor(feature.properties.kind, theme)
           return (
             <button
               key={id}

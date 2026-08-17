@@ -14,18 +14,54 @@
       "geometry": {
         "type": "LineString",
         "coordinates": [
-          [34.3, 31.5],
-          [34.5, 31.6],
-          [34.6, 31.8],
-          [34.8, 32.0],
-          [34.9, 32.5],
-          [35.1, 32.9],
-          [35.2, 33.3],
-          [35.4, 33.6],
-          [35.5, 33.9],
-          [35.7, 34.5],
-          [36.0, 35.0],
-          [36.1, 36.2]
+          [
+            34.3,
+            31.5
+          ],
+          [
+            34.5,
+            31.6
+          ],
+          [
+            34.6,
+            31.8
+          ],
+          [
+            34.8,
+            32
+          ],
+          [
+            34.9,
+            32.5
+          ],
+          [
+            35.1,
+            32.9
+          ],
+          [
+            35.2,
+            33.3
+          ],
+          [
+            35.4,
+            33.6
+          ],
+          [
+            35.5,
+            33.9
+          ],
+          [
+            35.7,
+            34.5
+          ],
+          [
+            36,
+            35
+          ],
+          [
+            36.1,
+            36.2
+          ]
         ]
       }
     },
@@ -42,15 +78,42 @@
       "geometry": {
         "type": "LineString",
         "coordinates": [
-          [35.0, 29.5],
-          [35.4, 30.2],
-          [35.5, 30.6],
-          [35.7, 31.0],
-          [35.8, 31.4],
-          [36.0, 31.8],
-          [36.1, 32.3],
-          [36.2, 32.9],
-          [36.3, 33.5]
+          [
+            35,
+            29.5
+          ],
+          [
+            35.4,
+            30.2
+          ],
+          [
+            35.5,
+            30.6
+          ],
+          [
+            35.7,
+            31
+          ],
+          [
+            35.8,
+            31.4
+          ],
+          [
+            36,
+            31.8
+          ],
+          [
+            36.1,
+            32.3
+          ],
+          [
+            36.2,
+            32.9
+          ],
+          [
+            36.3,
+            33.5
+          ]
         ]
       }
     },
@@ -67,13 +130,34 @@
       "geometry": {
         "type": "LineString",
         "coordinates": [
-          [29.9, 31.2],
-          [30.5, 31.2],
-          [31.2, 31.2],
-          [32.0, 31.2],
-          [32.5, 31.1],
-          [33.5, 31.2],
-          [34.3, 31.5]
+          [
+            29.9,
+            31.2
+          ],
+          [
+            30.5,
+            31.2
+          ],
+          [
+            31.2,
+            31.2
+          ],
+          [
+            32,
+            31.2
+          ],
+          [
+            32.5,
+            31.1
+          ],
+          [
+            33.5,
+            31.2
+          ],
+          [
+            34.3,
+            31.5
+          ]
         ]
       }
     },
@@ -90,14 +174,38 @@
       "geometry": {
         "type": "LineString",
         "coordinates": [
-          [34.3, 31.5],
-          [34.6, 31.3],
-          [34.9, 31.2],
-          [35.1, 30.9],
-          [35.2, 30.5],
-          [35.0, 30.0],
-          [34.5, 29.5],
-          [33.8, 29.0]
+          [
+            34.3,
+            31.5
+          ],
+          [
+            34.6,
+            31.3
+          ],
+          [
+            34.9,
+            31.2
+          ],
+          [
+            35.1,
+            30.9
+          ],
+          [
+            35.2,
+            30.5
+          ],
+          [
+            35,
+            30
+          ],
+          [
+            34.5,
+            29.5
+          ],
+          [
+            33.8,
+            29
+          ]
         ]
       }
     },
@@ -114,15 +222,42 @@
       "geometry": {
         "type": "LineString",
         "coordinates": [
-          [35.1, 31.53],
-          [35.2, 31.7],
-          [35.23, 31.78],
-          [35.22, 31.93],
-          [35.18, 32.05],
-          [35.28, 32.22],
-          [35.19, 32.28],
-          [35.27, 32.42],
-          [35.32, 32.57]
+          [
+            35.1,
+            31.53
+          ],
+          [
+            35.2,
+            31.7
+          ],
+          [
+            35.23,
+            31.78
+          ],
+          [
+            35.22,
+            31.93
+          ],
+          [
+            35.18,
+            32.05
+          ],
+          [
+            35.28,
+            32.22
+          ],
+          [
+            35.19,
+            32.28
+          ],
+          [
+            35.27,
+            32.42
+          ],
+          [
+            35.32,
+            32.57
+          ]
         ]
       }
     },
@@ -139,13 +274,34 @@
       "geometry": {
         "type": "LineString",
         "coordinates": [
-          [36.1, 36.2],
-          [35.0, 36.5],
-          [34.6, 36.9],
-          [33.9, 37.2],
-          [32.5, 37.9],
-          [29.0, 37.0],
-          [27.3, 37.9]
+          [
+            36.1,
+            36.2
+          ],
+          [
+            35,
+            36.5
+          ],
+          [
+            34.6,
+            36.9
+          ],
+          [
+            33.9,
+            37.2
+          ],
+          [
+            32.5,
+            37.9
+          ],
+          [
+            29,
+            37
+          ],
+          [
+            27.3,
+            37.9
+          ]
         ]
       }
     },
@@ -162,12 +318,30 @@
       "geometry": {
         "type": "LineString",
         "coordinates": [
-          [36.1, 36.2],
-          [36.3, 35.5],
-          [36.3, 33.5],
-          [37.0, 32.5],
-          [38.0, 31.5],
-          [39.5, 30.5]
+          [
+            36.1,
+            36.2
+          ],
+          [
+            36.3,
+            35.5
+          ],
+          [
+            36.3,
+            33.5
+          ],
+          [
+            37,
+            32.5
+          ],
+          [
+            38,
+            31.5
+          ],
+          [
+            39.5,
+            30.5
+          ]
         ]
       }
     },
@@ -184,10 +358,22 @@
       "geometry": {
         "type": "LineString",
         "coordinates": [
-          [35.23, 31.78],
-          [35.28, 32.22],
-          [35.5, 32.5],
-          [36.29, 33.51]
+          [
+            35.23,
+            31.78
+          ],
+          [
+            35.28,
+            32.22
+          ],
+          [
+            35.5,
+            32.5
+          ],
+          [
+            36.29,
+            33.51
+          ]
         ]
       }
     },
@@ -204,13 +390,34 @@
       "geometry": {
         "type": "LineString",
         "coordinates": [
-          [35.5, 33.0],
-          [35.6, 32.5],
-          [35.6, 32.0],
-          [35.6, 31.5],
-          [35.6, 31.0],
-          [35.5, 30.5],
-          [35.4, 30.0]
+          [
+            35.5,
+            33
+          ],
+          [
+            35.6,
+            32.5
+          ],
+          [
+            35.6,
+            32
+          ],
+          [
+            35.6,
+            31.5
+          ],
+          [
+            35.6,
+            31
+          ],
+          [
+            35.5,
+            30.5
+          ],
+          [
+            35.4,
+            30
+          ]
         ]
       }
     },
@@ -227,9 +434,18 @@
       "geometry": {
         "type": "LineString",
         "coordinates": [
-          [14.12, 40.82],
-          [14.25, 41.1],
-          [12.4852, 41.8922]
+          [
+            14.12,
+            40.82
+          ],
+          [
+            14.25,
+            41.1
+          ],
+          [
+            12.4852,
+            41.8922
+          ]
         ]
       }
     },
@@ -246,10 +462,22 @@
       "geometry": {
         "type": "LineString",
         "coordinates": [
-          [34.9, 32.5],
-          [25.0, 34.5],
-          [18.0, 36.0],
-          [12.5, 41.9]
+          [
+            34.9,
+            32.5
+          ],
+          [
+            25,
+            34.5
+          ],
+          [
+            18,
+            36
+          ],
+          [
+            12.5,
+            41.9
+          ]
         ]
       }
     },
@@ -266,9 +494,18 @@
       "geometry": {
         "type": "LineString",
         "coordinates": [
-          [29.9, 31.2],
-          [26.0, 33.0],
-          [22.9, 37.9]
+          [
+            29.9,
+            31.2
+          ],
+          [
+            26,
+            33
+          ],
+          [
+            22.9,
+            37.9
+          ]
         ]
       }
     },
@@ -285,10 +522,22 @@
       "geometry": {
         "type": "LineString",
         "coordinates": [
-          [34.89, 32.5],
-          [35.37, 33.56],
-          [24.75, 34.98],
-          [14.4, 35.9]
+          [
+            34.89,
+            32.5
+          ],
+          [
+            35.37,
+            33.56
+          ],
+          [
+            24.75,
+            34.98
+          ],
+          [
+            14.4,
+            35.9
+          ]
         ]
       }
     },
@@ -305,10 +554,22 @@
       "geometry": {
         "type": "LineString",
         "coordinates": [
-          [35.93, 36.12],
-          [33.9, 35.2],
-          [33.38, 35.18],
-          [32.42, 34.76]
+          [
+            35.93,
+            36.12
+          ],
+          [
+            33.9,
+            35.2
+          ],
+          [
+            33.38,
+            35.18
+          ],
+          [
+            32.42,
+            34.76
+          ]
         ]
       }
     },
@@ -325,11 +586,26 @@
       "geometry": {
         "type": "LineString",
         "coordinates": [
-          [24.08, 40.94],
-          [24.29, 41.01],
-          [23.85, 40.82],
-          [22.95, 40.7],
-          [22.94, 40.64]
+          [
+            24.08,
+            40.94
+          ],
+          [
+            24.29,
+            41.01
+          ],
+          [
+            23.85,
+            40.82
+          ],
+          [
+            22.95,
+            40.7
+          ],
+          [
+            22.94,
+            40.64
+          ]
         ]
       }
     },
@@ -346,9 +622,18 @@
       "geometry": {
         "type": "LineString",
         "coordinates": [
-          [27.34, 38.4],
-          [27.28, 37.53],
-          [29.31, 36.26]
+          [
+            27.34,
+            38.4
+          ],
+          [
+            27.28,
+            37.53
+          ],
+          [
+            29.31,
+            36.26
+          ]
         ]
       }
     },
@@ -365,9 +650,1074 @@
       "geometry": {
         "type": "LineString",
         "coordinates": [
-          [35.23, 31.78],
-          [35.32, 31.8],
-          [35.44, 31.85]
+          [
+            35.23,
+            31.78
+          ],
+          [
+            35.32,
+            31.8
+          ],
+          [
+            35.44,
+            31.85
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "abraham-ur-to-haran",
+        "name": "Abraham's journey from Ur to Haran",
+        "kind": "road",
+        "era": "Patriarchal (c. 2000-1800 BC)",
+        "description": "Terah and Abram's family migrated northwest from Ur of the Chaldeans along the Euphrates to Haran (Genesis 11:31).",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            46.1,
+            30.96
+          ],
+          [
+            43,
+            33
+          ],
+          [
+            40.89,
+            34.55
+          ],
+          [
+            39.03,
+            36.86
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "abraham-haran-to-canaan",
+        "name": "Abraham's journey from Haran to Canaan",
+        "kind": "road",
+        "era": "Patriarchal (c. 2000-1800 BC)",
+        "description": "Abram left Haran at God's call and traveled south through Damascus to Shechem and Hebron in Canaan (Genesis 12:4-6).",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            39.03,
+            36.86
+          ],
+          [
+            37.5,
+            35
+          ],
+          [
+            36.29,
+            33.51
+          ],
+          [
+            35.28,
+            32.22
+          ],
+          [
+            35.1,
+            31.53
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "jacob-flight-to-haran",
+        "name": "Jacob's flight to Haran",
+        "kind": "road",
+        "era": "Patriarchal",
+        "description": "Fleeing Esau, Jacob traveled from Beersheba north through Bethel and Damascus to his uncle Laban in Haran (Genesis 28:10).",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            34.79,
+            31.24
+          ],
+          [
+            35.22,
+            31.93
+          ],
+          [
+            36.29,
+            33.51
+          ],
+          [
+            39.03,
+            36.86
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "jacob-return-to-canaan",
+        "name": "Jacob's return to Canaan",
+        "kind": "road",
+        "era": "Patriarchal",
+        "description": "After twenty years, Jacob returned from Haran through Peniel and Shechem to Bethel in Canaan (Genesis 31-35).",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            39.03,
+            36.86
+          ],
+          [
+            36.29,
+            33.51
+          ],
+          [
+            35.6,
+            32.2
+          ],
+          [
+            35.28,
+            32.22
+          ],
+          [
+            35.22,
+            31.93
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "joseph-caravan-to-egypt",
+        "name": "Joseph's caravan to Egypt",
+        "kind": "road",
+        "era": "Patriarchal",
+        "description": "Ishmaelite traders carried Joseph from Dothan down the coastal route into Egypt, where he was sold as a slave (Genesis 37:25-36).",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            35.27,
+            32.42
+          ],
+          [
+            34.3,
+            31.5
+          ],
+          [
+            31.2,
+            31.2
+          ],
+          [
+            31.25,
+            29.85
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "exodus-route",
+        "name": "The Exodus route",
+        "kind": "road",
+        "era": "Exodus (c. 13th century BC)",
+        "description": "Israel's traditional route from Goshen in Egypt across the Red Sea, through the Sinai wilderness, to Kadesh-barnea and the plains of Moab (Exodus 12-Deuteronomy 34).",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            31.5,
+            30.8
+          ],
+          [
+            32.6,
+            29.9
+          ],
+          [
+            33.97,
+            28.54
+          ],
+          [
+            34.42,
+            30.69
+          ],
+          [
+            35,
+            30.6
+          ],
+          [
+            35.7,
+            31
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "assyrian-deportation-route",
+        "name": "Assyrian deportation route",
+        "kind": "road",
+        "era": "Iron Age (Assyrian conquest, 8th century BC)",
+        "description": "The route along which Assyria deported the northern kingdom of Israel from Samaria to cities in Assyria after 722 BC (2 Kings 17:5-6).",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            35.19,
+            32.28
+          ],
+          [
+            38,
+            34.5
+          ],
+          [
+            40,
+            35.5
+          ],
+          [
+            43.15,
+            36.36
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "babylonian-exile-route",
+        "name": "Babylonian exile route",
+        "kind": "road",
+        "era": "Iron Age (Babylonian exile, 6th century BC)",
+        "description": "The route along which Judah was marched into exile from Jerusalem to Babylon after the city fell in 586 BC (2 Kings 25:1-11).",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            35.23,
+            31.78
+          ],
+          [
+            36.5,
+            34.5
+          ],
+          [
+            39.5,
+            33.5
+          ],
+          [
+            44.42,
+            32.54
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "return-from-exile",
+        "name": "Return from exile",
+        "kind": "road",
+        "era": "Persian period (6th-5th century BC)",
+        "description": "The homeward route the exiles took from Babylon back to Jerusalem under Cyrus's decree and later under Ezra and Nehemiah (Ezra 1-2; Nehemiah 2).",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            44.42,
+            32.54
+          ],
+          [
+            39.5,
+            33.5
+          ],
+          [
+            36.29,
+            33.51
+          ],
+          [
+            35.23,
+            31.78
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "queen-of-sheba-journey",
+        "name": "The Queen of Sheba's journey",
+        "kind": "road",
+        "era": "Iron Age (Solomon, 10th century BC)",
+        "description": "The Queen of Sheba's long caravan journey from southern Arabia to Jerusalem to see Solomon's wisdom and wealth (1 Kings 10:1-13).",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            45.32,
+            15.47
+          ],
+          [
+            40,
+            21
+          ],
+          [
+            36.5,
+            27
+          ],
+          [
+            35.23,
+            31.78
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "elijah-to-horeb",
+        "name": "Elijah's journey to Horeb",
+        "kind": "road",
+        "era": "Iron Age (9th century BC)",
+        "description": "Fleeing Jezebel, Elijah traveled from Beersheba into the wilderness to Horeb, where he encountered the still small voice of God (1 Kings 19:1-8).",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            34.79,
+            31.24
+          ],
+          [
+            34.4,
+            29.8
+          ],
+          [
+            33.97,
+            28.54
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "jonah-nineveh-journey",
+        "name": "Jonah's journey to Nineveh",
+        "kind": "road",
+        "era": "Iron Age (8th century BC)",
+        "description": "After being cast up on shore, Jonah traveled overland from the coast near Joppa to Nineveh to preach repentance (Jonah 1-3).",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            34.75,
+            32.05
+          ],
+          [
+            35,
+            33.5
+          ],
+          [
+            38,
+            34.5
+          ],
+          [
+            40,
+            35.5
+          ],
+          [
+            43.15,
+            36.36
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "magi-journey",
+        "name": "The Magi's journey",
+        "kind": "road",
+        "era": "1st century BC/AD",
+        "description": "Wise men from the East followed a star from the region of Babylon/Persia to Bethlehem to worship the newborn Jesus (Matthew 2:1-12).",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            44.42,
+            32.54
+          ],
+          [
+            39.5,
+            33.5
+          ],
+          [
+            36.29,
+            33.51
+          ],
+          [
+            35.2,
+            31.7
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "holy-family-flight-to-egypt",
+        "name": "The Holy Family's flight to Egypt",
+        "kind": "road",
+        "era": "1st century AD",
+        "description": "Warned in a dream, Joseph took Mary and the infant Jesus from Bethlehem through Gaza to Egypt to escape Herod (Matthew 2:13-15).",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            35.2,
+            31.7
+          ],
+          [
+            34.47,
+            31.5
+          ],
+          [
+            32.5,
+            30.5
+          ],
+          [
+            31.25,
+            29.85
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "holy-family-return-to-nazareth",
+        "name": "The Holy Family's return to Nazareth",
+        "kind": "road",
+        "era": "1st century AD",
+        "description": "After Herod's death, the Holy Family returned from Egypt and settled in Nazareth in Galilee (Matthew 2:19-23).",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            31.25,
+            29.85
+          ],
+          [
+            34.47,
+            31.5
+          ],
+          [
+            35,
+            32
+          ],
+          [
+            35.3,
+            32.7
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "philip-road-to-gaza",
+        "name": "Philip's road to Gaza",
+        "kind": "road",
+        "era": "Roman (1st century AD)",
+        "description": "The desert road from Jerusalem to Gaza where Philip met and baptized the Ethiopian eunuch (Acts 8:26-40).",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            35.23,
+            31.78
+          ],
+          [
+            34.8,
+            31.6
+          ],
+          [
+            34.47,
+            31.5
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "peter-joppa-to-caesarea",
+        "name": "Peter's journey from Joppa to Caesarea",
+        "kind": "road",
+        "era": "Roman (1st century AD)",
+        "description": "Peter traveled from Joppa to Caesarea to meet Cornelius, a turning point in the early church's mission to Gentiles (Acts 10).",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            34.75,
+            32.05
+          ],
+          [
+            34.89,
+            32.5
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "paul-1st-perga-to-antioch-pisidia",
+        "name": "Paul's 1st journey: Perga to Antioch of Pisidia",
+        "kind": "road",
+        "era": "Roman (1st century AD)",
+        "description": "Paul and Barnabas traveled inland from Perga up into the highlands to Antioch of Pisidia (Acts 13:13-14).",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            30.85,
+            36.96
+          ],
+          [
+            30.95,
+            37.4
+          ],
+          [
+            31.19,
+            38.3
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "paul-1st-galatian-cities",
+        "name": "Paul's 1st journey: the Galatian cities",
+        "kind": "road",
+        "era": "Roman (1st century AD)",
+        "description": "From Antioch of Pisidia, Paul and Barnabas preached in Iconium, Lystra, and Derbe (Acts 13:51-14:6).",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            31.19,
+            38.3
+          ],
+          [
+            32,
+            38
+          ],
+          [
+            32.48,
+            37.87
+          ],
+          [
+            32.45,
+            37.58
+          ],
+          [
+            33.36,
+            37.35
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "paul-1st-return-journey",
+        "name": "Paul's 1st journey: the return leg",
+        "kind": "road",
+        "era": "Roman (1st century AD)",
+        "description": "Paul and Barnabas retraced their steps through the Galatian cities and back down to Perga and Attalia to sail home (Acts 14:21-25).",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            33.36,
+            37.35
+          ],
+          [
+            32.45,
+            37.58
+          ],
+          [
+            32.48,
+            37.87
+          ],
+          [
+            31.19,
+            38.3
+          ],
+          [
+            30.95,
+            37.4
+          ],
+          [
+            30.85,
+            36.96
+          ],
+          [
+            30.71,
+            36.89
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "paul-2nd-overland-to-troas",
+        "name": "Paul's 2nd journey: overland to Troas",
+        "kind": "road",
+        "era": "Roman (1st century AD)",
+        "description": "On his second journey, Paul traveled overland from Antioch through Derbe, Lystra, and Galatia before being directed to Troas (Acts 15:41-16:8).",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            36.16,
+            36.2
+          ],
+          [
+            33.36,
+            37.35
+          ],
+          [
+            32.45,
+            37.58
+          ],
+          [
+            30,
+            38.5
+          ],
+          [
+            26.16,
+            39.76
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "paul-2nd-berea-to-corinth",
+        "name": "Paul's 2nd journey: Berea to Corinth",
+        "kind": "sea",
+        "era": "Roman (1st century AD)",
+        "description": "Paul went from Berea to Athens, where he preached at the Areopagus, and on to Corinth (Acts 17:10-18:1).",
+        "source": "Schematic sea lane, not a precise historical track"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            22.2,
+            40.52
+          ],
+          [
+            23,
+            39
+          ],
+          [
+            23.73,
+            37.98
+          ],
+          [
+            22.94,
+            37.94
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "paul-3rd-antioch-to-ephesus",
+        "name": "Paul's 3rd journey: Antioch to Ephesus",
+        "kind": "road",
+        "era": "Roman (1st century AD)",
+        "description": "Paul began his third journey overland from Antioch through the Galatian and Phrygian region to Ephesus (Acts 18:23-19:1).",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            36.16,
+            36.2
+          ],
+          [
+            33,
+            38
+          ],
+          [
+            31.19,
+            38.3
+          ],
+          [
+            29,
+            38
+          ],
+          [
+            27.34,
+            38.4
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "paul-3rd-ephesus-to-corinth",
+        "name": "Paul's 3rd journey: Ephesus to Corinth",
+        "kind": "sea",
+        "era": "Roman (1st century AD)",
+        "description": "After three years in Ephesus, Paul sailed by way of Troas and Macedonia to Corinth (Acts 20:1-2).",
+        "source": "Schematic sea lane, not a precise historical track"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            27.34,
+            38.4
+          ],
+          [
+            26.16,
+            39.76
+          ],
+          [
+            24,
+            40.9
+          ],
+          [
+            22.94,
+            37.94
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "paul-3rd-corinth-to-troas",
+        "name": "Paul's 3rd journey: Corinth back to Troas",
+        "kind": "sea",
+        "era": "Roman (1st century AD)",
+        "description": "Paul returned from Corinth through Macedonia to Troas, where he raised Eutychus from the dead (Acts 20:3-12).",
+        "source": "Schematic sea lane, not a precise historical track"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            22.94,
+            37.94
+          ],
+          [
+            24.29,
+            41.01
+          ],
+          [
+            26.16,
+            39.76
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "paul-3rd-troas-to-miletus",
+        "name": "Paul's 3rd journey: Troas to Miletus",
+        "kind": "sea",
+        "era": "Roman (1st century AD)",
+        "description": "Paul sailed down the Aegean coast from Troas by way of Assos, Mitylene, Chios, and Samos to Miletus, where he addressed the Ephesian elders (Acts 20:13-38).",
+        "source": "Schematic sea lane, not a precise historical track"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            26.16,
+            39.76
+          ],
+          [
+            26.34,
+            39.49
+          ],
+          [
+            26.56,
+            39.11
+          ],
+          [
+            26.14,
+            38.37
+          ],
+          [
+            26.75,
+            37.75
+          ],
+          [
+            27.28,
+            37.53
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "paul-3rd-patara-to-jerusalem",
+        "name": "Paul's 3rd journey: Patara to Jerusalem",
+        "kind": "sea",
+        "era": "Roman (1st century AD)",
+        "description": "Paul's final leg to Jerusalem, sailing from Patara by way of Tyre and Ptolemais to Caesarea, then overland to Jerusalem (Acts 21:1-17).",
+        "source": "Schematic sea lane, not a precise historical track"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            29.31,
+            36.26
+          ],
+          [
+            35.2,
+            33.27
+          ],
+          [
+            35.09,
+            32.93
+          ],
+          [
+            34.89,
+            32.5
+          ],
+          [
+            35.23,
+            31.78
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "phoenician-tyre-tarshish",
+        "name": "Phoenician route: Tyre to Tarshish",
+        "kind": "sea",
+        "era": "Iron Age",
+        "description": "The far-western Mediterranean sea lane Phoenician traders used to reach Tarshish, the destination Jonah fled toward (Jonah 1:3; Ezekiel 27:12).",
+        "source": "Schematic sea lane, not a precise historical track"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            35.2,
+            33.27
+          ],
+          [
+            22.9,
+            37.9
+          ],
+          [
+            12.5,
+            41.9
+          ],
+          [
+            2,
+            39.5
+          ],
+          [
+            -6,
+            36.5
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "ophir-trade-route",
+        "name": "Trade route to Ophir",
+        "kind": "sea",
+        "era": "Iron Age (Solomon, 10th century BC)",
+        "description": "Solomon's ships sailed from Ezion-geber on the Red Sea to Ophir for gold and precious goods (1 Kings 9:26-28).",
+        "source": "Schematic sea lane, not a precise historical track"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            34.95,
+            29.55
+          ],
+          [
+            38,
+            20
+          ],
+          [
+            43,
+            12.5
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "incense-route-arabia",
+        "name": "Incense Route",
+        "kind": "road",
+        "era": "Iron Age",
+        "description": "The great overland trade route carrying frankincense and myrrh from southern Arabia north through Petra to Gaza and the Mediterranean.",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            45.32,
+            15.47
+          ],
+          [
+            40,
+            22
+          ],
+          [
+            36.5,
+            27.5
+          ],
+          [
+            35.44,
+            30.33
+          ],
+          [
+            34.47,
+            31.5
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "nile-route",
+        "name": "Nile River corridor",
+        "kind": "river",
+        "era": "Ancient Egypt",
+        "description": "Egypt's central artery of travel and trade along the Nile between Memphis and Thebes, mentioned throughout the biblical narratives set in Egypt.",
+        "source": "Schematic river corridor, not a precise historical track"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            31.25,
+            29.85
+          ],
+          [
+            31.6,
+            27.2
+          ],
+          [
+            32.65,
+            25.7
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "euphrates-route",
+        "name": "Euphrates River corridor",
+        "kind": "river",
+        "era": "Ancient Mesopotamia",
+        "description": "The Euphrates river corridor linking Babylon to Mari and Haran, the great highway of Mesopotamian civilization and trade.",
+        "source": "Schematic river corridor, not a precise historical track"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            44.42,
+            32.54
+          ],
+          [
+            42.5,
+            33.5
+          ],
+          [
+            40.89,
+            34.55
+          ],
+          [
+            39.03,
+            36.86
+          ]
         ]
       }
     }
