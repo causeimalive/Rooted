@@ -62,7 +62,7 @@ export default function MapMarkers({
 
     const clusterer = new MarkerClusterer({
       map,
-      algorithm: new SuperClusterAlgorithm({ radius: 80, maxZoom: 17, minPoints: 2 }),
+      algorithm: new SuperClusterAlgorithm({ radius: 60, maxZoom: 14, minPoints: 3 }),
       onClusterClick: (_event, cluster, clusterMap) => {
         const bounds = cluster.bounds
         if (!bounds) return
@@ -75,21 +75,21 @@ export default function MapMarkers({
       renderer: {
         render: (cluster: { count: number; position: google.maps.LatLng }) => {
           const count = cluster.count
-          const scale = 22 + Math.min(count / 6, 20)
+          const scale = 24 + Math.min(count / 4, 18)
           return new google.maps.Marker({
             position: cluster.position,
             icon: {
               path: google.maps.SymbolPath.CIRCLE,
               scale,
-              fillColor: palette.markerRelevant,
-              fillOpacity: 0.88,
-              strokeColor: palette.markerStroke,
-              strokeWeight: 2,
+              fillColor: theme === 'dark' ? '#2e3a4a' : '#c9a66b',
+              fillOpacity: 0.78,
+              strokeColor: theme === 'dark' ? '#7d8fa3' : '#8c7349',
+              strokeWeight: 1.5,
             },
             label: {
               text: count.toString(),
-              color: theme === 'dark' ? '#101318' : '#fffaf2',
-              fontSize: '12px',
+              color: theme === 'dark' ? '#e8edf2' : '#2a2a2a',
+              fontSize: '11px',
               fontWeight: '600',
             },
             zIndex: 1000,
