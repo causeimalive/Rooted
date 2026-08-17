@@ -2704,6 +2704,18 @@ button.secondary {
   height: 100%;
   min-height: 180px;
   object-fit: cover;
+  animation: mapGalleryFadeIn 220ms ease;
+}
+
+@keyframes mapGalleryFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .map-place-popup-placeholder,
@@ -2759,7 +2771,6 @@ button.secondary {
   min-height: 180px;
   max-height: 45vh;
   overflow: hidden;
-  cursor: pointer;
 }
 
 .map-place-popup-image-frame .map-place-popup-image {
@@ -2768,100 +2779,79 @@ button.secondary {
   max-height: 45vh;
   object-fit: cover;
   display: block;
+  cursor: zoom-in;
 }
 
-.map-place-popup-image-zone {
+.map-place-popup-image-scrim {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.92);
-  cursor: pointer;
-  transition: background 150ms ease, color 150ms ease;
-  touch-action: pan-y;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+  pointer-events: none;
 }
 
-.map-place-popup-image-nav-btn {
+.map-place-popup-expand-btn {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  width: 1.9rem;
+  height: 1.9rem;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: none;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  cursor: pointer;
+  backdrop-filter: blur(2px);
+  transition: background 150ms ease, transform 150ms ease;
+}
+
+.map-place-popup-expand-btn:hover,
+.map-place-popup-expand-btn:focus-visible {
+  background: rgba(0, 0, 0, 0.65);
+  transform: scale(1.08);
+}
+
+.map-place-popup-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
   width: 2.1rem;
   height: 2.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.4);
+  color: #fff;
+  cursor: pointer;
   backdrop-filter: blur(2px);
   opacity: 0.85;
-  transform: scale(1);
   transition: opacity 150ms ease, transform 150ms ease, background 150ms ease;
   filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.45));
 }
 
-.map-place-popup-image-zone:hover .map-place-popup-image-nav-btn,
-.map-place-popup-image-zone:focus-visible .map-place-popup-image-nav-btn,
-.map-place-popup-image-zone:active .map-place-popup-image-nav-btn {
+.map-place-popup-nav-btn:hover,
+.map-place-popup-nav-btn:focus-visible {
   opacity: 1;
-  transform: scale(1.08);
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.62);
+  transform: translateY(-50%) scale(1.1);
 }
 
-.map-place-popup-image-zone-left {
-  left: 0;
-  width: 26%;
+.map-place-popup-nav-btn-left {
+  left: 0.5rem;
 }
 
-.map-place-popup-image-zone-left:hover,
-.map-place-popup-image-zone-left:focus-visible {
-  background: linear-gradient(90deg, rgba(0, 0, 0, 0.28), transparent);
-}
-
-.map-place-popup-image-zone-right {
-  right: 0;
-  width: 26%;
-}
-
-.map-place-popup-image-zone-right:hover,
-.map-place-popup-image-zone-right:focus-visible {
-  background: linear-gradient(270deg, rgba(0, 0, 0, 0.28), transparent);
-}
-
-.map-place-popup-image-zone-center {
-  left: 26%;
-  right: 26%;
-  background: rgba(0, 0, 0, 0);
-  color: #fff;
-}
-
-.map-place-popup-image-zone-center:hover,
-.map-place-popup-image-zone-center:focus-visible {
-  background: rgba(0, 0, 0, 0.18);
-}
-
-.map-place-popup-image-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.28);
-  color: #fff;
-  opacity: 0;
-  transition: opacity 150ms ease;
-}
-
-.map-place-popup-image-zone-center:hover .map-place-popup-image-overlay,
-.map-place-popup-image-zone-center:focus-visible .map-place-popup-image-overlay {
-  opacity: 1;
+.map-place-popup-nav-btn-right {
+  right: 0.5rem;
 }
 
 .map-place-popup-image-count {
   position: absolute;
-  bottom: 0.55rem;
-  right: 0.55rem;
+  bottom: 0.6rem;
+  right: 0.6rem;
   padding: 0.2rem 0.45rem;
   border-radius: 0.45rem;
   background: rgba(0, 0, 0, 0.45);
@@ -2873,14 +2863,10 @@ button.secondary {
 
 .map-place-popup-image-dots {
   position: absolute;
-  bottom: 0.55rem;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 0.6rem;
+  left: 0.6rem;
   display: flex;
   gap: 0.3rem;
-  padding: 0.2rem 0.35rem;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.35);
 }
 
 .map-place-popup-image-dot {
@@ -2888,15 +2874,16 @@ button.secondary {
   height: 0.4rem;
   border: none;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.45);
   cursor: pointer;
   padding: 0;
-  transition: background 150ms ease, transform 150ms ease;
+  transition: background 150ms ease, transform 150ms ease, width 150ms ease;
 }
 
 .map-place-popup-image-dot.active {
   background: #fff;
-  transform: scale(1.2);
+  width: 0.9rem;
+  border-radius: 999px;
 }
 
 .map-place-lightbox {
@@ -2906,33 +2893,69 @@ button.secondary {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
   padding: 1.5rem;
-  background: rgba(0, 0, 0, 0.88);
-  backdrop-filter: blur(6px);
+  background: rgba(8, 8, 10, 0.92);
+  backdrop-filter: blur(8px);
+  animation: mapLightboxFadeIn 180ms ease;
+}
+
+@keyframes mapLightboxFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.map-place-lightbox-topbar {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  z-index: 2;
+}
+
+.map-place-lightbox-counter {
+  margin-right: auto;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .map-place-lightbox img {
   max-width: 100%;
-  max-height: calc(100vh - 4rem);
+  max-height: calc(100vh - 9rem);
   object-fit: contain;
-  border-radius: 0.5rem;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+  border-radius: 0.65rem;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+  animation: mapGalleryFadeIn 200ms ease;
 }
 
 .map-place-lightbox-content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
-  max-width: min(980px, calc(100% - 7.5rem));
+  gap: 0.9rem;
+  max-width: min(1080px, 100%);
+  width: 100%;
 }
 
 .map-place-lightbox-image-wrap {
   position: relative;
-  display: inline-flex;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   max-width: 100%;
-  max-height: calc(100vh - 4rem);
+  max-height: calc(100vh - 9rem);
 }
 
 .map-place-lightbox-image-click-zone {
@@ -2944,6 +2967,7 @@ button.secondary {
   background: transparent;
   cursor: pointer;
   padding: 0;
+  z-index: 1;
 }
 
 .map-place-lightbox-image-click-zone-left {
@@ -2956,52 +2980,9 @@ button.secondary {
   cursor: e-resize;
 }
 
-.map-place-lightbox-image-click-zone-left:hover {
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.06), transparent);
-}
-
-.map-place-lightbox-image-click-zone-right:hover {
-  background: linear-gradient(270deg, rgba(255, 255, 255, 0.06), transparent);
-}
-
-.map-place-lightbox-zone {
-  align-self: stretch;
-  width: 3rem;
-  border: none;
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  padding: 0;
-  border-radius: 0.5rem;
-  transition: background 150ms ease, transform 150ms ease;
-}
-
-.map-place-lightbox-zone:hover,
-.map-place-lightbox-zone:focus-visible {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.map-place-lightbox-zone:active {
-  transform: scale(0.95);
-}
-
-.map-place-lightbox-zone-left {
-  border-radius: 0.5rem 0 0 0.5rem;
-}
-
-.map-place-lightbox-zone-right {
-  border-radius: 0 0.5rem 0.5rem 0;
-}
-
 .map-place-lightbox-close {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2.4rem;
+  height: 2.4rem;
   border: none;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.12);
@@ -3010,51 +2991,97 @@ button.secondary {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: background 150ms ease, transform 150ms ease;
 }
 
 .map-place-lightbox-close:hover,
 .map-place-lightbox-close:focus-visible {
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.24);
+  transform: rotate(90deg);
 }
 
 .map-place-lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
   width: 2.75rem;
   height: 2.75rem;
   flex: 0 0 auto;
   border: none;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.14);
   color: #fff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 150ms ease;
+  transition: background 150ms ease, transform 150ms ease;
+  z-index: 2;
 }
 
 .map-place-lightbox-nav:hover,
 .map-place-lightbox-nav:focus-visible {
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.26);
+  transform: translateY(-50%) scale(1.08);
 }
 
-.map-place-lightbox-dots {
+.map-place-lightbox-nav-left {
+  left: 0.75rem;
+}
+
+.map-place-lightbox-nav-right {
+  right: 0.75rem;
+}
+
+.map-place-lightbox-caption {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.85rem;
+  text-align: center;
+  max-width: 40rem;
+  padding: 0 1rem;
+}
+
+.map-place-lightbox-filmstrip {
   display: flex;
-  gap: 0.4rem;
-  justify-content: center;
+  gap: 0.5rem;
+  overflow-x: auto;
+  max-width: 100%;
+  padding: 0.25rem;
+  scrollbar-width: thin;
 }
 
-.map-place-lightbox-dot {
-  width: 0.6rem;
-  height: 0.6rem;
-  border: none;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.35);
-  cursor: pointer;
+.map-place-lightbox-thumb {
+  flex: 0 0 auto;
+  width: 3.5rem;
+  height: 3.5rem;
   padding: 0;
+  border: 2px solid transparent;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 150ms ease, border-color 150ms ease, transform 150ms ease;
+  background: rgba(255, 255, 255, 0.08);
 }
 
-.map-place-lightbox-dot.active {
-  background: #fff;
+.map-place-lightbox-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 0;
+  box-shadow: none;
+  animation: none;
+}
+
+.map-place-lightbox-thumb:hover {
+  opacity: 0.85;
+  transform: translateY(-2px);
+}
+
+.map-place-lightbox-thumb.active {
+  opacity: 1;
+  border-color: #fff;
 }
 
 @media (max-width: 720px) {

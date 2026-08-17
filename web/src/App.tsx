@@ -3580,6 +3580,15 @@ function FallbackMapView({
   )
 }
 
+function cleanImageCaption(title: string | undefined): string {
+  if (!title) return ''
+  return title
+    .replace(/^File:/i, '')
+    .replace(/\.[a-z0-9]{2,5}$/i, '')
+    .replace(/_/g, ' ')
+    .trim()
+}
+
 function MapPlacePopup({
   place,
   onClose,
@@ -3695,68 +3704,67 @@ function MapPlacePopup({
               onTouchStart={handleTouchStart}
               onTouchEnd={handleTouchEnd}
             >
-              <img className="map-place-popup-image" src={popupImage.thumbUrl || undefined} alt={popupImage.title ?? place.name} loading="lazy" />
+              <img
+                key={activeImageIndex}
+                className="map-place-popup-image"
+                src={popupImage.thumbUrl || undefined}
+                alt={popupImage.title ?? place.name}
+                loading="lazy"
+                onClick={openLightbox}
+              />
 
-              {allImages.length > 1 && (
-                <button
-                  type="button"
-                  className="map-place-popup-image-zone map-place-popup-image-zone-left"
-                  onClick={previousImage}
-                  aria-label="Previous image"
-                >
-                  <span className="map-place-popup-image-nav-btn">
-                    <ChevronLeft size={20} />
-                  </span>
-                </button>
-              )}
+              <div className="map-place-popup-image-scrim" onClick={openLightbox} aria-hidden="true" />
 
               <button
                 type="button"
-                className="map-place-popup-image-zone map-place-popup-image-zone-center"
+                className="map-place-popup-expand-btn"
                 onClick={openLightbox}
                 aria-label={`View fullscreen image of ${place.name}`}
               >
-                <span className="map-place-popup-image-overlay">
-                  <Maximize2 size={18} />
-                </span>
+                <Maximize2 size={14} />
               </button>
 
               {allImages.length > 1 && (
-                <button
-                  type="button"
-                  className="map-place-popup-image-zone map-place-popup-image-zone-right"
-                  onClick={nextImage}
-                  aria-label="Next image"
-                >
-                  <span className="map-place-popup-image-nav-btn">
-                    <ChevronRight size={20} />
-                  </span>
-                </button>
-              )}
+                <>
+                  <button
+                    type="button"
+                    className="map-place-popup-nav-btn map-place-popup-nav-btn-left"
+                    onClick={previousImage}
+                    aria-label="Previous image"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  <button
+                    type="button"
+                    className="map-place-popup-nav-btn map-place-popup-nav-btn-right"
+                    onClick={nextImage}
+                    aria-label="Next image"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
 
-              {allImages.length > 1 && (
-                <div className="map-place-popup-image-dots">
-                  {allImages.map((_, index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      className={`map-place-popup-image-dot ${index === activeImageIndex ? 'active' : ''}`}
-                      onClick={() => setActiveImageIndex(index)}
-                      aria-label={`Go to image ${index + 1}`}
-                    />
-                  ))}
-                </div>
+                  <div className="map-place-popup-image-count">
+                    {activeImageIndex + 1} / {allImages.length}
+                  </div>
+
+                  <div className="map-place-popup-image-dots">
+                    {allImages.map((_, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        className={`map-place-popup-image-dot ${index === activeImageIndex ? 'active' : ''}`}
+                        onClick={() => setActiveImageIndex(index)}
+                        aria-label={`Go to image ${index + 1}`}
+                      />
+                    ))}
+                  </div>
+                </>
               )}
             </div>
           ) : (
             <div className="map-place-popup-placeholder">
               <MapIcon size={18} />
               <span>{place.region}</span>
-            </div>
-          )}
-          {allImages.length > 1 && (
-            <div className="map-place-popup-image-count">
-              {activeImageIndex + 1} / {allImages.length}
             </div>
           )}
         </div>
@@ -3798,20 +3806,16 @@ function MapPlacePopup({
             if (event.target === event.currentTarget) closeLightbox()
           }}
         >
-          <button type="button" className="map-place-lightbox-close" onClick={closeLightbox} aria-label={t('close')}>
-            <X size={20} />
-          </button>
-
-          {allImages.length > 1 && (
-            <button
-              type="button"
-              className="map-place-lightbox-zone map-place-lightbox-zone-left"
-              onClick={previousImage}
-              aria-label="Previous image"
-            >
-              <ChevronLeft size={28} />
+          <div className="map-place-lightbox-topbar">
+            {allImages.length > 1 && (
+              <span className="map-place-lightbox-counter">
+                {activeImageIndex + 1} / {allImages.length}
+              </span>
+            )}
+            <button type="button" className="map-place-lightbox-close" onClick={closeLightbox} aria-label={t('close')}>
+              <X size={20} />
             </button>
-          )}
+          </div>
 
           <div
             className="map-place-lightbox-content"
@@ -3819,7 +3823,8 @@ function MapPlacePopup({
             onTouchEnd={handleTouchEnd}
           >
             <div className="map-place-lightbox-image-wrap">
-              <img src={activeImage.url || undefined} alt={activeImage.title} loading="lazy" />
+              <img key={activeImageIndex} src={activeImage.url || undefined} alt={activeImage.title} loading="lazy" />
+
               {allImages.length > 1 && (
                 <>
                   <button
@@ -3834,34 +3839,46 @@ function MapPlacePopup({
                     onClick={nextImage}
                     aria-label="Next image"
                   />
+                  <button
+                    type="button"
+                    className="map-place-lightbox-nav map-place-lightbox-nav-left"
+                    onClick={previousImage}
+                    aria-label="Previous image"
+                  >
+                    <ChevronLeft size={24} />
+                  </button>
+                  <button
+                    type="button"
+                    className="map-place-lightbox-nav map-place-lightbox-nav-right"
+                    onClick={nextImage}
+                    aria-label="Next image"
+                  >
+                    <ChevronRight size={24} />
+                  </button>
                 </>
               )}
             </div>
+
+            {cleanImageCaption(activeImage.title) && (
+              <div className="map-place-lightbox-caption">{cleanImageCaption(activeImage.title)}</div>
+            )}
+
             {allImages.length > 1 && (
-              <div className="map-place-lightbox-dots">
-                {allImages.map((_, index) => (
+              <div className="map-place-lightbox-filmstrip">
+                {allImages.map((image, index) => (
                   <button
                     key={index}
                     type="button"
-                    className={`map-place-lightbox-dot ${index === activeImageIndex ? 'active' : ''}`}
+                    className={`map-place-lightbox-thumb ${index === activeImageIndex ? 'active' : ''}`}
                     onClick={() => setActiveImageIndex(index)}
                     aria-label={`Go to image ${index + 1}`}
-                  />
+                  >
+                    <img src={image.thumbUrl || image.url} alt="" loading="lazy" />
+                  </button>
                 ))}
               </div>
             )}
           </div>
-
-          {allImages.length > 1 && (
-            <button
-              type="button"
-              className="map-place-lightbox-zone map-place-lightbox-zone-right"
-              onClick={nextImage}
-              aria-label="Next image"
-            >
-              <ChevronRight size={28} />
-            </button>
-          )}
         </div>
       )}
     </>
