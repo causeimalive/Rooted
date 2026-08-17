@@ -2933,7 +2933,7 @@ button.secondary {
 
 .map-place-lightbox img {
   max-width: 100%;
-  max-height: calc(100vh - 9rem);
+  max-height: 100%;
   object-fit: contain;
   border-radius: 0.65rem;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
@@ -2954,8 +2954,10 @@ button.secondary {
   display: flex;
   align-items: center;
   justify-content: center;
-  max-width: 100%;
-  max-height: calc(100vh - 9rem);
+  width: min(90vw, 1080px);
+  height: max(40vh, min(70vh, calc(100vh - 12rem)));
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 0.75rem;
 }
 
 .map-place-lightbox-image-click-zone {
