@@ -52,6 +52,23 @@ function haversineMeters(a: google.maps.LatLng, b: google.maps.LatLng) {
   return 2 * R * Math.asin(Math.sqrt(h))
 }
 
+// Compass bearing (radians, 0 = north, clockwise positive) from a to b.
+function bearingRadians(a: google.maps.LatLng, b: google.maps.LatLng) {
+  const lat1 = (a.lat() * Math.PI) / 180
+  const lat2 = (b.lat() * Math.PI) / 180
+  const dLng = ((b.lng() - a.lng()) * Math.PI) / 180
+  const y = Math.sin(dLng) * Math.cos(lat2)
+  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng)
+  return Math.atan2(y, x)
+}
+
+// Offset a lat/lng by a distance (meters) along a compass bearing (radians).
+function offsetLatLng(center: google.maps.LatLng, bearing: number, meters: number) {
+  const dLat = (meters * Math.cos(bearing)) / 111320
+  const dLng = (meters * Math.sin(bearing)) / (111320 * Math.cos((center.lat() * Math.PI) / 180))
+  return new google.maps.LatLng(center.lat() + dLat, center.lng() + dLng)
+}
+
 type SpiderfyState = {
   key: string
   lines: google.maps.Polyline[]
@@ -110,17 +127,37 @@ export default function MapMarkers({
       const zoom = clusterMap.getZoom() ?? 6
       const mpp = metersPerPixel(center.lat(), zoom)
       const count = clusterMarkers.length
-      const radiusPixels = Math.min(70, 26 + count * 6)
-      const radiusMeters = radiusPixels * mpp
+      const minVisiblePixels = Math.min(70, 22 + count * 5)
+      const maxVisiblePixels = 90
       const lines: google.maps.Polyline[] = []
       const satellites: google.maps.Marker[] = []
 
-      clusterMarkers.forEach((original, i) => {
-        const angle = (2 * Math.PI * i) / count - Math.PI / 2
-        const dLat = (radiusMeters * Math.cos(angle)) / 111320
-        const dLng =
-          (radiusMeters * Math.sin(angle)) / (111320 * Math.cos((center.lat() * Math.PI) / 180))
-        const satPos = new google.maps.LatLng(center.lat() + dLat, center.lng() + dLng)
+      // Use each marker's true bearing/distance from the cluster center so
+      // the fanned-out dots point toward their real relative location.
+      // Markers that share (near) identical coordinates have no meaningful
+      // bearing, so they're spaced evenly among themselves as a fallback.
+      const EPSILON_METERS = 0.5
+      const withGeometry = clusterMarkers.map((marker) => {
+        const pos = marker.getPosition() ?? center
+        const distanceMeters = haversineMeters(center, pos)
+        return { marker, pos, distanceMeters }
+      })
+      const zeroDistance = withGeometry.filter((w) => w.distanceMeters <= EPSILON_METERS)
+      const bearingById = new Map<google.maps.Marker, number>()
+      withGeometry.forEach((w) => {
+        if (w.distanceMeters > EPSILON_METERS) {
+          bearingById.set(w.marker, bearingRadians(center, w.pos))
+        }
+      })
+      zeroDistance.forEach((w, i) => {
+        bearingById.set(w.marker, (2 * Math.PI * i) / zeroDistance.length)
+      })
+
+      withGeometry.forEach(({ marker: original, distanceMeters }) => {
+        const bearing = bearingById.get(original) ?? 0
+        const actualPixels = distanceMeters / mpp
+        const radiusPixels = Math.min(maxVisiblePixels, Math.max(minVisiblePixels, actualPixels))
+        const satPos = offsetLatLng(center, bearing, radiusPixels * mpp)
 
         const line = new google.maps.Polyline({
           map: clusterMap,
