@@ -29,6 +29,35 @@ const REGION_COLORS = {
   egypt: '#d6a66a',
 }
 
+const WANTED_REGIONS = [
+  ...Object.keys(REGION_COLORS),
+  'ammon',
+  'aram',
+  'arabia',
+  'bashan',
+  'bithynia',
+  'cappadocia',
+  'cilicia',
+  'cush',
+  'macedonia',
+  'phoenicia',
+  'syria',
+  'achaia',
+  'asia',
+  'phrygia',
+]
+
+const WANTED_REGIONS_SET = new Set(WANTED_REGIONS)
+
+function hashColor(id) {
+  let hash = 0
+  for (let i = 0; i < id.length; i++) {
+    hash = id.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const hue = Math.abs(hash) % 360
+  return `hsl(${hue}, 60%, 55%)`
+}
+
 function coordInBbox(coord) {
   const [lng, lat] = coord
   return lng >= BBOX.west && lng <= BBOX.east && lat >= BBOX.south && lat <= BBOX.north
@@ -60,9 +89,9 @@ function normalizeId(name) {
   return base.replace(/[^a-z]/g, '')
 }
 
-function isTarget(name) {
+function isWanted(name) {
   const id = normalizeId(name)
-  return Object.prototype.hasOwnProperty.call(REGION_COLORS, id)
+  return WANTED_REGIONS_SET.has(id)
 }
 
 async function fetchText(url) {
@@ -103,7 +132,7 @@ async function main() {
   for (const entry of entries) {
     if (entry.land_or_water !== 'land') continue
     if (entry.source !== 'ancient') continue
-    if (!isTarget(entry.name)) continue
+    if (!isWanted(entry.name)) continue
     const filename = entry.isobands_geojson_file || entry.geojson_file
     if (!filename) continue
 
@@ -116,7 +145,7 @@ async function main() {
         continue
       }
 
-      const color = REGION_COLORS[id] ?? null
+      const color = REGION_COLORS[id] ?? hashColor(id)
       feature.properties = {
         ...feature.properties,
         id,
