@@ -3,7 +3,14 @@
   "features": [
     {
       "type": "Feature",
-      "properties": { "id": "via-maris", "name": "Via Maris", "kind": "road", "era": "Iron Age / Roman" },
+      "properties": {
+        "id": "via-maris",
+        "name": "Via Maris",
+        "kind": "road",
+        "era": "Iron Age / Roman",
+        "description": "The great coastal highway linking Egypt to Mesopotamia along the Mediterranean shore and through the Jezreel Valley, used by armies, traders, and travelers throughout the biblical period.",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
       "geometry": {
         "type": "LineString",
         "coordinates": [
@@ -24,7 +31,14 @@
     },
     {
       "type": "Feature",
-      "properties": { "id": "kings-highway", "name": "King's Highway", "kind": "road", "era": "Iron Age / Roman" },
+      "properties": {
+        "id": "kings-highway",
+        "name": "King's Highway",
+        "kind": "road",
+        "era": "Iron Age / Roman",
+        "description": "The ancient trade route running north-south through Transjordan, connecting the Gulf of Aqaba to Damascus through Edom, Moab, Ammon, and Bashan (Numbers 20:17).",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
       "geometry": {
         "type": "LineString",
         "coordinates": [
@@ -42,7 +56,14 @@
     },
     {
       "type": "Feature",
-      "properties": { "id": "coastal-egypt", "name": "Coastal road to Egypt", "kind": "road", "era": "Iron Age" },
+      "properties": {
+        "id": "coastal-egypt",
+        "name": "Coastal road to Egypt",
+        "kind": "road",
+        "era": "Iron Age",
+        "description": "The Way of Horus / coastal route linking Canaan to Egypt along the northern Sinai coast, likely traveled by the Holy Family and many others fleeing famine or danger.",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
       "geometry": {
         "type": "LineString",
         "coordinates": [
@@ -58,7 +79,14 @@
     },
     {
       "type": "Feature",
-      "properties": { "id": "way-of-the-wilderness", "name": "Wilderness / Negev route", "kind": "road", "era": "Iron Age" },
+      "properties": {
+        "id": "way-of-the-wilderness",
+        "name": "Wilderness / Negev route",
+        "kind": "road",
+        "era": "Iron Age",
+        "description": "A desert route through the Negev connecting the coastal plain to the Gulf of Aqaba and the Sinai, associated with the wilderness wanderings.",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
       "geometry": {
         "type": "LineString",
         "coordinates": [
@@ -75,7 +103,39 @@
     },
     {
       "type": "Feature",
-      "properties": { "id": "antioch-tarsus-ephesus", "name": "Roman road Antioch - Ephesus", "kind": "road", "era": "Roman" },
+      "properties": {
+        "id": "ridge-route",
+        "name": "Ridge Route (Patriarchs' Highway)",
+        "kind": "road",
+        "era": "Iron Age",
+        "description": "The hill-country road running along the central watershed ridge through Hebron, Jerusalem, Bethel, Shiloh, and Shechem, the main north-south artery of the highlands where the patriarchs and judges traveled.",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [35.1, 31.53],
+          [35.2, 31.7],
+          [35.23, 31.78],
+          [35.22, 31.93],
+          [35.18, 32.05],
+          [35.28, 32.22],
+          [35.19, 32.28],
+          [35.27, 32.42],
+          [35.32, 32.57]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "antioch-tarsus-ephesus",
+        "name": "Roman road Antioch - Ephesus",
+        "kind": "road",
+        "era": "Roman",
+        "description": "A Roman-era overland route across Cilicia and Asia Minor connecting Antioch to the great port city of Ephesus, part of the network Paul used on his missionary journeys.",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
       "geometry": {
         "type": "LineString",
         "coordinates": [
@@ -91,7 +151,14 @@
     },
     {
       "type": "Feature",
-      "properties": { "id": "antioch-damascus-arabia", "name": "Antioch - Damascus - Arabia", "kind": "road", "era": "Roman" },
+      "properties": {
+        "id": "antioch-damascus-arabia",
+        "name": "Antioch - Damascus - Arabia",
+        "kind": "road",
+        "era": "Roman",
+        "description": "A Roman-era route linking Antioch to Damascus and onward into Arabia, part of the caravan network Paul references after his conversion (Galatians 1:17).",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
       "geometry": {
         "type": "LineString",
         "coordinates": [
@@ -106,7 +173,34 @@
     },
     {
       "type": "Feature",
-      "properties": { "id": "jordan-valley", "name": "Jordan Valley route", "kind": "road", "era": "Iron Age" },
+      "properties": {
+        "id": "damascus-road",
+        "name": "Damascus Road",
+        "kind": "road",
+        "era": "Roman",
+        "description": "The route from Jerusalem north through Samaria to Damascus, famous as the road on which Saul of Tarsus encountered the risen Christ (Acts 9:1-9).",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [35.23, 31.78],
+          [35.28, 32.22],
+          [35.5, 32.5],
+          [36.29, 33.51]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "jordan-valley",
+        "name": "Jordan Valley route",
+        "kind": "road",
+        "era": "Iron Age",
+        "description": "A north-south route following the Jordan Rift Valley, offering easier passage between Galilee and the Dead Sea region than the surrounding highlands.",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
       "geometry": {
         "type": "LineString",
         "coordinates": [
@@ -122,7 +216,33 @@
     },
     {
       "type": "Feature",
-      "properties": { "id": "caesarea-rome-sea", "name": "Caesarea to Rome (sea)", "kind": "sea", "era": "Roman" },
+      "properties": {
+        "id": "appian-way",
+        "name": "Appian Way (Puteoli to Rome)",
+        "kind": "road",
+        "era": "Roman",
+        "description": "The famous Roman road from the port of Puteoli to Rome, the final overland leg of Paul's journey to trial before Caesar (Acts 28:13-16).",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [14.12, 40.82],
+          [14.25, 41.1],
+          [12.4852, 41.8922]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "caesarea-rome-sea",
+        "name": "Caesarea to Rome (sea)",
+        "kind": "sea",
+        "era": "Roman",
+        "description": "A common Roman-era shipping lane across the Mediterranean linking the port of Caesarea Maritima to Rome.",
+        "source": "Schematic sea lane, not a precise historical track"
+      },
       "geometry": {
         "type": "LineString",
         "coordinates": [
@@ -135,13 +255,40 @@
     },
     {
       "type": "Feature",
-      "properties": { "id": "alexandria-corinth-sea", "name": "Alexandria to Corinth (sea)", "kind": "sea", "era": "Roman" },
+      "properties": {
+        "id": "alexandria-corinth-sea",
+        "name": "Alexandria to Corinth (sea)",
+        "kind": "sea",
+        "era": "Roman",
+        "description": "A major grain-shipping and trade lane connecting Egypt to Greece, part of the wider Mediterranean maritime network in the Roman period.",
+        "source": "Schematic sea lane, not a precise historical track"
+      },
       "geometry": {
         "type": "LineString",
         "coordinates": [
           [29.9, 31.2],
           [26.0, 33.0],
           [22.9, 37.9]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "paul-malta-voyage",
+        "name": "Paul's voyage to Malta",
+        "kind": "sea",
+        "era": "Roman",
+        "description": "The storm-driven voyage described in Acts 27, from Caesarea toward Rome via Sidon and Crete, ending in shipwreck on Malta.",
+        "source": "Schematic sea lane approximating Acts 27; not a precise historical track"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [34.89, 32.5],
+          [35.37, 33.56],
+          [24.75, 34.98],
+          [14.4, 35.9]
         ]
       }
     }

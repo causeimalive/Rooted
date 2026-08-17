@@ -31,6 +31,7 @@ import MapMarkers from './MapMarkers'
 import MapRegionLegend from './MapRegionLegend'
 import MapRegions from './MapRegions'
 import MapRoutes from './MapRoutes'
+import MapRouteLegend from './MapRouteLegend'
 import MapGeoData from './MapGeoData'
 import { YouVersionProvider } from '@youversion/platform-react-ui'
 import {
@@ -4309,6 +4310,16 @@ function MapTab({
                   selectedIds={selectedRegionIds}
                   onSelectedIdsChange={setSelectedRegionIds}
                 />
+              </div>
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: '0.75rem',
+                  right: '0.75rem',
+                  zIndex: 10,
+                }}
+              >
+                <MapRouteLegend visible={showRoutes} theme={theme} />
               </div>
           </>)}
           </div>
