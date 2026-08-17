@@ -3874,10 +3874,9 @@ function MapTab({
   const [isCompactMap, setIsCompactMap] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 720px)').matches)
   const [baseLayer, setBaseLayer] = useState<MapBaseLayer>('antique')
   const [showRegions, setShowRegions] = useState(false)
+  const [selectedRegionIds, setSelectedRegionIds] = useState<Set<string> | null>(null)
   const [showRoutes, setShowRoutes] = useState(false)
   const [showGeo, setShowGeo] = useState(false)
-  const [regionList, setRegionList] = useState<{ id: string; name: string; color: string }[]>([])
-  const [selectedRegionIds, setSelectedRegionIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (!activeCharacter) {
@@ -3896,23 +3895,6 @@ function MapTab({
     update()
     media.addEventListener('change', update)
     return () => media.removeEventListener('change', update)
-  }, [])
-
-  useEffect(() => {
-    fetch('/data/regions.geojson')
-      .then((res) => res.json() as Promise<{ features: { properties: { id: string; name: string; color: string } }[] }>)
-      .then((data) => {
-        const list = data.features
-          .map((f) => f.properties)
-          .filter((p) => p && p.id)
-          .sort((a, b) => a.name.localeCompare(b.name))
-        setRegionList(list)
-        setSelectedRegionIds(new Set())
-      })
-      .catch(() => {
-        setRegionList([])
-        setSelectedRegionIds(new Set())
-      })
   }, [])
 
   const mapActivePlace = getPlace(mapActivePlaceId) ?? allPlaces[0]
@@ -4219,11 +4201,7 @@ function MapTab({
                     options={{ strokeColor: palette.route, strokeOpacity: 0.9, strokeWeight: 3 }}
                   />
                 )}
-                <MapRegions
-                  show={showRegions}
-                  theme={theme}
-                  selectedRegionIds={selectedRegionIds}
-                />
+                <MapRegions show={showRegions} theme={theme} selectedRegionIds={selectedRegionIds} />
                 <MapRoutes show={showRoutes} theme={theme} />
                 <MapGeoData show={showGeo} theme={theme} />
               </GoogleMap>
@@ -4238,21 +4216,8 @@ function MapTab({
                 <MapRegionLegend
                   visible={showRegions}
                   theme={theme}
-                  regions={regionList}
                   selectedIds={selectedRegionIds}
-                  onToggle={(id) => {
-                    const next = new Set(selectedRegionIds)
-                    if (next.has(id)) next.delete(id)
-                    else next.add(id)
-                    setSelectedRegionIds(next)
-                  }}
-                  onToggleAll={() =>
-                    setSelectedRegionIds(
-                      selectedRegionIds.size === regionList.length
-                        ? new Set()
-                        : new Set(regionList.map((r) => r.id)),
-                    )
-                  }
+                  onSelectedIdsChange={setSelectedRegionIds}
                 />
               </div>
           </>)}

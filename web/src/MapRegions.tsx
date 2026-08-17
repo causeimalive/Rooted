@@ -5,7 +5,7 @@ import { X } from 'lucide-react'
 type MapRegionsProps = {
   show: boolean
   theme: 'dark' | 'light'
-  selectedRegionIds: Set<string>
+  selectedRegionIds: Set<string> | null
 }
 
 const REGION_COLORS: Record<string, string> = {
@@ -25,8 +25,7 @@ const REGION_COLORS: Record<string, string> = {
 
 export default function MapRegions({ show, theme, selectedRegionIds }: MapRegionsProps) {
   const map = useGoogleMap()
-  const [dataLayer, setDataLayer] = useState<google.maps.Data | null>(null)
-  const selectedRef = useRef(selectedRegionIds)
+  const dataLayerRef = useRef<google.maps.Data | null>(null)
   const dataClickFiredRef = useRef(false)
   const [info, setInfo] = useState<{
     lat: number
@@ -39,22 +38,34 @@ export default function MapRegions({ show, theme, selectedRegionIds }: MapRegion
     minConfidence?: number
   } | null>(null)
 
-  useEffect(() => {
-    selectedRef.current = selectedRegionIds
-  }, [selectedRegionIds])
+  function styleFor(feature: google.maps.Data.Feature): google.maps.Data.StyleOptions {
+    const id = (feature.getProperty('id') as string) ?? ''
+    const isSelected = selectedRegionIds === null || selectedRegionIds.has(id)
+    const color = (feature.getProperty('color') as string) ?? REGION_COLORS[id] ?? '#888'
+    const isIsobands = feature.getProperty('format') === 'isobands'
+    const strokeColor = theme === 'dark' ? '#e8ddc9' : '#2e372a'
+    return {
+      visible: isSelected,
+      fillColor: color,
+      fillOpacity: isIsobands ? 0.04 : 0.18,
+      strokeColor,
+      strokeOpacity: isIsobands ? 0.2 : 0.65,
+      strokeWeight: isIsobands ? 0.5 : 1.5,
+    }
+  }
 
   useEffect(() => {
     if (!map || !show) return
 
     const data = new google.maps.Data({ map })
-    setDataLayer(data)
+    dataLayerRef.current = data
 
     data.loadGeoJson('/data/regions.geojson')
+    data.setStyle(styleFor)
 
     const dataClickListener = data.addListener('click', (event: google.maps.Data.MouseEvent) => {
       const name = (event.feature.getProperty('name') as string) ?? ''
       const id = (event.feature.getProperty('id') as string) ?? ''
-      if (!selectedRef.current.has(id)) return
       const color =
         (event.feature.getProperty('color') as string) ?? REGION_COLORS[id] ?? '#888'
       const format = (event.feature.getProperty('format') as string) ?? ''
@@ -91,31 +102,17 @@ export default function MapRegions({ show, theme, selectedRegionIds }: MapRegion
       google.maps.event.removeListener(dataClickListener)
       google.maps.event.removeListener(mapClickListener)
       data.setMap(null)
-      setDataLayer(null)
+      dataLayerRef.current = null
     }
-  }, [map, show])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, show, theme])
 
   useEffect(() => {
-    if (!dataLayer) return
-
-    const strokeColor = theme === 'dark' ? '#e8ddc9' : '#2e372a'
-
-    dataLayer.setStyle((feature) => {
-      const id = (feature.getProperty('id') as string) ?? ''
-      if (!selectedRegionIds.has(id)) {
-        return { visible: false, clickable: false }
-      }
-      const color = (feature.getProperty('color') as string) ?? REGION_COLORS[id] ?? '#888'
-      const isIsobands = feature.getProperty('format') === 'isobands'
-      return {
-        fillColor: color,
-        fillOpacity: isIsobands ? 0.04 : 0.18,
-        strokeColor,
-        strokeOpacity: isIsobands ? 0.2 : 0.65,
-        strokeWeight: isIsobands ? 0.5 : 1.5,
-      }
-    })
-  }, [dataLayer, theme, selectedRegionIds])
+    if (dataLayerRef.current) {
+      dataLayerRef.current.setStyle(styleFor)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRegionIds, theme])
 
   if (!info) return null
 

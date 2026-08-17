@@ -152,7 +152,7 @@ async function main() {
     if (entry.land_or_water !== 'land') continue
     if (entry.source !== 'ancient') continue
     if (!isWanted(entry.name)) continue
-    const filename = entry.geojson_file || entry.isobands_geojson_file
+    const filename = entry.isobands_geojson_file || entry.geojson_file
     if (!filename) continue
 
     const id = normalizeId(entry.name)
@@ -176,7 +176,7 @@ async function main() {
       }
 
       const existing = collectedById.get(id)
-      if (!existing || (existing.properties?.format === 'isobands' && feature.properties?.format !== 'isobands')) {
+      if (!existing || (existing.properties?.format !== 'isobands' && feature.properties?.format === 'isobands')) {
         collectedById.set(id, feature)
         meta.regions = meta.regions.filter((r) => r.id !== id)
         meta.regions.push({ id, name: entry.name, file: filename })
