@@ -3595,6 +3595,7 @@ function MapPlacePopup({
 
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [activeImageIndex, setActiveImageIndex] = useState(0)
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null)
 
   const allImages = useMemo<WikiImage[]>(() => {
     const images: WikiImage[] = []
@@ -3656,6 +3657,26 @@ function MapPlacePopup({
 
   const activeImage = allImages[activeImageIndex]
 
+  const handleTouchStart = useCallback((event: React.TouchEvent) => {
+    const touch = event.touches[0]
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY }
+  }, [])
+
+  const handleTouchEnd = useCallback(
+    (event: React.TouchEvent) => {
+      const start = touchStartRef.current
+      touchStartRef.current = null
+      if (!start || allImages.length < 2) return
+      const touch = event.changedTouches[0]
+      const dx = touch.clientX - start.x
+      const dy = touch.clientY - start.y
+      if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.5) return
+      if (dx < 0) nextImage()
+      else previousImage()
+    },
+    [allImages.length, nextImage, previousImage],
+  )
+
   return (
     <>
       <div className="map-place-popup" role="dialog" aria-label={place.name} aria-live="polite">
@@ -3669,7 +3690,11 @@ function MapPlacePopup({
               <Loader2 className="spin" size={16} /> {t('loading')}
             </div>
           ) : popupImage?.thumbUrl ? (
-            <div className="map-place-popup-image-frame">
+            <div
+              className="map-place-popup-image-frame"
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+            >
               <img className="map-place-popup-image" src={popupImage.thumbUrl || undefined} alt={popupImage.title ?? place.name} loading="lazy" />
 
               {allImages.length > 1 && (
@@ -3679,7 +3704,9 @@ function MapPlacePopup({
                   onClick={previousImage}
                   aria-label="Previous image"
                 >
-                  <ChevronLeft size={22} />
+                  <span className="map-place-popup-image-nav-btn">
+                    <ChevronLeft size={20} />
+                  </span>
                 </button>
               )}
 
@@ -3701,8 +3728,24 @@ function MapPlacePopup({
                   onClick={nextImage}
                   aria-label="Next image"
                 >
-                  <ChevronRight size={22} />
+                  <span className="map-place-popup-image-nav-btn">
+                    <ChevronRight size={20} />
+                  </span>
                 </button>
+              )}
+
+              {allImages.length > 1 && (
+                <div className="map-place-popup-image-dots">
+                  {allImages.map((_, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      className={`map-place-popup-image-dot ${index === activeImageIndex ? 'active' : ''}`}
+                      onClick={() => setActiveImageIndex(index)}
+                      aria-label={`Go to image ${index + 1}`}
+                    />
+                  ))}
+                </div>
               )}
             </div>
           ) : (
@@ -3713,7 +3756,7 @@ function MapPlacePopup({
           )}
           {allImages.length > 1 && (
             <div className="map-place-popup-image-count">
-              {allImages.length} images
+              {activeImageIndex + 1} / {allImages.length}
             </div>
           )}
         </div>
@@ -3762,7 +3805,11 @@ function MapPlacePopup({
             </button>
           )}
 
-          <div className="map-place-lightbox-content">
+          <div
+            className="map-place-lightbox-content"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
             <img src={activeImage.url || undefined} alt={activeImage.title} loading="lazy" />
             {allImages.length > 1 && (
               <div className="map-place-lightbox-dots">
