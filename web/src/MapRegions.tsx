@@ -51,9 +51,9 @@ export default function MapRegions({ show, theme }: MapRegionsProps) {
       const strokeColor = theme === 'dark' ? '#e8ddc9' : '#2e372a'
       return {
         fillColor: color,
-        fillOpacity: isIsobands ? 0.04 : 0.18,
+        fillOpacity: isIsobands ? 0.12 : 0.18,
         strokeColor,
-        strokeOpacity: isIsobands ? 0.2 : 0.65,
+        strokeOpacity: isIsobands ? 0 : 0.55,
         strokeWeight: isIsobands ? 0.5 : 1.5,
       }
     })
