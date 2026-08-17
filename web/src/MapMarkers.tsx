@@ -36,6 +36,42 @@ function getZIndex(active: boolean, relevant: boolean) {
   return active ? 100 : relevant ? 50 : 10
 }
 
+// Google's legacy Marker API only uses fast canvas-based ("optimized")
+// rendering when a marker has no text `label`; any labeled marker falls
+// back to a real DOM element that has to be repositioned by JS on every
+// pan/zoom frame. Cluster bubbles previously used icon+label together,
+// which forced every visible cluster into that slow path. Baking the count
+// directly into an SVG icon keeps clusters on the fast canvas path too.
+const clusterIconCache = new Map<string, google.maps.Icon>()
+
+function buildClusterIcon(count: number, theme: 'dark' | 'light') {
+  const cacheKey = `${theme}:${count}`
+  const cached = clusterIconCache.get(cacheKey)
+  if (cached) return cached
+
+  const radius = 22 + Math.min(count / 5, 16)
+  const size = Math.ceil(radius * 2 + 4)
+  const center = size / 2
+  const fill = theme === 'dark' ? '#2e3a4a' : '#c9a66b'
+  const stroke = theme === 'dark' ? '#7d8fa3' : '#8c7349'
+  const textColor = theme === 'dark' ? '#e8edf2' : '#2a2a2a'
+  const fontSize = Math.max(10, radius * 0.42)
+  const label = count > 999 ? '999+' : count.toString()
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">` +
+    `<circle cx="${center}" cy="${center}" r="${radius}" fill="${fill}" fill-opacity="0.72" stroke="${stroke}" stroke-width="1.5"/>` +
+    `<text x="50%" y="52%" text-anchor="middle" dominant-baseline="middle" font-family="system-ui, -apple-system, sans-serif" font-size="${fontSize}" font-weight="600" fill="${textColor}">${label}</text>` +
+    `</svg>`
+
+  const icon: google.maps.Icon = {
+    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+    scaledSize: new google.maps.Size(size, size),
+    anchor: new google.maps.Point(center, center),
+  }
+  clusterIconCache.set(cacheKey, icon)
+  return icon
+}
+
 function metersPerPixel(lat: number, zoom: number) {
   return (156543.03392 * Math.cos((lat * Math.PI) / 180)) / Math.pow(2, zoom)
 }
@@ -222,25 +258,11 @@ export default function MapMarkers({
       },
       renderer: {
         render: (cluster: { count: number; position: google.maps.LatLng }) => {
-          const count = cluster.count
-          const scale = 22 + Math.min(count / 5, 16)
           return new google.maps.Marker({
             position: cluster.position,
-            icon: {
-              path: google.maps.SymbolPath.CIRCLE,
-              scale,
-              fillColor: theme === 'dark' ? '#2e3a4a' : '#c9a66b',
-              fillOpacity: 0.72,
-              strokeColor: theme === 'dark' ? '#7d8fa3' : '#8c7349',
-              strokeWeight: 1.5,
-            },
-            label: {
-              text: count.toString(),
-              color: theme === 'dark' ? '#e8edf2' : '#2a2a2a',
-              fontSize: '10px',
-              fontWeight: '600',
-            },
+            icon: buildClusterIcon(cluster.count, theme),
             zIndex: 800,
+            optimized: true,
           })
         },
       } as any,
@@ -257,6 +279,7 @@ export default function MapMarkers({
         title: place.name,
         icon: buildIcon(active, relevant, palette),
         zIndex: getZIndex(active, relevant),
+        optimized: true,
       })
       ;(marker as any).__placeId = place.id
       listeners.push(marker.addListener('click', () => onSelectRef.current(place.id)))
