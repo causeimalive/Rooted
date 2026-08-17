@@ -25,7 +25,8 @@ const REGION_COLORS: Record<string, string> = {
 
 export default function MapRegions({ show, theme, selectedRegionIds }: MapRegionsProps) {
   const map = useGoogleMap()
-  const dataLayerRef = useRef<google.maps.Data | null>(null)
+  const [dataLayer, setDataLayer] = useState<google.maps.Data | null>(null)
+  const selectedRef = useRef(selectedRegionIds)
   const dataClickFiredRef = useRef(false)
   const [info, setInfo] = useState<{
     lat: number
@@ -39,23 +40,28 @@ export default function MapRegions({ show, theme, selectedRegionIds }: MapRegion
   } | null>(null)
 
   useEffect(() => {
+    selectedRef.current = selectedRegionIds
+  }, [selectedRegionIds])
+
+  useEffect(() => {
     if (!map || !show) return
 
     const data = new google.maps.Data({ map })
-    dataLayerRef.current = data
+    setDataLayer(data)
 
     data.loadGeoJson('/data/regions.geojson')
 
     const dataClickListener = data.addListener('click', (event: google.maps.Data.MouseEvent) => {
       const name = (event.feature.getProperty('name') as string) ?? ''
       const id = (event.feature.getProperty('id') as string) ?? ''
+      if (!selectedRef.current.has(id)) return
       const color =
         (event.feature.getProperty('color') as string) ?? REGION_COLORS[id] ?? '#888'
       const format = (event.feature.getProperty('format') as string) ?? ''
       const maxConfidence = (event.feature.getProperty('max_confidence') as number) ?? undefined
       const minConfidence = (event.feature.getProperty('min_confidence') as number) ?? undefined
       const latLng = event.latLng
-      if (latLng && name && selectedRegionIds.has(id)) {
+      if (latLng && name) {
         dataClickFiredRef.current = true
         setInfo({
           lat: latLng.lat(),
@@ -85,17 +91,16 @@ export default function MapRegions({ show, theme, selectedRegionIds }: MapRegion
       google.maps.event.removeListener(dataClickListener)
       google.maps.event.removeListener(mapClickListener)
       data.setMap(null)
-      dataLayerRef.current = null
+      setDataLayer(null)
     }
-  }, [map, show, selectedRegionIds])
+  }, [map, show])
 
   useEffect(() => {
-    if (!dataLayerRef.current) return
+    if (!dataLayer) return
 
-    const data = dataLayerRef.current
     const strokeColor = theme === 'dark' ? '#e8ddc9' : '#2e372a'
 
-    data.setStyle((feature) => {
+    dataLayer.setStyle((feature) => {
       const id = (feature.getProperty('id') as string) ?? ''
       if (!selectedRegionIds.has(id)) {
         return { visible: false, clickable: false }
@@ -110,7 +115,7 @@ export default function MapRegions({ show, theme, selectedRegionIds }: MapRegion
         strokeWeight: isIsobands ? 0.5 : 1.5,
       }
     })
-  }, [theme, selectedRegionIds])
+  }, [dataLayer, theme, selectedRegionIds])
 
   if (!info) return null
 

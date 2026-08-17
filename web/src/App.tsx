@@ -3907,7 +3907,7 @@ function MapTab({
           .filter((p) => p && p.id)
           .sort((a, b) => a.name.localeCompare(b.name))
         setRegionList(list)
-        setSelectedRegionIds(new Set(list.map((r) => r.id)))
+        setSelectedRegionIds(new Set())
       })
       .catch(() => {
         setRegionList([])

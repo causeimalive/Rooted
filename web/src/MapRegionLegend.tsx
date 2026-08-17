@@ -159,7 +159,7 @@ export default function MapRegionLegend({
           fontStyle: 'italic',
         }}
       >
-        Click a region to focus; use All/None to reset
+        Select regions below to display
       </div>
     </div>
   )
