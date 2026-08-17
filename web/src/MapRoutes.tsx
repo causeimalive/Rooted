@@ -5,9 +5,10 @@ import { X } from 'lucide-react'
 type MapRoutesProps = {
   show: boolean
   theme: 'dark' | 'light'
+  selectedRouteIds: Set<string> | null
 }
 
-type RouteProperties = {
+export type RouteProperties = {
   id: string
   name: string
   kind: 'road' | 'sea' | string
@@ -34,21 +35,19 @@ function colorFor(kind: string, theme: 'dark' | 'light') {
   return kind === 'sea' ? SEA_COLOR[theme] : ROAD_COLOR[theme]
 }
 
-export default function MapRoutes({ show, theme }: MapRoutesProps) {
+export default function MapRoutes({ show, theme, selectedRouteIds }: MapRoutesProps) {
   const map = useGoogleMap()
-  const polylinesRef = useRef<google.maps.Polyline[]>([])
+  const polylinesRef = useRef<Map<string, google.maps.Polyline>>(new Map())
   const [info, setInfo] = useState<{
     lat: number
     lng: number
     properties: RouteProperties
   } | null>(null)
 
+  // Create the polylines once per map instance; keep them cached across
+  // show/theme toggles instead of refetching and recreating every time.
   useEffect(() => {
-    if (!map || !show) {
-      setInfo(null)
-      return
-    }
-
+    if (!map) return
     let cancelled = false
     const listeners: google.maps.MapsEventListener[] = []
 
@@ -57,17 +56,17 @@ export default function MapRoutes({ show, theme }: MapRoutesProps) {
       .then((data) => {
         if (cancelled) return
 
-        const polylines = data.features.map((feature) => {
+        const polylines = new Map<string, google.maps.Polyline>()
+        for (const feature of data.features) {
           const kind = feature.properties.kind ?? 'road'
-          const color = colorFor(kind, theme)
           const isSea = kind === 'sea'
+          const color = colorFor(kind, theme)
           const path = feature.geometry.coordinates.map(([lng, lat]) => ({ lat, lng }))
 
           const arrowIcon: google.maps.IconSequence = {
             icon: {
               path: google.maps.SymbolPath.FORWARD_OPEN_ARROW,
               scale: 2.2,
-              strokeColor: color,
               strokeOpacity: 0.9,
               strokeWeight: 1.4,
             },
@@ -86,7 +85,7 @@ export default function MapRoutes({ show, theme }: MapRoutesProps) {
           }
 
           const polyline = new google.maps.Polyline({
-            map,
+            map: null,
             path,
             strokeColor: color,
             strokeOpacity: isSea ? 0 : 0.82,
@@ -96,12 +95,14 @@ export default function MapRoutes({ show, theme }: MapRoutesProps) {
           })
           ;(polyline as any).__baseWeight = isSea ? 8 : 2.2
           ;(polyline as any).__baseOpacity = isSea ? 0 : 0.82
+          ;(polyline as any).__properties = feature.properties
 
           listeners.push(
             polyline.addListener('mouseover', () => {
+              const isSeaRoute = feature.properties.kind === 'sea'
               polyline.setOptions({
-                strokeWeight: isSea ? 8 : 3.4,
-                strokeOpacity: isSea ? 0.08 : 1,
+                strokeWeight: isSeaRoute ? 8 : 3.4,
+                strokeOpacity: isSeaRoute ? 0.08 : 1,
                 zIndex: 10,
               })
             }),
@@ -127,13 +128,13 @@ export default function MapRoutes({ show, theme }: MapRoutesProps) {
             }),
           )
 
-          return polyline
-        })
+          polylines.set(feature.properties.id, polyline)
+        }
 
         polylinesRef.current = polylines
       })
       .catch(() => {
-        polylinesRef.current = []
+        polylinesRef.current = new Map()
       })
 
     const mapClickListener = map.addListener('click', () => setInfo(null))
@@ -143,12 +144,32 @@ export default function MapRoutes({ show, theme }: MapRoutesProps) {
       listeners.forEach((l) => l.remove())
       google.maps.event.removeListener(mapClickListener)
       polylinesRef.current.forEach((p) => p.setMap(null))
-      polylinesRef.current = []
+      polylinesRef.current = new Map()
       setInfo(null)
     }
-  }, [map, show, theme])
+  }, [map])
 
-  if (!info) return null
+  // Toggle visibility per route based on `show` and the selection set,
+  // without recreating any polylines.
+  useEffect(() => {
+    if (!show) setInfo(null)
+    polylinesRef.current.forEach((polyline, id) => {
+      const isSelected = selectedRouteIds === null || selectedRouteIds.has(id)
+      polyline.setMap(show && isSelected ? map : null)
+    })
+  }, [show, selectedRouteIds, map])
+
+  // Restyle colors in place when the theme changes, without recreating.
+  useEffect(() => {
+    polylinesRef.current.forEach((polyline) => {
+      const properties = (polyline as any).__properties as RouteProperties | undefined
+      if (!properties) return
+      const color = colorFor(properties.kind, theme)
+      polyline.setOptions({ strokeColor: color })
+    })
+  }, [theme])
+
+  if (!info || !show) return null
 
   const { properties } = info
   const kind = properties.kind ?? 'road'

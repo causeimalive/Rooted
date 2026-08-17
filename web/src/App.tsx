@@ -3967,6 +3967,7 @@ function MapTab({
   const [showRegions, setShowRegions] = useState(false)
   const [selectedRegionIds, setSelectedRegionIds] = useState<Set<string> | null>(null)
   const [showRoutes, setShowRoutes] = useState(false)
+  const [selectedRouteIds, setSelectedRouteIds] = useState<Set<string> | null>(null)
   const [showGeo, setShowGeo] = useState(false)
 
   useEffect(() => {
@@ -4293,7 +4294,7 @@ function MapTab({
                   />
                 )}
                 <MapRegions show={showRegions} theme={theme} selectedRegionIds={selectedRegionIds} />
-                <MapRoutes show={showRoutes} theme={theme} />
+                <MapRoutes show={showRoutes} theme={theme} selectedRouteIds={selectedRouteIds} />
                 <MapGeoData show={showGeo} theme={theme} />
               </GoogleMap>
               <div
@@ -4319,7 +4320,12 @@ function MapTab({
                   zIndex: 10,
                 }}
               >
-                <MapRouteLegend visible={showRoutes} theme={theme} />
+                <MapRouteLegend
+                  visible={showRoutes}
+                  theme={theme}
+                  selectedIds={selectedRouteIds}
+                  onSelectedIdsChange={setSelectedRouteIds}
+                />
               </div>
           </>)}
           </div>

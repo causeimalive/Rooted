@@ -291,6 +291,85 @@
           [14.4, 35.9]
         ]
       }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "cyprus-voyage",
+        "name": "Antioch to Cyprus voyage",
+        "kind": "sea",
+        "era": "Roman",
+        "description": "The sea route from Seleucia (Antioch's port) to Salamis and Paphos on Cyprus, the first leg of Paul and Barnabas's first missionary journey (Acts 13:4-6).",
+        "source": "Schematic sea lane, not a precise historical track"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [35.93, 36.12],
+          [33.9, 35.2],
+          [33.38, 35.18],
+          [32.42, 34.76]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "via-egnatia",
+        "name": "Via Egnatia (Neapolis to Thessalonica)",
+        "kind": "road",
+        "era": "Roman",
+        "description": "The great Roman military road across Macedonia from the port of Neapolis through Philippi and Amphipolis to Thessalonica, traveled by Paul on his second missionary journey (Acts 16:11-17:1).",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [24.08, 40.94],
+          [24.29, 41.01],
+          [23.85, 40.82],
+          [22.95, 40.7],
+          [22.94, 40.64]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "ephesus-miletus-coast",
+        "name": "Ephesus to Miletus coastal route",
+        "kind": "sea",
+        "era": "Roman",
+        "description": "The coastal sea route along the Aegean shore of Asia Minor connecting Ephesus, Miletus, and Patara, part of Paul's return journey from his third missionary journey (Acts 20:15-21:1).",
+        "source": "Schematic sea lane, not a precise historical track"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [27.34, 38.4],
+          [27.28, 37.53],
+          [29.31, 36.26]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "jerusalem-jericho",
+        "name": "Jerusalem to Jericho road",
+        "kind": "road",
+        "era": "Iron Age / Roman",
+        "description": "The steep descending road through the Judean wilderness between Jerusalem and Jericho, the setting of the Parable of the Good Samaritan (Luke 10:30-37).",
+        "source": "Schematic route, not a precise archaeological trace"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [35.23, 31.78],
+          [35.32, 31.8],
+          [35.44, 31.85]
+        ]
+      }
     }
   ]
 }
