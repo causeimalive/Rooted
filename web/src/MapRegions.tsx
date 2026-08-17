@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { useGoogleMap, InfoWindow } from '@react-google-maps/api'
+import { useGoogleMap, OverlayView } from '@react-google-maps/api'
+import { X } from 'lucide-react'
 
 type MapRegionsProps = {
   show: boolean
@@ -92,65 +93,116 @@ export default function MapRegions({ show, theme }: MapRegionsProps) {
       ? `Confidence: ${info.minConfidence}–${info.maxConfidence}%`
       : null
 
+  const isDark = theme === 'dark'
+  const bg = isDark ? '#1a1a1a' : '#ffffff'
+  const fg = isDark ? '#f2f2f2' : '#1a1a1a'
+  const muted = isDark ? '#a0a0a0' : '#555555'
+  const border = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)'
+  const shadow = isDark
+    ? '0 0.5rem 1.5rem rgba(0,0,0,0.6)'
+    : '0 0.5rem 1.5rem rgba(0,0,0,0.18)'
+
   return (
-    <InfoWindow
+    <OverlayView
       position={{ lat: info.lat, lng: info.lng }}
-      onCloseClick={() => setInfo(null)}
-      options={{
-        pixelOffset: new google.maps.Size(0, -12),
-        maxWidth: 220,
-      }}
+      mapPaneName="overlayMouseTarget"
     >
       <div
         style={{
-          fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
-          minWidth: '8.5rem',
-          padding: '0.5rem 0.25rem',
+          position: 'absolute',
+          transform: 'translate(-50%, -100%) translateY(-10px)',
+          zIndex: 20,
         }}
       >
         <div
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            marginBottom: '0.375rem',
+            position: 'relative',
+            minWidth: '10rem',
+            maxWidth: '15rem',
+            padding: '0.75rem 1rem',
+            background: bg,
+            color: fg,
+            borderRadius: '0.625rem',
+            border: `1px solid ${border}`,
+            boxShadow: shadow,
+            fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+            fontSize: '0.85rem',
+            lineHeight: 1.4,
           }}
+          onMouseDown={(e) => e.stopPropagation()}
         >
-          <span
+          <button
+            type="button"
+            onClick={() => setInfo(null)}
             style={{
-              width: '0.875rem',
-              height: '0.875rem',
-              borderRadius: '50%',
-              background: info.color,
-              boxShadow: `0 0 0.5rem ${info.color}80`,
-              flexShrink: 0,
+              position: 'absolute',
+              top: '0.35rem',
+              right: '0.35rem',
+              background: 'transparent',
+              border: 'none',
+              color: muted,
+              cursor: 'pointer',
+              padding: '0.2rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
-          />
-          <span
+            aria-label="Close region info"
+          >
+            <X size={14} />
+          </button>
+          <div
             style={{
-              fontSize: '1.05rem',
-              fontWeight: 700,
-              color: '#2a2a2a',
-              letterSpacing: '-0.02em',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              marginBottom: '0.5rem',
             }}
           >
-            {info.name}
-          </span>
+            <span
+              style={{
+                width: '0.875rem',
+                height: '0.875rem',
+                borderRadius: '50%',
+                background: info.color,
+                boxShadow: `0 0 0.6rem ${info.color}b0`,
+                flexShrink: 0,
+              }}
+            />
+            <span
+              style={{
+                fontSize: '1.05rem',
+                fontWeight: 700,
+                letterSpacing: '-0.02em',
+              }}
+            >
+              {info.name}
+            </span>
+          </div>
+          <div style={{ color: muted }}>
+            <div style={{ fontWeight: 500 }}>Biblical region</div>
+            {confidenceText ? (
+              <div style={{ marginTop: '0.25rem' }}>{confidenceText}</div>
+            ) : null}
+            <div style={{ marginTop: '0.375rem', fontSize: '0.7rem', opacity: 0.85 }}>
+              Source: OpenBible Geocoding Data
+            </div>
+          </div>
         </div>
         <div
           style={{
-            fontSize: '0.75rem',
-            color: '#6b6b6b',
-            lineHeight: 1.4,
+            position: 'absolute',
+            bottom: '-6px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 0,
+            height: 0,
+            borderLeft: '6px solid transparent',
+            borderRight: '6px solid transparent',
+            borderTop: `6px solid ${bg}`,
           }}
-        >
-          <div style={{ fontWeight: 500 }}>Biblical region</div>
-          {confidenceText ? <div style={{ marginTop: '0.125rem' }}>{confidenceText}</div> : null}
-          <div style={{ marginTop: '0.25rem', fontSize: '0.68rem', opacity: 0.7 }}>
-            Source: OpenBible Geocoding Data
-          </div>
-        </div>
+        />
       </div>
-    </InfoWindow>
+    </OverlayView>
   )
 }

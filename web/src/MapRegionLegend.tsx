@@ -14,11 +14,16 @@ type RegionCollection = {
   features: RegionFeature[]
 }
 
+type MapRegionLegendProps = {
+  visible: boolean
+  theme: 'dark' | 'light'
+}
+
 function displayName(name: string) {
   return name.replace(/\s+\d+$/, '')
 }
 
-export default function MapRegionLegend({ visible }: { visible: boolean }) {
+export default function MapRegionLegend({ visible, theme }: MapRegionLegendProps) {
   const [regions, setRegions] = useState<RegionFeature[]>([])
 
   useEffect(() => {
@@ -36,21 +41,28 @@ export default function MapRegionLegend({ visible }: { visible: boolean }) {
 
   if (!visible || !regions.length) return null
 
+  const isDark = theme === 'dark'
+  const bg = isDark ? 'rgba(24, 24, 24, 0.9)' : 'rgba(255, 255, 255, 0.94)'
+  const fg = isDark ? '#f5f5f5' : '#1a1a1a'
+  const muted = isDark ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.55)'
+  const border = isDark ? 'rgba(255, 255, 255, 0.14)' : 'rgba(0, 0, 0, 0.1)'
+
   return (
     <div
       style={{
-        marginTop: '0.75rem',
-        padding: '0.625rem',
-        background: 'rgba(20, 20, 20, 0.78)',
-        border: '1px solid rgba(255, 255, 255, 0.12)',
-        borderRadius: '0.5rem',
-        color: '#fff',
-        fontSize: '0.8rem',
-        maxHeight: '11rem',
-        minWidth: '10rem',
+        padding: '0.875rem',
+        background: bg,
+        border: `1px solid ${border}`,
+        borderRadius: '0.625rem',
+        color: fg,
+        fontSize: '0.9rem',
+        maxHeight: 'min(70vh, 26rem)',
+        minWidth: '12rem',
         overflowY: 'auto',
         WebkitOverflowScrolling: 'touch',
-        boxShadow: '0 0.35rem 1rem rgba(0, 0, 0, 0.45)',
+        boxShadow: isDark
+          ? '0 0.35rem 1.25rem rgba(0, 0, 0, 0.55)'
+          : '0 0.35rem 1.25rem rgba(0, 0, 0, 0.18)',
         backdropFilter: 'blur(6px)',
         WebkitBackdropFilter: 'blur(6px)',
       }}
@@ -58,13 +70,13 @@ export default function MapRegionLegend({ visible }: { visible: boolean }) {
       <div
         style={{
           fontWeight: 700,
-          fontSize: '0.72rem',
+          fontSize: '0.78rem',
           textTransform: 'uppercase',
           letterSpacing: '0.08em',
-          opacity: 0.75,
-          marginBottom: '0.375rem',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
-          paddingBottom: '0.375rem',
+          color: muted,
+          marginBottom: '0.5rem',
+          borderBottom: `1px solid ${border}`,
+          paddingBottom: '0.5rem',
         }}
       >
         Biblical Regions
@@ -75,13 +87,16 @@ export default function MapRegionLegend({ visible }: { visible: boolean }) {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.275rem 0.35rem',
-            borderRadius: '0.25rem',
+            gap: '0.625rem',
+            padding: '0.35rem 0.45rem',
+            borderRadius: '0.35rem',
             transition: 'background 0.15s ease',
+            cursor: 'default',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
+            e.currentTarget.style.background = isDark
+              ? 'rgba(255, 255, 255, 0.07)'
+              : 'rgba(0, 0, 0, 0.05)'
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = 'transparent'
@@ -89,11 +104,11 @@ export default function MapRegionLegend({ visible }: { visible: boolean }) {
         >
           <span
             style={{
-              width: '0.75rem',
-              height: '0.75rem',
+              width: '0.85rem',
+              height: '0.85rem',
               borderRadius: '50%',
               background: feature.properties.color || '#888',
-              boxShadow: `0 0 0.4rem ${(feature.properties.color || '#888') + 'aa'}`,
+              boxShadow: `0 0 0.45rem ${(feature.properties.color || '#888') + 'aa'}`,
               flexShrink: 0,
             }}
           />
@@ -101,7 +116,6 @@ export default function MapRegionLegend({ visible }: { visible: boolean }) {
             style={{
               whiteSpace: 'nowrap',
               fontWeight: 500,
-              textShadow: '0 1px 2px rgba(0,0,0,0.4)',
             }}
           >
             {displayName(feature.properties.name)}
@@ -110,9 +124,9 @@ export default function MapRegionLegend({ visible }: { visible: boolean }) {
       ))}
       <div
         style={{
-          marginTop: '0.375rem',
-          fontSize: '0.68rem',
-          opacity: 0.55,
+          marginTop: '0.5rem',
+          fontSize: '0.72rem',
+          color: muted,
           textAlign: 'center',
           fontStyle: 'italic',
         }}

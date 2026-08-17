@@ -4156,7 +4156,6 @@ function MapTab({
                   />
                   Context
                 </label>
-                <MapRegionLegend visible={showRegions} />
               </div>
               <GoogleMap
                 key={`${theme}-${baseLayer}`}
@@ -4203,6 +4202,16 @@ function MapTab({
                 <MapRoutes show={showRoutes} theme={theme} />
                 <MapGeoData show={showGeo} theme={theme} />
               </GoogleMap>
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: '0.75rem',
+                  left: '0.75rem',
+                  zIndex: 10,
+                }}
+              >
+                <MapRegionLegend visible={showRegions} theme={theme} />
+              </div>
           </>)}
           </div>
         </section>
