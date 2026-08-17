@@ -4080,6 +4080,10 @@ function MapTab({
                   top: '0.75rem',
                   left: '0.75rem',
                   zIndex: 10,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  flexWrap: 'wrap',
                 }}
               >
                 <select
@@ -4107,7 +4111,6 @@ function MapTab({
                     display: 'flex',
                     flexWrap: 'wrap',
                     gap: '0.4rem',
-                    marginTop: '0.6rem',
                   }}
                 >
                   {[
