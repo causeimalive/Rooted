@@ -2675,9 +2675,14 @@ button.secondary {
   transition: transform 150ms ease, background 150ms ease, border-color 150ms ease;
 }
 
-.map-place-popup-close svg {
+.map-place-popup-close svg,
+.map-place-popup-close svg * {
+  color: #fff !important;
   stroke: #fff !important;
   fill: none !important;
+}
+
+.map-place-popup-close svg {
   transition: transform 180ms ease;
 }
 
@@ -2813,7 +2818,9 @@ button.secondary {
   transform: scale(1.08);
 }
 
-.map-place-popup-expand-btn svg {
+.map-place-popup-expand-btn svg,
+.map-place-popup-expand-btn svg * {
+  color: #fff !important;
   stroke: #fff !important;
   fill: none !important;
 }
@@ -2838,7 +2845,9 @@ button.secondary {
   filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.45));
 }
 
-.map-place-popup-nav-btn svg {
+.map-place-popup-nav-btn svg,
+.map-place-popup-nav-btn svg * {
+  color: #fff !important;
   stroke: #fff !important;
   fill: none !important;
 }
@@ -3006,7 +3015,9 @@ button.secondary {
   transition: background 150ms ease, transform 150ms ease;
 }
 
-.map-place-lightbox-close svg {
+.map-place-lightbox-close svg,
+.map-place-lightbox-close svg * {
+  color: #fff !important;
   stroke: #fff !important;
   fill: none !important;
 }
@@ -3036,7 +3047,9 @@ button.secondary {
   z-index: 2;
 }
 
-.map-place-lightbox-nav svg {
+.map-place-lightbox-nav svg,
+.map-place-lightbox-nav svg * {
+  color: #fff !important;
   stroke: #fff !important;
   fill: none !important;
 }
