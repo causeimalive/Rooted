@@ -57,7 +57,7 @@ export default function MapRegions({ show, theme }: MapRegionsProps) {
       }
     })
 
-    data.addListener('click', (event: google.maps.Data.MouseEvent) => {
+    const dataClickListener = data.addListener('click', (event: google.maps.Data.MouseEvent) => {
       const name = (event.feature.getProperty('name') as string) ?? ''
       const id = (event.feature.getProperty('id') as string) ?? ''
       const color =
@@ -78,9 +78,15 @@ export default function MapRegions({ show, theme }: MapRegionsProps) {
           minConfidence,
         })
       }
+      const stop = (event as { stop?: () => void }).stop
+      if (typeof stop === 'function') stop()
     })
 
+    const mapClickListener = map.addListener('click', () => setInfo(null))
+
     return () => {
+      google.maps.event.removeListener(dataClickListener)
+      google.maps.event.removeListener(mapClickListener)
       data.setMap(null)
       dataLayerRef.current = null
     }
