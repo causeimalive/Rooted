@@ -50,16 +50,15 @@ export default function MapRegionLegend({ visible, theme }: MapRegionLegendProps
   return (
     <div
       style={{
-        padding: '0.875rem',
+        padding: '0.65rem',
         background: bg,
         border: `1px solid ${border}`,
         borderRadius: '0.625rem',
         color: fg,
-        fontSize: '0.9rem',
-        width: '18.5rem',
-        maxHeight: 'min(90vh, 26rem)',
-        overflowY: 'auto',
-        WebkitOverflowScrolling: 'touch',
+        fontSize: '0.82rem',
+        width: '19rem',
+        maxHeight: 'none',
+        overflow: 'visible',
         boxShadow: isDark
           ? '0 0.35rem 1.25rem rgba(0, 0, 0, 0.55)'
           : '0 0.35rem 1.25rem rgba(0, 0, 0, 0.18)',
@@ -70,13 +69,13 @@ export default function MapRegionLegend({ visible, theme }: MapRegionLegendProps
       <div
         style={{
           fontWeight: 700,
-          fontSize: '0.78rem',
+          fontSize: '0.72rem',
           textTransform: 'uppercase',
           letterSpacing: '0.08em',
           color: muted,
-          marginBottom: '0.5rem',
+          marginBottom: '0.4rem',
           borderBottom: `1px solid ${border}`,
-          paddingBottom: '0.5rem',
+          paddingBottom: '0.4rem',
         }}
       >
         Biblical Regions
@@ -85,7 +84,7 @@ export default function MapRegionLegend({ visible, theme }: MapRegionLegendProps
         style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
-          gap: '0.35rem',
+          gap: '0.2rem',
         }}
       >
         {regions.map((feature) => (
@@ -94,9 +93,9 @@ export default function MapRegionLegend({ visible, theme }: MapRegionLegendProps
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.3rem 0.4rem',
-              borderRadius: '0.35rem',
+              gap: '0.4rem',
+              padding: '0.2rem 0.35rem',
+              borderRadius: '0.3rem',
               transition: 'background 0.15s ease',
               cursor: 'default',
               overflow: 'hidden',
@@ -112,11 +111,11 @@ export default function MapRegionLegend({ visible, theme }: MapRegionLegendProps
           >
             <span
               style={{
-                width: '0.8rem',
-                height: '0.8rem',
+                width: '0.75rem',
+                height: '0.75rem',
                 borderRadius: '50%',
                 background: feature.properties.color || '#888',
-                boxShadow: `0 0 0.45rem ${(feature.properties.color || '#888') + 'aa'}`,
+                boxShadow: `0 0 0.4rem ${(feature.properties.color || '#888') + 'aa'}`,
                 flexShrink: 0,
               }}
             />
@@ -135,8 +134,8 @@ export default function MapRegionLegend({ visible, theme }: MapRegionLegendProps
       </div>
       <div
         style={{
-          marginTop: '0.5rem',
-          fontSize: '0.7rem',
+          marginTop: '0.4rem',
+          fontSize: '0.68rem',
           color: muted,
           textAlign: 'center',
           fontStyle: 'italic',

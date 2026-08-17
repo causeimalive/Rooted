@@ -25,6 +25,7 @@ const REGION_COLORS: Record<string, string> = {
 export default function MapRegions({ show, theme }: MapRegionsProps) {
   const map = useGoogleMap()
   const dataLayerRef = useRef<google.maps.Data | null>(null)
+  const dataClickFiredRef = useRef(false)
   const [info, setInfo] = useState<{
     lat: number
     lng: number
@@ -67,6 +68,7 @@ export default function MapRegions({ show, theme }: MapRegionsProps) {
       const minConfidence = (event.feature.getProperty('min_confidence') as number) ?? undefined
       const latLng = event.latLng
       if (latLng && name) {
+        dataClickFiredRef.current = true
         setInfo({
           lat: latLng.lat(),
           lng: latLng.lng(),
@@ -77,12 +79,19 @@ export default function MapRegions({ show, theme }: MapRegionsProps) {
           maxConfidence,
           minConfidence,
         })
+        setTimeout(() => {
+          dataClickFiredRef.current = false
+        }, 60)
       }
-      const stop = (event as { stop?: () => void }).stop
-      if (typeof stop === 'function') stop()
     })
 
-    const mapClickListener = map.addListener('click', () => setInfo(null))
+    const mapClickListener = map.addListener('click', () => {
+      if (dataClickFiredRef.current) {
+        dataClickFiredRef.current = false
+        return
+      }
+      setInfo(null)
+    })
 
     return () => {
       google.maps.event.removeListener(dataClickListener)

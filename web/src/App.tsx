@@ -4102,60 +4102,59 @@ function MapTab({
                     </option>
                   ))}
                 </select>
-                <label
+                <div
                   style={{
                     display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.35rem',
-                    marginTop: '0.5rem',
-                    fontSize: '0.8rem',
-                    color: 'var(--text)',
-                    cursor: 'pointer',
+                    flexWrap: 'wrap',
+                    gap: '0.4rem',
+                    marginTop: '0.6rem',
                   }}
                 >
-                  <input
-                    type="checkbox"
-                    checked={showRegions}
-                    onChange={(e) => setShowRegions(e.target.checked)}
-                  />
-                  Regions
-                </label>
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.35rem',
-                    marginTop: '0.35rem',
-                    fontSize: '0.8rem',
-                    color: 'var(--text)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={showRoutes}
-                    onChange={(e) => setShowRoutes(e.target.checked)}
-                  />
-                  Roads
-                </label>
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.35rem',
-                    marginTop: '0.35rem',
-                    fontSize: '0.8rem',
-                    color: 'var(--text)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={showGeo}
-                    onChange={(e) => setShowGeo(e.target.checked)}
-                  />
-                  Context
-                </label>
+                  {[
+                    { id: 'regions', label: 'Regions', active: showRegions, toggle: setShowRegions },
+                    { id: 'roads', label: 'Roads', active: showRoutes, toggle: setShowRoutes },
+                    { id: 'context', label: 'Context', active: showGeo, toggle: setShowGeo },
+                  ].map((pill) => {
+                    const isActive = pill.active
+                    const activeBg =
+                      theme === 'dark'
+                        ? 'rgba(125, 160, 210, 0.36)'
+                        : '#d6e4f5'
+                    const activeBorder =
+                      theme === 'dark'
+                        ? '1px solid rgba(150, 185, 235, 0.6)'
+                        : '1px solid #a8c0e0'
+                    const activeColor =
+                      theme === 'dark' ? '#e8f0ff' : '#142030'
+                    return (
+                      <button
+                        key={pill.id}
+                        type="button"
+                        aria-pressed={isActive}
+                        onClick={() => pill.toggle(!isActive)}
+                        style={{
+                          padding: '0.4rem 0.85rem',
+                          borderRadius: '9999px',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          border: isActive
+                            ? activeBorder
+                            : '1px solid color-mix(in srgb, var(--accent) 22%, var(--muted))',
+                          background: isActive ? activeBg : 'var(--surface)',
+                          color: isActive ? activeColor : 'var(--text)',
+                          boxShadow: isActive
+                            ? '0 0 0.5rem rgba(100, 140, 200, 0.22)'
+                            : '0 1px 2px rgba(0,0,0,0.06)',
+                          transition: 'all 0.15s ease',
+                          userSelect: 'none',
+                        }}
+                      >
+                        {pill.label}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
               <GoogleMap
                 key={`${theme}-${baseLayer}`}
