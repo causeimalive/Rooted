@@ -7,10 +7,15 @@ const outDir = path.join(__dirname, '../public/data')
 const outGeoJson = path.join(outDir, 'regions.geojson')
 const outMeta = path.join(outDir, 'regions-meta.json')
 
-const GEOMETRY_INDEX_URL =
-  'https://raw.githubusercontent.com/openbibleinfo/Bible-Geocoding-Data/main/data/geometry.jsonl'
-const RAW_BASE =
-  'https://raw.githubusercontent.com/openbibleinfo/Bible-Geocoding-Data/main/geometry/'
+const LOCAL_DIR = path.join(__dirname, '.openbible-data')
+const USE_LOCAL = fs.existsSync(LOCAL_DIR)
+
+const GEOMETRY_INDEX_URL = USE_LOCAL
+  ? path.join(LOCAL_DIR, 'data/geometry.jsonl')
+  : 'https://raw.githubusercontent.com/openbibleinfo/Bible-Geocoding-Data/main/data/geometry.jsonl'
+const RAW_BASE = USE_LOCAL
+  ? path.join(LOCAL_DIR, 'geometry/')
+  : 'https://raw.githubusercontent.com/openbibleinfo/Bible-Geocoding-Data/main/geometry/'
 
 const BBOX = { west: -12, east: 63, south: 12, north: 45 }
 
@@ -41,6 +46,17 @@ const REGION_COLORS = {
   achaia: '#9b7a5b',
   asia: '#5b6b9b',
   phrygia: '#9b9b6b',
+  galatia: '#a66b6b',
+  pisidia: '#6ba66b',
+  pamphylia: '#6b6ba6',
+  pontus: '#a66b9b',
+  lycia: '#a69b6b',
+  lydia: '#6b9ba6',
+  caria: '#9b6ba6',
+  mysia: '#9b8b6b',
+  cyprus: '#6ba68a',
+  crete: '#a66b8a',
+  chaldea: '#6b6b8a',
 }
 
 const WANTED_REGIONS = Object.keys(REGION_COLORS)
@@ -92,15 +108,21 @@ function isWanted(name) {
 }
 
 async function fetchText(url) {
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status} ${res.statusText}`)
-  return res.text()
+  if (url.startsWith('http')) {
+    const res = await fetch(url)
+    if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status} ${res.statusText}`)
+    return res.text()
+  }
+  return fs.readFileSync(url, 'utf8')
 }
 
 async function fetchJson(url) {
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status} ${res.statusText}`)
-  return res.json()
+  if (url.startsWith('http')) {
+    const res = await fetch(url)
+    if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status} ${res.statusText}`)
+    return res.json()
+  }
+  return JSON.parse(fs.readFileSync(url, 'utf8'))
 }
 
 async function main() {
@@ -163,6 +185,7 @@ async function main() {
     } catch (error) {
       console.warn(`Could not load ${entry.name} (${filename}):`, error.message)
     }
+    await new Promise((resolve) => setTimeout(resolve, 150))
   }
 
   const collected = Array.from(collectedById.values())

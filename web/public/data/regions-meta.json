@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-17T14:27:59.871Z",
+  "updatedAt": "2026-08-17T15:32:39.628Z",
   "source": "OpenBible Bible Geocoding Data (CC-BY)",
   "sourceUrl": "https://github.com/openbibleinfo/Bible-Geocoding-Data",
   "regions": [
@@ -59,6 +59,11 @@
       "file": "g6c0591.isobands.geojson"
     },
     {
+      "id": "chaldea",
+      "name": "Chaldea",
+      "file": "gae312e.isobands.geojson"
+    },
+    {
       "id": "cilicia",
       "name": "Cilicia",
       "file": "gc82ef6.isobands.geojson"
@@ -84,6 +89,11 @@
       "file": "g40d263.isobands.geojson"
     },
     {
+      "id": "galatia",
+      "name": "Galatia",
+      "file": "ga2818f.isobands.geojson"
+    },
+    {
       "id": "galilee",
       "name": "Galilee 1",
       "file": "g99a57f.isobands.geojson"
@@ -99,6 +109,16 @@
       "file": "gb88bb1.isobands.geojson"
     },
     {
+      "id": "lycia",
+      "name": "Lycia",
+      "file": "g58daff.geometry.geojson"
+    },
+    {
+      "id": "lydia",
+      "name": "Lydia",
+      "file": "gcd335e.geometry.geojson"
+    },
+    {
       "id": "macedonia",
       "name": "Macedonia",
       "file": "g1a6676.geometry.geojson"
@@ -107,6 +127,16 @@
       "id": "moab",
       "name": "Moab 1",
       "file": "g228665.isobands.geojson"
+    },
+    {
+      "id": "mysia",
+      "name": "Mysia",
+      "file": "g3a5d8d.geometry.geojson"
+    },
+    {
+      "id": "pamphylia",
+      "name": "Pamphylia",
+      "file": "g0c3f61.geometry.geojson"
     },
     {
       "id": "philistia",
@@ -122,6 +152,16 @@
       "id": "phrygia",
       "name": "Phrygia",
       "file": "gbb47f1.geometry.geojson"
+    },
+    {
+      "id": "pisidia",
+      "name": "Pisidia",
+      "file": "gf10b01.isobands.geojson"
+    },
+    {
+      "id": "pontus",
+      "name": "Pontus",
+      "file": "ga08869.isobands.geojson"
     },
     {
       "id": "samaria",
