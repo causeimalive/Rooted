@@ -3969,6 +3969,7 @@ function MapTab({
   const [showRoutes, setShowRoutes] = useState(false)
   const [selectedRouteIds, setSelectedRouteIds] = useState<Set<string> | null>(null)
   const [showGeo, setShowGeo] = useState(false)
+  const [showPlaceMarkers, setShowPlaceMarkers] = useState(true)
 
   useEffect(() => {
     if (!activeCharacter) {
@@ -4207,6 +4208,7 @@ function MapTab({
                   }}
                 >
                   {[
+                    { id: 'places', label: 'Places', active: showPlaceMarkers, toggle: setShowPlaceMarkers },
                     { id: 'regions', label: 'Regions', active: showRegions, toggle: setShowRegions },
                     { id: 'roads', label: 'Roads', active: showRoutes, toggle: setShowRoutes },
                     { id: 'context', label: 'Context', active: showGeo, toggle: setShowGeo },
@@ -4279,14 +4281,16 @@ function MapTab({
                   }
                 }}
               >
-                <MapMarkers
-                  places={visiblePlaces}
-                  palette={palette}
-                  theme={theme}
-                  relevantIds={relevantIds}
-                  activePlaceId={mapActivePlace?.id}
-                  onSelect={selectPlace}
-                />
+                {showPlaceMarkers && (
+                  <MapMarkers
+                    places={visiblePlaces}
+                    palette={palette}
+                    theme={theme}
+                    relevantIds={relevantIds}
+                    activePlaceId={mapActivePlace?.id}
+                    onSelect={selectPlace}
+                  />
+                )}
                 {pathCoords.length > 1 && (
                   <Polyline
                     path={pathCoords}

@@ -83,8 +83,8 @@ export default function MapRouteLegend({
         borderRadius: '0.625rem',
         color: fg,
         fontSize: '0.82rem',
-        width: '18rem',
-        maxHeight: 'min(60vh, 24rem)',
+        width: '20rem',
+        maxHeight: 'min(78vh, 30rem)',
         overflowY: 'auto',
         overflowX: 'hidden',
         boxShadow: isDark
@@ -148,7 +148,13 @@ export default function MapRouteLegend({
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '0.2rem',
+        }}
+      >
         {routes.map((feature) => {
           const id = feature.properties.id
           const isSea = isWaterRoute(feature.properties.kind)
@@ -163,9 +169,9 @@ export default function MapRouteLegend({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.3rem 0.4rem',
-                borderRadius: '0.35rem',
+                gap: '0.4rem',
+                padding: '0.2rem 0.35rem',
+                borderRadius: '0.3rem',
                 border: 'none',
                 background: isSelected
                   ? isDark
@@ -177,12 +183,13 @@ export default function MapRouteLegend({
                 cursor: 'pointer',
                 textAlign: 'left',
                 transition: 'all 0.15s ease',
+                overflow: 'hidden',
               }}
             >
               {isSea ? (
                 <span
                   style={{
-                    width: '1.1rem',
+                    width: '0.9rem',
                     height: '0.16rem',
                     flexShrink: 0,
                     backgroundImage: `repeating-linear-gradient(90deg, ${color} 0 3px, transparent 3px 6px)`,
@@ -191,7 +198,7 @@ export default function MapRouteLegend({
               ) : (
                 <span
                   style={{
-                    width: '1.1rem',
+                    width: '0.9rem',
                     height: '0.16rem',
                     borderRadius: '999px',
                     background: color,
@@ -205,7 +212,7 @@ export default function MapRouteLegend({
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   fontWeight: 500,
-                  fontSize: '0.78rem',
+                  fontSize: '0.75rem',
                 }}
               >
                 {feature.properties.name}
