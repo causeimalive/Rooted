@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react'
-import { useGoogleMap } from '@react-google-maps/api'
+import { useEffect, useRef, useState } from 'react'
+import { useGoogleMap, InfoWindow } from '@react-google-maps/api'
 
 type MapRegionsProps = {
   show: boolean
@@ -24,6 +24,7 @@ const REGION_COLORS: Record<string, string> = {
 export default function MapRegions({ show, theme }: MapRegionsProps) {
   const map = useGoogleMap()
   const dataLayerRef = useRef<google.maps.Data | null>(null)
+  const [info, setInfo] = useState<{ lat: number; lng: number; name: string } | null>(null)
 
   useEffect(() => {
     if (!map || !show) return
@@ -47,9 +48,11 @@ export default function MapRegions({ show, theme }: MapRegionsProps) {
     })
 
     data.addListener('click', (event: google.maps.Data.MouseEvent) => {
-      const name = event.feature.getProperty('name') as string
-      // eslint-disable-next-line no-console
-      console.log('Region clicked:', name)
+      const name = (event.feature.getProperty('name') as string) ?? ''
+      const latLng = event.latLng
+      if (latLng && name) {
+        setInfo({ lat: latLng.lat(), lng: latLng.lng(), name })
+      }
     })
 
     return () => {
@@ -58,5 +61,15 @@ export default function MapRegions({ show, theme }: MapRegionsProps) {
     }
   }, [map, show, theme])
 
-  return null
+  if (!info) return null
+
+  return (
+    <InfoWindow
+      position={{ lat: info.lat, lng: info.lng }}
+      onCloseClick={() => setInfo(null)}
+      options={{ pixelOffset: new google.maps.Size(0, -10) }}
+    >
+      <div style={{ fontWeight: 600, padding: '0.25rem 0.5rem' }}>{info.name}</div>
+    </InfoWindow>
+  )
 }

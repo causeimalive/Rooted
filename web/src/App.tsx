@@ -28,6 +28,7 @@ import {
 } from 'lucide-react'
 import { GoogleMap, Polyline, useJsApiLoader } from '@react-google-maps/api'
 import MapMarkers from './MapMarkers'
+import MapRegionLegend from './MapRegionLegend'
 import MapRegions from './MapRegions'
 import MapRoutes from './MapRoutes'
 import MapGeoData from './MapGeoData'
@@ -4155,6 +4156,7 @@ function MapTab({
                   />
                   Context
                 </label>
+                <MapRegionLegend visible={showRegions} />
               </div>
               <GoogleMap
                 key={`${theme}-${baseLayer}`}
