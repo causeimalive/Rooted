@@ -194,11 +194,23 @@ console.log(`Found ${openBiblePlaces.length} OpenBible place name forms`)
 
 const placeIndex = buildPlaceIndex(places)
 const matched = new Set()
+const MAX_CANDIDATES = 5
+let skippedGenericKeys = 0
 
 for (const ob of openBiblePlaces) {
   const key = normalizeName(ob.name)
+  if (!key || key.length < 2) continue
   const candidates = placeIndex.get(key)
   if (!candidates) continue
+  // A legitimate name/alias should only ever resolve to a small handful of
+  // real gazetteer entries. If a normalized key matches a huge number of
+  // candidates, it's a generic/degenerate key (e.g. a common word) and
+  // applying its aliases/passages to every candidate would corrupt the
+  // whole gazetteer instead of enriching a specific place.
+  if (candidates.length > MAX_CANDIDATES) {
+    skippedGenericKeys += 1
+    continue
+  }
   for (const place of candidates) {
     matched.add(place.id)
     place.aliases ??= []
@@ -233,6 +245,7 @@ const meta = {
   openBibleNameForms: openBiblePlaces.length,
   matchedFromOpenBible: matched.size,
   unmatchedFromOpenBible: openBiblePlaces.length - matched.size,
+  skippedGenericKeys,
   sources: ['rooted', 'openbible'],
 }
 

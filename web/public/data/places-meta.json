@@ -7,5 +7,13 @@
   "sources": [
     "rooted",
     "openbible"
-  ]
+  ],
+  "dataCleanup": {
+    "date": "2026-08-17T21:04:17.794Z",
+    "note": "Removed aliases/passages shared across more than 10 places (build-gazetteer.mjs matching bug fan-out)",
+    "aliasesBefore": 1771471,
+    "aliasesAfter": 1261,
+    "passagesBefore": 341737,
+    "passagesAfter": 9678
+  }
 }
