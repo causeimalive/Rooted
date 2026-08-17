@@ -27,26 +27,23 @@ const REGION_COLORS = {
   assyria: '#d68a6a',
   babylonia: '#6a8ad6',
   egypt: '#d6a66a',
+  ammon: '#8c7a5a',
+  aram: '#7a6a8c',
+  arabia: '#c29b6b',
+  bashan: '#7a9b6b',
+  bithynia: '#6b7a9b',
+  cappadocia: '#9b6b7a',
+  cilicia: '#6b9b9b',
+  cush: '#9b8b6b',
+  macedonia: '#7a5a9b',
+  phoenicia: '#9b5a7b',
+  syria: '#6b9b7a',
+  achaia: '#9b7a5b',
+  asia: '#5b6b9b',
+  phrygia: '#9b9b6b',
 }
 
-const WANTED_REGIONS = [
-  ...Object.keys(REGION_COLORS),
-  'ammon',
-  'aram',
-  'arabia',
-  'bashan',
-  'bithynia',
-  'cappadocia',
-  'cilicia',
-  'cush',
-  'macedonia',
-  'phoenicia',
-  'syria',
-  'achaia',
-  'asia',
-  'phrygia',
-]
-
+const WANTED_REGIONS = Object.keys(REGION_COLORS)
 const WANTED_REGIONS_SET = new Set(WANTED_REGIONS)
 
 function hashColor(id) {
