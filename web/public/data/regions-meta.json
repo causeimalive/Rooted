@@ -1,0 +1,67 @@
+{
+  "updatedAt": "2026-08-17T13:05:28.100Z",
+  "source": "OpenBible Bible Geocoding Data (CC-BY)",
+  "sourceUrl": "https://github.com/openbibleinfo/Bible-Geocoding-Data",
+  "regions": [
+    {
+      "id": "assyria",
+      "name": "Assyria",
+      "file": "g76b6c9.isobands.geojson"
+    },
+    {
+      "id": "babylonia",
+      "name": "Babylonia",
+      "file": "g523915.isobands.geojson"
+    },
+    {
+      "id": "canaan",
+      "name": "Canaan",
+      "file": "g7e51d1.isobands.geojson"
+    },
+    {
+      "id": "decapolis",
+      "name": "Decapolis",
+      "file": "ga00ceb.isobands.geojson"
+    },
+    {
+      "id": "edom",
+      "name": "Edom",
+      "file": "g7ad983.isobands.geojson"
+    },
+    {
+      "id": "egypt",
+      "name": "Egypt",
+      "file": "g40d263.isobands.geojson"
+    },
+    {
+      "id": "galilee",
+      "name": "Galilee 1",
+      "file": "g99a57f.isobands.geojson"
+    },
+    {
+      "id": "gilead",
+      "name": "Gilead 1",
+      "file": "ge7afb2.isobands.geojson"
+    },
+    {
+      "id": "judea",
+      "name": "Judea 2",
+      "file": "gb88bb1.isobands.geojson"
+    },
+    {
+      "id": "moab",
+      "name": "Moab 1",
+      "file": "g228665.isobands.geojson"
+    },
+    {
+      "id": "philistia",
+      "name": "Philistia",
+      "file": "g746ae5.isobands.geojson"
+    },
+    {
+      "id": "samaria",
+      "name": "Samaria 2",
+      "file": "gf5df80.isobands.geojson"
+    }
+  ]
+}

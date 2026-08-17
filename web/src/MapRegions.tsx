@@ -35,13 +35,14 @@ export default function MapRegions({ show, theme }: MapRegionsProps) {
     data.setStyle((feature) => {
       const id = (feature.getProperty('id') as string) ?? ''
       const color = (feature.getProperty('color') as string) ?? REGION_COLORS[id] ?? '#888'
+      const isIsobands = feature.getProperty('format') === 'isobands'
       const strokeColor = theme === 'dark' ? '#e8ddc9' : '#2e372a'
       return {
         fillColor: color,
-        fillOpacity: 0.18,
+        fillOpacity: isIsobands ? 0.04 : 0.18,
         strokeColor,
-        strokeOpacity: 0.65,
-        strokeWeight: 1.5,
+        strokeOpacity: isIsobands ? 0.2 : 0.65,
+        strokeWeight: isIsobands ? 0.5 : 1.5,
       }
     })
 
