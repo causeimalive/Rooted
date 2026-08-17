@@ -3789,7 +3789,15 @@ function MapPlacePopup({
       </div>
 
       {lightboxOpen && activeImage && (
-        <div className="map-place-lightbox" role="dialog" aria-modal="true" aria-label={`Image ${activeImageIndex + 1} of ${allImages.length}`}>
+        <div
+          className="map-place-lightbox"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Image ${activeImageIndex + 1} of ${allImages.length}`}
+          onClick={(event) => {
+            if (event.target === event.currentTarget) closeLightbox()
+          }}
+        >
           <button type="button" className="map-place-lightbox-close" onClick={closeLightbox} aria-label={t('close')}>
             <X size={20} />
           </button>
