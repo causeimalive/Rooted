@@ -19,6 +19,7 @@ type MapMarkersProps = {
 }
 
 const BOUNCE_DURATION = 1400
+const SPIDERFY_PIXEL_THRESHOLD = 24
 
 function buildIcon(active: boolean, relevant: boolean, palette: MapMarkersProps['palette']) {
   return {
@@ -35,6 +36,31 @@ function getZIndex(active: boolean, relevant: boolean) {
   return active ? 100 : relevant ? 50 : 10
 }
 
+function metersPerPixel(lat: number, zoom: number) {
+  return (156543.03392 * Math.cos((lat * Math.PI) / 180)) / Math.pow(2, zoom)
+}
+
+function haversineMeters(a: google.maps.LatLng, b: google.maps.LatLng) {
+  const R = 6371000
+  const lat1 = (a.lat() * Math.PI) / 180
+  const lat2 = (b.lat() * Math.PI) / 180
+  const dLat = lat2 - lat1
+  const dLng = ((b.lng() - a.lng()) * Math.PI) / 180
+  const sinDLat = Math.sin(dLat / 2)
+  const sinDLng = Math.sin(dLng / 2)
+  const h = sinDLat * sinDLat + Math.cos(lat1) * Math.cos(lat2) * sinDLng * sinDLng
+  return 2 * R * Math.asin(Math.sqrt(h))
+}
+
+type SpiderfyState = {
+  key: string
+  lines: google.maps.Polyline[]
+  markers: google.maps.Marker[]
+  clickListener: google.maps.MapsEventListener
+  zoomListener: google.maps.MapsEventListener
+  dragListener: google.maps.MapsEventListener
+}
+
 export default function MapMarkers({
   places,
   palette,
@@ -48,6 +74,7 @@ export default function MapMarkers({
   const clustererRef = useRef<MarkerClusterer | null>(null)
   const bounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const prevActiveRef = useRef<string | undefined>(undefined)
+  const spiderfyRef = useRef<SpiderfyState | null>(null)
 
   const onSelectRef = useRef(onSelect)
   const activePlaceIdRef = useRef(activePlaceId)
@@ -60,13 +87,101 @@ export default function MapMarkers({
   useEffect(() => {
     if (!map || !places.length) return
 
+    const collapseSpiderfy = () => {
+      const s = spiderfyRef.current
+      if (!s) return
+      s.lines.forEach((l) => l.setMap(null))
+      s.markers.forEach((m) => {
+        google.maps.event.clearInstanceListeners(m)
+        m.setMap(null)
+      })
+      google.maps.event.removeListener(s.clickListener)
+      google.maps.event.removeListener(s.zoomListener)
+      google.maps.event.removeListener(s.dragListener)
+      spiderfyRef.current = null
+    }
+
+    const spiderfy = (
+      clusterMap: google.maps.Map,
+      center: google.maps.LatLng,
+      clusterMarkers: google.maps.Marker[],
+      key: string,
+    ) => {
+      const zoom = clusterMap.getZoom() ?? 6
+      const mpp = metersPerPixel(center.lat(), zoom)
+      const count = clusterMarkers.length
+      const radiusPixels = Math.min(70, 26 + count * 6)
+      const radiusMeters = radiusPixels * mpp
+      const lines: google.maps.Polyline[] = []
+      const satellites: google.maps.Marker[] = []
+
+      clusterMarkers.forEach((original, i) => {
+        const angle = (2 * Math.PI * i) / count - Math.PI / 2
+        const dLat = (radiusMeters * Math.cos(angle)) / 111320
+        const dLng =
+          (radiusMeters * Math.sin(angle)) / (111320 * Math.cos((center.lat() * Math.PI) / 180))
+        const satPos = new google.maps.LatLng(center.lat() + dLat, center.lng() + dLng)
+
+        const line = new google.maps.Polyline({
+          map: clusterMap,
+          path: [center, satPos],
+          strokeColor: theme === 'dark' ? '#7d8fa3' : '#8c7349',
+          strokeOpacity: 0.55,
+          strokeWeight: 1,
+          zIndex: 900,
+        })
+        lines.push(line)
+
+        const placeId = (original as any).__placeId as string | undefined
+        const satellite = new google.maps.Marker({
+          map: clusterMap,
+          position: satPos,
+          title: original.getTitle() ?? undefined,
+          icon: original.getIcon() as any,
+          zIndex: 950,
+        })
+        satellite.addListener('click', () => {
+          if (placeId) onSelectRef.current(placeId)
+        })
+        satellites.push(satellite)
+      })
+
+      const clickListener = clusterMap.addListener('click', collapseSpiderfy)
+      const zoomListener = clusterMap.addListener('zoom_changed', collapseSpiderfy)
+      const dragListener = clusterMap.addListener('dragstart', collapseSpiderfy)
+
+      spiderfyRef.current = { key, lines, markers: satellites, clickListener, zoomListener, dragListener }
+    }
+
     const clusterer = new MarkerClusterer({
       map,
       algorithm: new SuperClusterAlgorithm({ radius: 60, maxZoom: 16, minPoints: 3 }),
       onClusterClick: (_event, cluster, clusterMap) => {
+        const clusterMarkers = (cluster as any).markers as google.maps.Marker[] | undefined
+        const center = cluster.position
+        const key = `${center.lat().toFixed(5)},${center.lng().toFixed(5)},${cluster.count}`
+
+        const wasSpiderfied = spiderfyRef.current?.key === key
+        collapseSpiderfy()
+        if (wasSpiderfied) return
+
+        if (clusterMarkers && clusterMarkers.length > 1) {
+          const zoom = clusterMap.getZoom() ?? 6
+          const mpp = metersPerPixel(center.lat(), zoom)
+          let maxPixels = 0
+          for (const m of clusterMarkers) {
+            const pos = m.getPosition()
+            if (!pos) continue
+            maxPixels = Math.max(maxPixels, haversineMeters(center, pos) / mpp)
+          }
+          if (maxPixels < SPIDERFY_PIXEL_THRESHOLD) {
+            spiderfy(clusterMap, center, clusterMarkers, key)
+            return
+          }
+        }
+
         const bounds = cluster.bounds
-        if (!bounds) return
-        clusterMap.fitBounds(bounds, 40)
+        if (bounds) clusterMap.fitBounds(bounds, 40)
       },
       renderer: {
         render: (cluster: { count: number; position: google.maps.LatLng }) => {
@@ -106,6 +221,7 @@ export default function MapMarkers({
         icon: buildIcon(active, relevant, palette),
         zIndex: getZIndex(active, relevant),
       })
+      ;(marker as any).__placeId = place.id
       listeners.push(marker.addListener('click', () => onSelectRef.current(place.id)))
       newMarkers.set(place.id, marker)
     }
@@ -113,6 +229,7 @@ export default function MapMarkers({
     markersRef.current = newMarkers
 
     return () => {
+      collapseSpiderfy()
       if (bounceTimerRef.current) clearTimeout(bounceTimerRef.current)
       listeners.forEach((l) => l.remove())
       clusterer.clearMarkers()
