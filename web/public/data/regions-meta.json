@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-17T15:32:39.628Z",
+  "updatedAt": "2026-08-17T16:12:02.244Z",
   "source": "OpenBible Bible Geocoding Data (CC-BY)",
   "sourceUrl": "https://github.com/openbibleinfo/Bible-Geocoding-Data",
   "regions": [
@@ -105,8 +105,8 @@
     },
     {
       "id": "judea",
-      "name": "Judea 2",
-      "file": "gb88bb1.isobands.geojson"
+      "name": "Judea 1",
+      "file": "g55ebd7.geometry.geojson"
     },
     {
       "id": "lycia",
