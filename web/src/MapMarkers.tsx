@@ -252,8 +252,9 @@ export default function MapMarkers({
       algorithm: new SuperClusterAlgorithm({ radius: 80, maxZoom: 16, minPoints: 3 }),
       onClusterClick: (_event, cluster, clusterMap) => {
         const clusterMarkers = (cluster as any).markers as google.maps.Marker[] | undefined
+        const clusterCount = clusterMarkers?.length ?? cluster.count
         const center = cluster.position
-        const key = `${center.lat().toFixed(5)},${center.lng().toFixed(5)},${cluster.count}`
+        const key = `${center.lat().toFixed(5)},${center.lng().toFixed(5)},${clusterCount}`
 
         const wasSpiderfied = spiderfyRef.current?.key === key
         collapseSpiderfy()
@@ -279,9 +280,11 @@ export default function MapMarkers({
       },
       renderer: {
         render: (cluster: { count: number; position: google.maps.LatLng }) => {
+          const clusterMarkers = (cluster as any).markers as google.maps.Marker[] | undefined
+          const clusterCount = clusterMarkers?.length ?? cluster.count
           return new google.maps.Marker({
             position: cluster.position,
-            icon: buildClusterIcon(cluster.count, theme),
+            icon: buildClusterIcon(clusterCount, theme),
             zIndex: 800,
             optimized: true,
           })
