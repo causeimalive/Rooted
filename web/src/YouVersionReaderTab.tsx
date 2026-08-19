@@ -258,15 +258,25 @@ function parsePassageId(passageId: string): { bookId: string; chapter: number } 
 
 const ACCESS_DENIED_MESSAGE =
   'This translation requires a YouVersion account or is not available in your region. Sign in to read it.'
+const PASSAGE_NOT_FOUND_MESSAGE =
+  "This passage isn't available in the selected version. Try a different version, book, or chapter."
 
 function isAccessDeniedError(error: unknown): boolean {
   const text = error instanceof Error ? error.message : String(error)
   return text.includes('403') || /access denied/i.test(text) || /forbidden/i.test(text)
 }
 
+function isPassageNotFoundError(error: unknown): boolean {
+  const text = error instanceof Error ? error.message : String(error)
+  return text.includes('404') || /not found/i.test(text) || /no such/i.test(text)
+}
+
 function formatPassageError(error: unknown): string {
   if (isAccessDeniedError(error)) {
     return ACCESS_DENIED_MESSAGE
+  }
+  if (isPassageNotFoundError(error)) {
+    return PASSAGE_NOT_FOUND_MESSAGE
   }
   return error instanceof Error ? error.message : String(error)
 }
@@ -1903,7 +1913,7 @@ export default function YouVersionReaderTab({
       if (!section) return
       setSections((current) => (current.some((entry) => entry.key === section.key) ? current : [...current, section]))
     } catch (loadError) {
-      if (isAccessDeniedError(loadError)) {
+      if (isAccessDeniedError(loadError) || isPassageNotFoundError(loadError)) {
         const recovered = await recoverAccessibleSection(next, resolvedVersionId)
         if (recovered) return
       }
@@ -1937,7 +1947,7 @@ export default function YouVersionReaderTab({
         shell.scrollTop = previousScrollTop + (nextScrollHeight - previousScrollHeight)
       })
     } catch (loadError) {
-      if (isAccessDeniedError(loadError)) {
+      if (isAccessDeniedError(loadError) || isPassageNotFoundError(loadError)) {
         const recovered = await recoverAccessibleSection(previous, resolvedVersionId)
         if (recovered) return
       }
@@ -1970,7 +1980,7 @@ export default function YouVersionReaderTab({
       if (!section) return
       setCompareSections((current) => (current.some((entry) => entry.key === section.key) ? current : [...current, section]))
     } catch (loadError) {
-      if (isAccessDeniedError(loadError)) {
+      if (isAccessDeniedError(loadError) || isPassageNotFoundError(loadError)) {
         const recovered = await recoverAccessibleCompareSection(next, compareVersionId)
         if (recovered) return
       }
@@ -2012,7 +2022,7 @@ export default function YouVersionReaderTab({
         shell.scrollTop = previousScrollTop + (nextScrollHeight - previousScrollHeight)
       })
     } catch (loadError) {
-      if (isAccessDeniedError(loadError)) {
+      if (isAccessDeniedError(loadError) || isPassageNotFoundError(loadError)) {
         const recovered = await recoverAccessibleCompareSection(previous, compareVersionId)
         if (recovered) return
       }
@@ -2082,7 +2092,7 @@ export default function YouVersionReaderTab({
 
         setSections(builtSections)
       } catch (loadError) {
-        if (!cancelled && isAccessDeniedError(loadError)) {
+        if (!cancelled && (isAccessDeniedError(loadError) || isPassageNotFoundError(loadError) || isPassageNotFoundError(loadError))) {
           const recovered = await recoverAccessibleSection(firstReference, resolvedVersionId)
           if (recovered) return
         }
@@ -2138,7 +2148,7 @@ export default function YouVersionReaderTab({
           setCompareError('This version does not contain this passage.')
         }
       } catch (loadError) {
-        if (!cancelled && isAccessDeniedError(loadError)) {
+        if (!cancelled && isAccessDeniedError(loadError) || isPassageNotFoundError(loadError)) {
           const recovered = await recoverAccessibleCompareSection({ bookId: currentIndexBook.id, chapter: currentChapter }, compareVersionId)
           if (recovered) return
         }
