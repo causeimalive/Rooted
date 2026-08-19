@@ -8,9 +8,10 @@ import {
   type YouVersionVersion, 
 } from './youversion'
 import { Capacitor } from '@capacitor/core'
-import { useBibleClient, useBooks, useChapters, useHighlights, useVersion, useVersions, useYVAuth } from '@youversion/platform-react-hooks'
+import { useBibleClient, useBooks, useChapters, useHighlights, useVersion, useYVAuth } from '@youversion/platform-react-hooks'
 import { getUserPreference, removeUserPreference, setUserPreference } from './userProfile'
-import { transformBibleHtml, type BiblePassage, type BibleVersion } from '@youversion/platform-core'
+import { transformBibleHtml, getHttpStatus, type BiblePassage, type BibleVersion } from '@youversion/platform-core'
+import { getCachedData, setCachedData } from './indexedStorage'
 import { getTestamentForBook, type Testament } from './bookTaxonomy'
 import { beginYouVersionSignIn, getYouVersionRedirectUrl } from './youversionRedirect'
 import { applyRedLetterMarkup } from './redLetter'
@@ -48,6 +49,60 @@ const INITIAL_BUFFER_SIZE = 3
 const SCROLL_LOAD_THRESHOLD = 280
 const COMPARE_SCROLL_LOAD_THRESHOLD = 120
 const COMPARE_FOCUS_LINE = 140
+
+// The full YouVersion Bible catalog (all languages) is ~1,500 versions,
+// which takes ~15 paginated requests to fetch in full. Cache the merged
+// result across sessions so this only ever runs once per browser instead
+// of on every reader visit -- bump the version suffix if the shape of
+// what's cached ever needs to change.
+const ALL_VERSIONS_CACHE_KEY = 'youversion-all-bible-versions@1'
+const VERSION_PAGE_DELAY_MS = 300
+const VERSION_PAGE_MAX_RETRIES = 4
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function fetchVersionsPageWithBackoff(
+  bibleClient: ReturnType<typeof useBibleClient>,
+  pageToken: string | undefined,
+  attempt = 0,
+): Promise<{ data: BibleVersion[]; next_page_token?: string | null }> {
+  try {
+    return await bibleClient.getVersions(['*'], undefined, { page_size: 99, page_token: pageToken })
+  } catch (error) {
+    const status = getHttpStatus(error)
+    if (status === 429 && attempt < VERSION_PAGE_MAX_RETRIES) {
+      await sleep(Math.min(30000, 1000 * 2 ** attempt))
+      return fetchVersionsPageWithBackoff(bibleClient, pageToken, attempt + 1)
+    }
+    throw error
+  }
+}
+
+// Fetches every page of the full (wildcard-language) version catalog,
+// pausing briefly between requests so a single reader load doesn't burst
+// ~15 requests at once against YouVersion's shared, app-key-wide rate
+// limit, and backing off with retries if a page is throttled anyway.
+// Calls onPage after each page so callers can render progressively
+// instead of waiting for the entire (multi-second) fetch to finish.
+async function fetchAllBibleVersions(
+  bibleClient: ReturnType<typeof useBibleClient>,
+  onPage?: (versionsSoFar: BibleVersion[]) => void,
+): Promise<BibleVersion[]> {
+  const results: BibleVersion[] = []
+  let pageToken: string | undefined
+  let isFirstPage = true
+  do {
+    if (!isFirstPage) await sleep(VERSION_PAGE_DELAY_MS)
+    isFirstPage = false
+    const page = await fetchVersionsPageWithBackoff(bibleClient, pageToken)
+    results.push(...page.data)
+    onPage?.(results.slice())
+    pageToken = page.next_page_token ?? undefined
+  } while (pageToken)
+  return results
+}
 
 type TestamentFilter = 'all' | Testament
 
@@ -520,14 +575,6 @@ export default function YouVersionReaderTab({
   }, [hasEntityData])
   const userId = userInfo?.userId
   const userIdRef = useRef<string | undefined>(userId)
-  // Requesting a wildcard language range surfaces every Bible version the
-  // app is licensed for, across all languages, rather than only versions
-  // matching the current UI language (falling back to English). See
-  // https://developers.youversion.com/api/bibles -- passing multiple
-  // concrete language_ranges only returns the first range that has any
-  // matches, it doesn't merge across them, so '*' is required for full
-  // access to the version catalog.
-  const versionLanguage = useMemo(() => ['*'], [])
 
   useEffect(() => {
     userIdRef.current = userInfo?.userId
@@ -657,30 +704,51 @@ export default function YouVersionReaderTab({
   const [focusedVerseLabel, setFocusedVerseLabel] = useState('')
   const [isLoadingSections, setIsLoadingSections] = useState(false)
   const [targetVerse, setTargetVerse] = useState<{ bookId: string; chapter: number; verse: number } | null>(null)
-  const { versions: versionCollection, loading: versionsLoading, error: versionsError } = useVersions(versionLanguage, undefined, { page_size: 99 })
-  const [extraVersionPages, setExtraVersionPages] = useState<BibleVersion[]>([])
+  const [availableVersions, setAvailableVersions] = useState<BibleVersion[]>([])
+  const [versionsLoading, setVersionsLoading] = useState(true)
+  const [versionsError, setVersionsError] = useState<Error | null>(null)
   useEffect(() => {
-    setExtraVersionPages([])
-    const token = versionCollection?.next_page_token
-    if (!token) return
     let cancelled = false
-    const fetchMore = async (nextToken: string) => {
+    void (async () => {
+      setVersionsLoading(true)
+      setVersionsError(null)
       try {
-        const page = await bibleClient.getVersions(versionLanguage, undefined, { page_size: 99, page_token: nextToken })
-        if (cancelled) return
-        setExtraVersionPages((prev) => [...prev, ...page.data])
-        if (page.next_page_token) await fetchMore(page.next_page_token)
+        const cached = await getCachedData<BibleVersion[]>(ALL_VERSIONS_CACHE_KEY)
+        if (cached?.length) {
+          if (!cancelled) {
+            setAvailableVersions(cached)
+            setVersionsLoading(false)
+          }
+          return
+        }
       } catch {
-        // stop fetching on error
+        // IndexedDB is optional; fall through to a live fetch.
       }
+      let versionsFetchedSoFar: BibleVersion[] = []
+      try {
+        const all = await fetchAllBibleVersions(bibleClient, (versionsSoFar) => {
+          versionsFetchedSoFar = versionsSoFar
+          if (cancelled) return
+          setAvailableVersions(versionsSoFar)
+          // Let the reader render as soon as the first page arrives instead
+          // of blocking on the full multi-second, multi-page fetch.
+          setVersionsLoading(false)
+        })
+        if (cancelled) return
+        setAvailableVersions(all)
+        void setCachedData(ALL_VERSIONS_CACHE_KEY, all).catch(() => {})
+      } catch (error) {
+        if (!cancelled && !versionsFetchedSoFar.length) {
+          setVersionsError(error instanceof Error ? error : new Error(String(error)))
+        }
+      } finally {
+        if (!cancelled) setVersionsLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
     }
-    fetchMore(token)
-    return () => { cancelled = true }
-  }, [bibleClient, versionLanguage, versionCollection])
-  const availableVersions = useMemo(
-    () => [...(versionCollection?.data ?? []), ...extraVersionPages],
-    [versionCollection, extraVersionPages],
-  )
+  }, [bibleClient])
   const compareAvailableVersions = availableVersions
 
   useEffect(() => {
