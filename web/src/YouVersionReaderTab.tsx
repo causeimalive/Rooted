@@ -857,7 +857,7 @@ export default function YouVersionReaderTab({
   const resolvedVersionId = useMemo(
     () => {
       const preferred = versionId ?? 111
-      return availableVersions.find((v) => v.id === preferred)?.id ?? availableVersions[0]?.id ?? null
+      return availableVersions.find((v) => v.id === preferred)?.id ?? availableVersions[0]?.id ?? preferred
     },
     [availableVersions, versionId],
   )
@@ -884,6 +884,11 @@ export default function YouVersionReaderTab({
   const { version, loading: versionLoading, error: versionError } = useVersion(resolvedVersionId ?? 1, {
     enabled: resolvedVersionId !== null,
   })
+  const catalogVersions = useMemo(() => {
+    if (availableVersions.length) return availableVersions
+    if (version) return [version as BibleVersion]
+    return []
+  }, [availableVersions, version])
   const { books: booksCollection, loading: booksLoading, error: booksError } = useBooks(resolvedVersionId ?? 1, {
     enabled: resolvedVersionId !== null,
   })
@@ -918,6 +923,14 @@ export default function YouVersionReaderTab({
   const parsedReference = useMemo(() => parseReaderReference(referenceInput, books), [referenceInput, books])
   const versionTitle = version?.localized_title || version?.title || 'Bible Reader'
   const versionSubtitle = version?.localized_abbreviation || version?.abbreviation || version?.language_tag || ''
+  useEffect(() => {
+    if (selectedVersion || !version || !onVersionChange) return
+    onVersionChange({
+      id: version.id,
+      name: version.localized_title || version.title,
+      abbreviation: versionSubtitle,
+    })
+  }, [selectedVersion, version, onVersionChange, versionSubtitle])
   const passageLabel = currentIndexBook ? `${getBookLabel(currentIndexBook)} ${getChapterTitle(currentIndexBook, currentChapter)}` : 'Choose a book'
   const currentVersionLabel = formatVersionLabel(selectedVersion)
   const anchorReference = useMemo<ReaderReference | undefined>(
@@ -1019,7 +1032,7 @@ export default function YouVersionReaderTab({
     }
     if (!unseen.length) return
     try {
-      importYouVersionHighlights(unseen, versionId, selectedVersionLabel)
+      importYouVersionHighlights(unseen, versionId, selectedVersionLabel || versionTitle)
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : String(err))
     }
@@ -1052,7 +1065,8 @@ export default function YouVersionReaderTab({
   const focusedReferenceLabel = focusedVerseLabel || activeSection?.reference || anchorReferenceKey
   const navigationReference = anchorReference
   const copyright = version?.copyright?.trim() ?? ''
-  const readerError = localError || versionsError?.message || versionError?.message || booksError?.message || chaptersError?.message || highlightsError?.message || ''
+  const catalogError = versionsError?.message || ''
+  const readerError = localError || versionError?.message || booksError?.message || chaptersError?.message || highlightsError?.message || ''
   const isHighlightsPermissionError = Boolean(
     highlightsError &&
       (highlightsError.message?.includes('NOT_PERMITTED') ||
@@ -1090,11 +1104,11 @@ export default function YouVersionReaderTab({
 
   const mobileVersionOptions = useMemo(
     () =>
-      availableVersions.map((entry) => {
+      catalogVersions.map((entry) => {
         const label = formatVersionLabel(entry)
         return { value: entry.id, label: label.title, subtitle: label.subtitle }
       }),
-    [availableVersions],
+    [catalogVersions],
   )
 
   const mobileCompareVersionOptions = useMemo(
@@ -1340,7 +1354,7 @@ export default function YouVersionReaderTab({
   }, [bookIntroHtml, bookIntroOpen, bookIntroReference, bookNumberById, currentBookInfoUrl, currentBookMetadata, entityHighlightsEnabled, handleOpenBookSource, resolvedVersionId, tagPositionsByVerseId])
   const handleSaveVerse = useCallback(async (verseId: string, yvPassageId?: string) => {
     const isSaved = bookmarkedIds.has(verseId)
-    onToggleBookmark(verseId, selectedVersion ? String(selectedVersion.id) : '', selectedVersionLabel)
+    onToggleBookmark(verseId, selectedVersion ? String(selectedVersion.id) : '', selectedVersionLabel || versionTitle)
     if (!auth.isAuthenticated || resolvedVersionId === null) return
     const highlightPassageId = yvPassageId ?? verseId
     setLocalError('')
@@ -1462,12 +1476,12 @@ export default function YouVersionReaderTab({
       }
 
       push(preferredVersionId)
-      for (const entry of availableVersions) {
+      for (const entry of catalogVersions) {
         push(entry.id)
       }
       return ids
     },
-    [availableVersions],
+    [catalogVersions],
   )
 
   const loadSectionForVersion = useCallback(
@@ -2779,16 +2793,17 @@ export default function YouVersionReaderTab({
     )
   }
 
-  if (readerError && !availableVersions.length) {
+  if (readerError && !version) {
     return <div className="panel empty yv-reader-error">{readerError}</div>
   }
 
   return (
     <div className="panel yv-reader-panel">
       <div className="yv-reader" style={readerStyle}>
-        {readerError && (
+        {(catalogError || readerError) && (
           <div className="yv-reader-error-banner" role="alert" style={{ padding: '0.75rem 1rem', background: 'var(--danger-bg, rgba(239,68,68,0.15))', color: 'var(--danger, #ef4444)', textAlign: 'center', fontSize: '0.9rem' }}>
-            <div>{readerError}</div>
+            {catalogError && <div>{catalogError}</div>}
+            {readerError && <div>{readerError}</div>}
             {isHighlightsPermissionError && (
               <button
                 type="button"
@@ -2815,7 +2830,7 @@ export default function YouVersionReaderTab({
                   subtitle={currentVersionSubtitle}
                   chevronSize={14}
                   menuRef={versionMenuRef}
-                  menu={renderVersionMenu('Bible version selection', resolvedVersionId, handleSelectCurrentVersion, availableVersions, '', versionSearchQuery, setVersionSearchQuery)}
+                  menu={renderVersionMenu('Bible version selection', resolvedVersionId, handleSelectCurrentVersion, catalogVersions, '', versionSearchQuery, setVersionSearchQuery)}
                 />
                 <ReaderVersionSelector
                   wrapperClassName="yv-reader-selector-shell yv-reader-nav-header-selector"
@@ -2841,7 +2856,7 @@ export default function YouVersionReaderTab({
                 subtitle={currentVersionSubtitle}
                 chevronSize={14}
                 menuRef={versionMenuRef}
-                menu={renderVersionMenu('Bible version selection', resolvedVersionId, handleSelectCurrentVersion, availableVersions, '', versionSearchQuery, setVersionSearchQuery)}
+                menu={renderVersionMenu('Bible version selection', resolvedVersionId, handleSelectCurrentVersion, catalogVersions, '', versionSearchQuery, setVersionSearchQuery)}
               />
             )}
 
