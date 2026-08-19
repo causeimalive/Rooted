@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "generate:logos": "node scripts/generate-logos.mjs",
     "build:gazetteer": "node scripts/build-gazetteer.mjs",
-    "check:gazetteer": "node scripts/build-gazetteer.mjs --check"
+    "check:gazetteer": "node scripts/build-gazetteer.mjs --check",
+    "spread:duplicate-coordinates": "node scripts/spread-duplicate-coordinates.mjs"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",
