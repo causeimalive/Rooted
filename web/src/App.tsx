@@ -3720,6 +3720,18 @@ function MapPlacePopup({
                 <>
                   <button
                     type="button"
+                    className="map-place-popup-image-click-zone map-place-popup-image-click-zone-left"
+                    onClick={previousImage}
+                    aria-label="Previous image"
+                  />
+                  <button
+                    type="button"
+                    className="map-place-popup-image-click-zone map-place-popup-image-click-zone-right"
+                    onClick={nextImage}
+                    aria-label="Next image"
+                  />
+                  <button
+                    type="button"
                     className="map-place-popup-nav-btn map-place-popup-nav-btn-left"
                     onClick={previousImage}
                     aria-label="Previous image"

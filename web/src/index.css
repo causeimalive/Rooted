@@ -2790,6 +2790,27 @@ button.secondary {
   pointer-events: none;
 }
 
+.map-place-popup-image-click-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 34%;
+  border: none;
+  background: transparent;
+  padding: 0;
+  z-index: 1;
+}
+
+.map-place-popup-image-click-zone-left {
+  left: 0;
+  cursor: w-resize;
+}
+
+.map-place-popup-image-click-zone-right {
+  right: 0;
+  cursor: e-resize;
+}
+
 .map-place-popup-expand-btn {
   position: absolute;
   top: 0.55rem;
