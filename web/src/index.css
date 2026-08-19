@@ -2905,7 +2905,7 @@ button.secondary {
 .map-place-lightbox {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: 100000;
   display: flex;
   align-items: center;
   justify-content: center;
