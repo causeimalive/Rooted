@@ -7,6 +7,7 @@ import {
   type YouVersionPassage, 
   type YouVersionVersion, 
 } from './youversion'
+import { fetchNltPassage, NLT_ATTRIBUTION } from './nlt'
 import { Capacitor } from '@capacitor/core'
 import { useBibleClient, useBooks, useChapters, useHighlights, useVersion, useYVAuth } from '@youversion/platform-react-hooks'
 import {
@@ -499,6 +500,21 @@ const LOCAL_KJV_VERSION: VersionMenuEntry = {
   copyright: 'Public domain',
 }
 
+// NLT text is copyrighted, so unlike KJV it can't be bundled locally -- it's
+// fetched live from Tyndale's NLT.TO API (see ./nlt.ts) using this synthetic
+// version id. It still needs a stable local entry so it always shows up in
+// the picker even if YouVersion's catalog doesn't include it for this app key.
+const LOCAL_NLT_VERSION_ID = -2
+const LOCAL_NLT_VERSION: VersionMenuEntry = {
+  id: LOCAL_NLT_VERSION_ID,
+  title: 'New Living Translation',
+  localized_title: 'New Living Translation',
+  abbreviation: 'NLT',
+  localized_abbreviation: 'NLT',
+  language_tag: 'en',
+  copyright: NLT_ATTRIBUTION,
+}
+
 type VersionLike = {
   id: number
   title?: string
@@ -514,6 +530,16 @@ function isKjvVersion(version: VersionLike | undefined): boolean {
   return version.id === LOCAL_KJV_VERSION_ID || /king james version/.test(title) || /\bkjv\b/.test(title)
 }
 
+function isNltVersion(version: VersionLike | undefined): boolean {
+  if (!version) return false
+  const title = `${version.localized_title || version.title || ''} ${version.abbreviation || ''} ${version.localized_abbreviation || ''}`.toLowerCase()
+  return version.id === LOCAL_NLT_VERSION_ID || /living translation/.test(title) || /\bnlt\b/.test(title)
+}
+
+function isLocalFallbackVersion(version: VersionLike | undefined): boolean {
+  return isKjvVersion(version) || isNltVersion(version)
+}
+
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, '&amp;')
@@ -523,7 +549,10 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;')
 }
 
-function buildLocalKjvBooks(): YouVersionBook[] {
+// KJV and NLT share the same standard versification, so both local
+// fallbacks can reuse this same book/chapter structure derived from the
+// app's bundled KJV corpus.
+function buildLocalFallbackBooks(): YouVersionBook[] {
   const books = new Map<string, { title: string; chapters: Map<number, string[]> }>()
   for (const verse of getAllVerses()) {
     const entry = books.get(verse.book) ?? { title: verse.bookName || verse.book, chapters: new Map<number, string[]>() }
@@ -964,9 +993,13 @@ export default function YouVersionReaderTab({
     }
   }, [compareVersionMenuOpen])
 
-  const localKjvBooks = useMemo(() => buildLocalKjvBooks(), [])
+  const localFallbackBooks = useMemo(() => buildLocalFallbackBooks(), [])
   const catalogVersions = useMemo(() => {
-    const next = [LOCAL_KJV_VERSION, ...availableVersions.filter((entry) => !isKjvVersion(entry))] as VersionMenuEntry[]
+    const next = [
+      LOCAL_KJV_VERSION,
+      LOCAL_NLT_VERSION,
+      ...availableVersions.filter((entry) => !isLocalFallbackVersion(entry)),
+    ] as VersionMenuEntry[]
     return next.filter((entry, index, all) => all.findIndex((candidate) => candidate.id === entry.id) === index)
   }, [availableVersions])
 
@@ -989,9 +1022,9 @@ export default function YouVersionReaderTab({
     () => catalogVersions.find((entry) => entry.id === resolvedVersionId) ?? catalogVersions[0],
     [catalogVersions, resolvedVersionId],
   )
-  const isLocalKjvSelected = isKjvVersion(selectedVersion)
+  const isLocalFallbackSelected = isLocalFallbackVersion(selectedVersion)
   const { version, loading: versionLoading, error: versionError } = useVersion(resolvedVersionId ?? 1, {
-    enabled: resolvedVersionId !== null && !isLocalKjvSelected,
+    enabled: resolvedVersionId !== null && !isLocalFallbackSelected,
   })
   const selectedVersionLabel = useMemo(() => {
     if (!selectedVersion) return ''
@@ -1017,9 +1050,9 @@ export default function YouVersionReaderTab({
   )
   const compareAvailableVersions = catalogVersions
   const { books: booksCollection, loading: booksLoading, error: booksError } = useBooks(resolvedVersionId ?? 1, {
-    enabled: resolvedVersionId !== null && !isLocalKjvSelected,
+    enabled: resolvedVersionId !== null && !isLocalFallbackSelected,
   })
-  const books = isLocalKjvSelected ? localKjvBooks : booksCollection?.data ?? []
+  const books = isLocalFallbackSelected ? localFallbackBooks : booksCollection?.data ?? []
   const currentBook = useMemo(() => books.find((book) => book.id === bookId) ?? books[0], [books, bookId])
   const currentBookWithChapters = useMemo(
     () => (currentBook ? { ...currentBook, chapters: currentBook.chapters ?? [] } : undefined),
@@ -1029,7 +1062,7 @@ export default function YouVersionReaderTab({
     resolvedVersionId ?? 1,
     currentBook?.id ?? '',
     {
-      enabled: resolvedVersionId !== null && Boolean(currentBook?.id) && !isLocalKjvSelected,
+      enabled: resolvedVersionId !== null && Boolean(currentBook?.id) && !isLocalFallbackSelected,
     },
   )
   const resolvedChapters = useMemo(
@@ -1065,7 +1098,7 @@ export default function YouVersionReaderTab({
     [anchorReference],
   )
   const compareVersionLabel = formatVersionLabel(compareVersion)
-  const highlightsEnabled = auth.isAuthenticated && resolvedVersionId !== null && highlightsPassageId !== '' && !isLocalKjvSelected
+  const highlightsEnabled = auth.isAuthenticated && resolvedVersionId !== null && highlightsPassageId !== '' && !isLocalFallbackSelected
   const {
     highlights,
     loading: highlightsLoading,
@@ -1182,11 +1215,11 @@ export default function YouVersionReaderTab({
   }, [activeBookId, activeChapter, books, currentIndexBook, focusedPassage, passageLabel])
   const focusedReferenceLabel = focusedVerseLabel || activeSection?.reference || anchorReferenceKey
   const navigationReference = anchorReference
-  const copyright = version?.copyright?.trim() ?? ''
+  const copyright = (isLocalFallbackSelected ? selectedVersion?.copyright : version?.copyright)?.trim() ?? ''
   const catalogError = versionsError?.message || ''
   const readerError =
     localError ||
-    (!isLocalKjvSelected ? versionError?.message || booksError?.message || chaptersError?.message || highlightsError?.message || '' : '')
+    (!isLocalFallbackSelected ? versionError?.message || booksError?.message || chaptersError?.message || highlightsError?.message || '' : '')
   const isHighlightsPermissionError = Boolean(
     highlightsError &&
       (highlightsError.message?.includes('NOT_PERMITTED') ||
@@ -1607,12 +1640,15 @@ export default function YouVersionReaderTab({
   const loadPassageForVersion = useCallback(
     async (versionId: number, reference: ReaderReference): Promise<BiblePassage | null> => {
       if (versionId === LOCAL_KJV_VERSION_ID) {
-        return buildLocalKjvPassage(reference, localKjvBooks)
+        return buildLocalKjvPassage(reference, localFallbackBooks)
+      }
+      if (versionId === LOCAL_NLT_VERSION_ID) {
+        return fetchNltPassage(reference.bookId, reference.chapter)
       }
       const chapterReference = formatReference(reference.bookId, reference.chapter)
       return bibleClient.getPassage(versionId, chapterReference, 'html', true, true)
     },
-    [bibleClient, localKjvBooks],
+    [bibleClient, localFallbackBooks],
   )
 
   const loadSectionForVersion = useCallback(
@@ -2837,7 +2873,7 @@ export default function YouVersionReaderTab({
             return haystack.includes(trimmedQuery)
           })
         : versions
-      const featuredVersions = [LOCAL_KJV_VERSION]
+      const featuredVersions = [LOCAL_KJV_VERSION, LOCAL_NLT_VERSION]
       const visibleVersions = filteredVersions.filter((entry) => !featuredVersions.some((featured) => featured.id === entry.id))
 
       const renderEntry = (entry: VersionMenuEntry, badge?: string) => {
@@ -2880,7 +2916,16 @@ export default function YouVersionReaderTab({
               <div className="yv-reader-version-menu-empty" style={{ marginBottom: '0.35rem' }}>
                 Featured version
               </div>
-              {featuredVersions.map((entry) => renderEntry(entry, entry.id === LOCAL_KJV_VERSION_ID ? 'Public-domain KJV fallback' : undefined))}
+              {featuredVersions.map((entry) =>
+                renderEntry(
+                  entry,
+                  entry.id === LOCAL_KJV_VERSION_ID
+                    ? 'Public-domain KJV fallback'
+                    : entry.id === LOCAL_NLT_VERSION_ID
+                      ? 'Via Tyndale NLT.TO API'
+                      : undefined,
+                ),
+              )}
             </>
           )}
           {visibleVersions.length === 0 ? (
@@ -3154,6 +3199,12 @@ export default function YouVersionReaderTab({
                 bookmarkedVerseIds={bookmarkedIds}
                 bookCodeById={bookCodeById}
               />
+            )}
+
+            {isNltVersion(selectedVersion) && (
+              <div className="yv-reader-attribution" style={{ padding: '0.5rem 1rem', fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+                {NLT_ATTRIBUTION}
+              </div>
             )}
 
             <div className="yv-reader-footer yv-reader-desktop-footer" aria-label="Chapter navigation">
