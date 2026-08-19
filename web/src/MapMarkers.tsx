@@ -49,17 +49,34 @@ function buildClusterIcon(count: number, theme: 'dark' | 'light') {
   const cached = clusterIconCache.get(cacheKey)
   if (cached) return cached
 
-  const radius = 22 + Math.min(count / 5, 16)
+  const radius = 24 + Math.min(count / 4, 20)
   const size = Math.ceil(radius * 2 + 4)
   const center = size / 2
-  const fill = theme === 'dark' ? '#2e3a4a' : '#c9a66b'
-  const stroke = theme === 'dark' ? '#7d8fa3' : '#8c7349'
-  const textColor = theme === 'dark' ? '#e8edf2' : '#2a2a2a'
-  const fontSize = Math.max(10, radius * 0.42)
+
+  const isDark = theme === 'dark'
+  let fill: string
+  let stroke: string
+  let textColor: string
+  if (count < 10) {
+    fill = isDark ? '#3e4d5e' : '#dcc69a'
+    stroke = isDark ? '#90a4bc' : '#a68f65'
+    textColor = isDark ? '#f2f6fa' : '#2a2a2a'
+  } else if (count < 50) {
+    fill = isDark ? '#2e3a4a' : '#c9a66b'
+    stroke = isDark ? '#7d8fa3' : '#8c7349'
+    textColor = isDark ? '#e8edf2' : '#2a2a2a'
+  } else {
+    fill = isDark ? '#1b2532' : '#a8824f'
+    stroke = isDark ? '#5c738f' : '#7c6239'
+    textColor = isDark ? '#ffffff' : '#1a1a1a'
+  }
+
+  const fontSize = Math.max(11, Math.min(18, radius * 0.44))
   const label = count > 999 ? '999+' : count.toString()
 
+  const strokeWidth = count >= 50 ? 2 : 1.5
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">` +
-    `<circle cx="${center}" cy="${center}" r="${radius}" fill="${fill}" fill-opacity="0.72" stroke="${stroke}" stroke-width="1.5"/>` +
+    `<circle cx="${center}" cy="${center}" r="${radius}" fill="${fill}" fill-opacity="0.78" stroke="${stroke}" stroke-width="${strokeWidth}"/>` +
     `<text x="50%" y="52%" text-anchor="middle" dominant-baseline="middle" font-family="system-ui, -apple-system, sans-serif" font-size="${fontSize}" font-weight="600" fill="${textColor}">${label}</text>` +
     `</svg>`
 
