@@ -54,16 +54,38 @@ function extractBibleTextHtml(document: string): string {
   return match ? match[1] : document
 }
 
-// The NLT.TO API wraps every verse in a non-standard <verse_export> tag
-// carrying bk/ch/vn attributes. Rewrite those into the same `.yv-v[v]` shape
-// the reader's YouVersion HTML pipeline already understands, so verse
-// extraction, bookmarking anchors, and entity highlighting all work
-// unmodified for NLT content.
+// The NLT.TO API wraps each verse in a non-standard <verse_export> tag and
+// uses its own verse-label markup. Rewrite that into the same `.yv-v[v]` and
+// `.yv-vlbl` shape the reader's existing YouVersion HTML pipeline already
+// understands. Using real block elements keeps the layout valid in every reader
+// mode (html/chapter/verse/compare) instead of letting the browser reflow
+// invalid span-wrapped block content.
 function normalizeNltHtml(html: string): string {
-  return html
-    .replace(/<verse_export\b[^>]*\bvn="([^"]+)"[^>]*>/g, '<span class="yv-v" v="$1">')
-    .replace(/<\/verse_export>/g, '</span>')
-    .replace(/<h2 class="bk_ch_vs_header">[^<]*<\/h2>/, '')
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  const bibleText = doc.querySelector('#bibletext')
+  if (!bibleText) return html
+
+  bibleText.querySelectorAll('verse_export').forEach((verseExport) => {
+    const verseNumber = verseExport.getAttribute('vn')?.trim() ?? ''
+    const wrapper = doc.createElement('div')
+    wrapper.className = 'yv-v'
+    if (verseNumber) wrapper.setAttribute('v', verseNumber)
+
+    verseExport.querySelectorAll('.vn').forEach((node) => {
+      node.classList.remove('vn')
+      node.classList.add('yv-vlbl')
+    })
+    verseExport.querySelectorAll('h2.chapter-number').forEach((node) => node.remove())
+
+    while (verseExport.firstChild) {
+      wrapper.appendChild(verseExport.firstChild)
+    }
+
+    verseExport.replaceWith(wrapper)
+  })
+
+  bibleText.querySelector('h2.bk_ch_vs_header')?.remove()
+  return bibleText.innerHTML
 }
 
 export async function fetchNltPassage(bookId: string, chapter: number): Promise<NltPassage> {

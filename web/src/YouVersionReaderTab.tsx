@@ -443,7 +443,7 @@ function stripVerseLabel(html: string): string {
   const root = doc.body.firstElementChild
   if (!root) return html
 
-  root.querySelectorAll('.yv-vlbl').forEach((node) => node.remove())
+  root.querySelectorAll('.yv-vlbl, .vn').forEach((node) => node.remove())
   return root.innerHTML.trim()
 }
 
