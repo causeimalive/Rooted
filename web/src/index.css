@@ -2796,36 +2796,30 @@ button.secondary {
   bottom: 0;
   width: 34%;
   border: none;
-  background: transparent;
   padding: 0;
   cursor: pointer;
   z-index: 1;
+  transition: background 150ms ease;
 }
 
 .map-place-popup-image-click-zone-left {
   left: 0;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.28), transparent);
 }
 
 .map-place-popup-image-click-zone-right {
   right: 0;
+  background: linear-gradient(270deg, rgba(0, 0, 0, 0.28), transparent);
 }
 
-.map-place-popup-image-edge-hint {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 22%;
-  pointer-events: none;
+.map-place-popup-image-click-zone-left:hover,
+.map-place-popup-image-click-zone-left:focus-visible {
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.5), transparent);
 }
 
-.map-place-popup-image-edge-hint-left {
-  left: 0;
-  background: linear-gradient(90deg, rgba(0, 0, 0, 0.32), transparent);
-}
-
-.map-place-popup-image-edge-hint-right {
-  right: 0;
-  background: linear-gradient(270deg, rgba(0, 0, 0, 0.32), transparent);
+.map-place-popup-image-click-zone-right:hover,
+.map-place-popup-image-click-zone-right:focus-visible {
+  background: linear-gradient(270deg, rgba(0, 0, 0, 0.5), transparent);
 }
 
 .map-place-popup-expand-btn {
@@ -2964,20 +2958,30 @@ button.secondary {
   bottom: 0;
   width: 50%;
   border: none;
-  background: transparent;
   cursor: pointer;
   padding: 0;
   z-index: 1;
+  transition: background 150ms ease;
 }
 
 .map-place-lightbox-image-click-zone-left {
   left: 0;
-  cursor: w-resize;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.3) 0%, transparent 45%);
 }
 
 .map-place-lightbox-image-click-zone-right {
   right: 0;
-  cursor: e-resize;
+  background: linear-gradient(270deg, rgba(0, 0, 0, 0.3) 0%, transparent 45%);
+}
+
+.map-place-lightbox-image-click-zone-left:hover,
+.map-place-lightbox-image-click-zone-left:focus-visible {
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.52) 0%, transparent 45%);
+}
+
+.map-place-lightbox-image-click-zone-right:hover,
+.map-place-lightbox-image-click-zone-right:focus-visible {
+  background: linear-gradient(270deg, rgba(0, 0, 0, 0.52) 0%, transparent 45%);
 }
 
 .map-place-lightbox-close {
@@ -3006,50 +3010,7 @@ button.secondary {
   transform: rotate(90deg);
 }
 
-.map-place-lightbox-nav {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 2.75rem;
-  height: 2.75rem;
-  flex: 0 0 auto;
-  border: none;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
-  color: #fff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background 150ms ease, transform 150ms ease;
-  z-index: 2;
-}
 
-.map-place-lightbox-nav span {
-  color: #fff !important;
-  font-size: 2.2rem;
-  font-weight: 600;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-}
-
-.map-place-lightbox-nav:hover,
-.map-place-lightbox-nav:focus-visible {
-  background: rgba(255, 255, 255, 0.26);
-  transform: translateY(-50%) scale(1.08);
-}
-
-.map-place-lightbox-nav-left {
-  left: 0.75rem;
-}
-
-.map-place-lightbox-nav-right {
-  right: 0.75rem;
-}
 
 .map-place-lightbox-caption {
   color: rgba(255, 255, 255, 0.75);
