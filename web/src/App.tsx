@@ -3691,10 +3691,7 @@ function MapPlacePopup({
     <>
       <div className="map-place-popup" role="dialog" aria-label={place.name} aria-live="polite">
         <button type="button" className="map-place-popup-close" onClick={onClose} aria-label={t('close')}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M18 6 6 18" />
-            <path d="m6 6 12 12" />
-          </svg>
+          <span aria-hidden="true">✕</span>
         </button>
 
         <div className="map-place-popup-media">
@@ -3727,9 +3724,7 @@ function MapPlacePopup({
                     onClick={previousImage}
                     aria-label="Previous image"
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m15 18-6-6 6-6" />
-                    </svg>
+                    <span aria-hidden="true">‹</span>
                   </button>
                   <button
                     type="button"
@@ -3737,9 +3732,7 @@ function MapPlacePopup({
                     onClick={nextImage}
                     aria-label="Next image"
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 18 6-6-6-6" />
-                    </svg>
+                    <span aria-hidden="true">›</span>
                   </button>
 
                   <div className="map-place-popup-image-count">
@@ -3812,10 +3805,7 @@ function MapPlacePopup({
               </span>
             )}
             <button type="button" className="map-place-lightbox-close" onClick={closeLightbox} aria-label={t('close')}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M18 6 6 18" />
-                <path d="m6 6 12 12" />
-              </svg>
+              <span aria-hidden="true">✕</span>
             </button>
           </div>
 
@@ -3847,9 +3837,7 @@ function MapPlacePopup({
                     onClick={previousImage}
                     aria-label="Previous image"
                   >
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m15 18-6-6 6-6" />
-                    </svg>
+                    <span aria-hidden="true">‹</span>
                   </button>
                   <button
                     type="button"
@@ -3857,9 +3845,7 @@ function MapPlacePopup({
                     onClick={nextImage}
                     aria-label="Next image"
                   >
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="m9 18 6-6-6-6" />
-                    </svg>
+                    <span aria-hidden="true">›</span>
                   </button>
                 </>
               )}

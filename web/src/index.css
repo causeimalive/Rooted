@@ -2675,14 +2675,10 @@ button.secondary {
   transition: transform 150ms ease, background 150ms ease, border-color 150ms ease;
 }
 
-.map-place-popup-close svg,
-.map-place-popup-close svg * {
+.map-place-popup-close span {
   color: #fff !important;
-  stroke: #fff !important;
-  fill: none !important;
-}
-
-.map-place-popup-close svg {
+  font-size: 1.2rem;
+  line-height: 1;
   transition: transform 180ms ease;
 }
 
@@ -2693,8 +2689,8 @@ button.secondary {
   transform: scale(1.12);
 }
 
-.map-place-popup-close:hover svg,
-.map-place-popup-close:focus-visible svg {
+.map-place-popup-close:hover span,
+.map-place-popup-close:focus-visible span {
   transform: rotate(90deg) scale(1.2);
 }
 
@@ -2812,19 +2808,6 @@ button.secondary {
   transition: background 150ms ease, transform 150ms ease;
 }
 
-.map-place-popup-expand-btn:hover,
-.map-place-popup-expand-btn:focus-visible {
-  background: rgba(0, 0, 0, 0.65);
-  transform: scale(1.08);
-}
-
-.map-place-popup-expand-btn svg,
-.map-place-popup-expand-btn svg * {
-  color: #fff !important;
-  stroke: #fff !important;
-  fill: none !important;
-}
-
 .map-place-popup-nav-btn {
   position: absolute;
   top: 50%;
@@ -2845,11 +2828,10 @@ button.secondary {
   filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.45));
 }
 
-.map-place-popup-nav-btn svg,
-.map-place-popup-nav-btn svg * {
+.map-place-popup-nav-btn span {
   color: #fff !important;
-  stroke: #fff !important;
-  fill: none !important;
+  font-size: 1.5rem;
+  line-height: 1;
 }
 
 .map-place-popup-nav-btn:hover,
@@ -3015,11 +2997,10 @@ button.secondary {
   transition: background 150ms ease, transform 150ms ease;
 }
 
-.map-place-lightbox-close svg,
-.map-place-lightbox-close svg * {
+.map-place-lightbox-close span {
   color: #fff !important;
-  stroke: #fff !important;
-  fill: none !important;
+  font-size: 1.2rem;
+  line-height: 1;
 }
 
 .map-place-lightbox-close:hover,
@@ -3047,11 +3028,10 @@ button.secondary {
   z-index: 2;
 }
 
-.map-place-lightbox-nav svg,
-.map-place-lightbox-nav svg * {
+.map-place-lightbox-nav span {
   color: #fff !important;
-  stroke: #fff !important;
-  fill: none !important;
+  font-size: 1.5rem;
+  line-height: 1;
 }
 
 .map-place-lightbox-nav:hover,
