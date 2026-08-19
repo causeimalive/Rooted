@@ -49,7 +49,7 @@ function buildClusterIcon(count: number, theme: 'dark' | 'light') {
   const cached = clusterIconCache.get(cacheKey)
   if (cached) return cached
 
-  const radius = 24 + Math.min(count / 4, 20)
+  const radius = 20 + Math.min(count / 8, 16)
   const size = Math.ceil(radius * 2 + 4)
   const center = size / 2
 
@@ -71,7 +71,7 @@ function buildClusterIcon(count: number, theme: 'dark' | 'light') {
     textColor = isDark ? '#ffffff' : '#1a1a1a'
   }
 
-  const fontSize = Math.max(11, Math.min(18, radius * 0.44))
+  const fontSize = Math.max(10, Math.min(16, radius * 0.42))
   const label = count > 999 ? '999+' : count.toString()
 
   const strokeWidth = count >= 50 ? 2 : 1.5
@@ -245,7 +245,7 @@ export default function MapMarkers({
 
     const clusterer = new MarkerClusterer({
       map,
-      algorithm: new SuperClusterAlgorithm({ radius: 60, maxZoom: 16, minPoints: 3 }),
+      algorithm: new SuperClusterAlgorithm({ radius: 80, maxZoom: 16, minPoints: 3 }),
       onClusterClick: (_event, cluster, clusterMap) => {
         const clusterMarkers = (cluster as any).markers as google.maps.Marker[] | undefined
         const center = cluster.position

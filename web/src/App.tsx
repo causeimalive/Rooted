@@ -4231,10 +4231,10 @@ function MapTab({
                 key={`${theme}-${baseLayer}`}
                 mapContainerStyle={{ width: '100%', height: '100%' }}
                 center={center}
-                zoom={4}
+                zoom={1}
                 options={{
                   ...getMapOptions(baseLayer, theme),
-                  minZoom: 3,
+                  minZoom: 1,
                   maxZoom: 18,
                   ...(allPlacesBounds
                     ? { restriction: { latLngBounds: allPlacesBounds, strictBounds: false } }
@@ -4242,16 +4242,6 @@ function MapTab({
                 }}
                 onLoad={(map) => {
                   mapRef.current = map
-                  if (allPlacesBounds) {
-                    const bounds = new google.maps.LatLngBounds()
-                    bounds.extend({ lat: allPlacesBounds.south, lng: allPlacesBounds.west })
-                    bounds.extend({ lat: allPlacesBounds.north, lng: allPlacesBounds.east })
-                    map.fitBounds(bounds, { top: 64, right: 64, bottom: 64, left: 64 })
-                    google.maps.event.addListenerOnce(map, 'idle', () => {
-                      const z = map.getZoom()
-                      if (z != null) map.setZoom(z + 0.5)
-                    })
-                  }
                 }}
               >
                 {showPlaceMarkers && (
