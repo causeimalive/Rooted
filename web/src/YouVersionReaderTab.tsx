@@ -57,24 +57,56 @@ const COMPARE_FOCUS_LINE = 140
 // what's cached ever needs to change.
 const ALL_VERSIONS_CACHE_KEY = 'youversion-all-bible-versions@1'
 const VERSION_PAGE_DELAY_MS = 300
-const VERSION_PAGE_MAX_RETRIES = 4
+// YouVersion's rate limit for the Bibles endpoint is shared across every
+// user of this app's key, not per-browser. It responded with a 300s
+// Retry-After the first time it was tripped, so back off for noticeably
+// longer than that -- and, critically, do NOT retry on 429. Retrying
+// (even with exponential backoff) just adds more requests while the
+// whole app is already locked out, which can keep re-extending the
+// lockout window indefinitely. Instead, record a cooldown in
+// localStorage (shared by every tab in this browser) and skip the
+// network entirely until it passes.
+const RATE_LIMIT_COOLDOWN_KEY = 'youversion-versions-rate-limited-until'
+const RATE_LIMIT_COOLDOWN_MS = 10 * 60 * 1000
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-async function fetchVersionsPageWithBackoff(
+function getRateLimitCooldownUntil(): number {
+  const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(RATE_LIMIT_COOLDOWN_KEY) : null
+  const parsed = raw ? Number(raw) : 0
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function setRateLimitCooldown(): void {
+  try {
+    localStorage.setItem(RATE_LIMIT_COOLDOWN_KEY, String(Date.now() + RATE_LIMIT_COOLDOWN_MS))
+  } catch {
+    // best-effort only
+  }
+}
+
+class YouVersionRateLimitedError extends Error {
+  constructor() {
+    super('YouVersion is temporarily rate-limiting this app. Please try again in a few minutes.')
+  }
+}
+
+async function fetchVersionsPage(
   bibleClient: ReturnType<typeof useBibleClient>,
   pageToken: string | undefined,
-  attempt = 0,
 ): Promise<{ data: BibleVersion[]; next_page_token?: string | null }> {
+  const cooldownUntil = getRateLimitCooldownUntil()
+  if (Date.now() < cooldownUntil) {
+    throw new YouVersionRateLimitedError()
+  }
   try {
     return await bibleClient.getVersions(['*'], undefined, { page_size: 99, page_token: pageToken })
   } catch (error) {
-    const status = getHttpStatus(error)
-    if (status === 429 && attempt < VERSION_PAGE_MAX_RETRIES) {
-      await sleep(Math.min(30000, 1000 * 2 ** attempt))
-      return fetchVersionsPageWithBackoff(bibleClient, pageToken, attempt + 1)
+    if (getHttpStatus(error) === 429) {
+      setRateLimitCooldown()
+      throw new YouVersionRateLimitedError()
     }
     throw error
   }
@@ -83,9 +115,9 @@ async function fetchVersionsPageWithBackoff(
 // Fetches every page of the full (wildcard-language) version catalog,
 // pausing briefly between requests so a single reader load doesn't burst
 // ~15 requests at once against YouVersion's shared, app-key-wide rate
-// limit, and backing off with retries if a page is throttled anyway.
-// Calls onPage after each page so callers can render progressively
-// instead of waiting for the entire (multi-second) fetch to finish.
+// limit. Calls onPage after each page so callers can render
+// progressively instead of waiting for the entire (multi-second) fetch
+// to finish.
 async function fetchAllBibleVersions(
   bibleClient: ReturnType<typeof useBibleClient>,
   onPage?: (versionsSoFar: BibleVersion[]) => void,
@@ -96,7 +128,7 @@ async function fetchAllBibleVersions(
   do {
     if (!isFirstPage) await sleep(VERSION_PAGE_DELAY_MS)
     isFirstPage = false
-    const page = await fetchVersionsPageWithBackoff(bibleClient, pageToken)
+    const page = await fetchVersionsPage(bibleClient, pageToken)
     results.push(...page.data)
     onPage?.(results.slice())
     pageToken = page.next_page_token ?? undefined
