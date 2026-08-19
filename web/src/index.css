@@ -1986,6 +1986,33 @@ button.secondary {
   flex: 0 0 auto;
 }
 
+.yv-reader-version-menu-search {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  flex: 0 0 auto;
+  width: 100%;
+  padding: 0.4rem 0.55rem;
+  margin-bottom: 0.15rem;
+  border: 1px solid var(--muted);
+  border-radius: 0.5rem;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.78rem;
+}
+
+.yv-reader-version-menu-search:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.yv-reader-version-menu-empty {
+  padding: 0.6rem 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  text-align: center;
+}
+
 .yv-reader-selector-menu .yv-reader-version-menu-item-primary {
   width: 100%;
 }

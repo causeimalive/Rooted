@@ -520,7 +520,14 @@ export default function YouVersionReaderTab({
   }, [hasEntityData])
   const userId = userInfo?.userId
   const userIdRef = useRef<string | undefined>(userId)
-  const versionLanguage = useMemo(() => [language, 'eng'], [language])
+  // Requesting a wildcard language range surfaces every Bible version the
+  // app is licensed for, across all languages, rather than only versions
+  // matching the current UI language (falling back to English). See
+  // https://developers.youversion.com/api/bibles -- passing multiple
+  // concrete language_ranges only returns the first range that has any
+  // matches, it doesn't merge across them, so '*' is required for full
+  // access to the version catalog.
+  const versionLanguage = useMemo(() => ['*'], [])
 
   useEffect(() => {
     userIdRef.current = userInfo?.userId
@@ -552,6 +559,8 @@ export default function YouVersionReaderTab({
     return Number.isFinite(saved) && saved >= MIN_NAV_WIDTH ? saved : DEFAULT_NAV_WIDTH
   })
   const [versionMenuOpen, setVersionMenuOpen] = useState(false)
+  const [versionSearchQuery, setVersionSearchQuery] = useState('')
+  const [compareVersionSearchQuery, setCompareVersionSearchQuery] = useState('')
   const [hoveredVerse, setHoveredVerse] = useState<{ section: string; verse: string } | null>(null)
   const [compareOpen, setCompareOpen] = useState(() => getUserPreference(userId, READER_COMPARE_OPEN_KEY) === 'true')
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(() => {
@@ -667,7 +676,7 @@ export default function YouVersionReaderTab({
     }
     fetchMore(token)
     return () => { cancelled = true }
-  }, [bibleClient, language, versionCollection])
+  }, [bibleClient, versionLanguage, versionCollection])
   const availableVersions = useMemo(
     () => [...(versionCollection?.data ?? []), ...extraVersionPages],
     [versionCollection, extraVersionPages],
@@ -694,6 +703,14 @@ export default function YouVersionReaderTab({
       window.removeEventListener('keydown', onKeyDown)
     }
   }, [versionMenuOpen])
+
+  useEffect(() => {
+    if (!versionMenuOpen) setVersionSearchQuery('')
+  }, [versionMenuOpen])
+
+  useEffect(() => {
+    if (!compareVersionMenuOpen) setCompareVersionSearchQuery('')
+  }, [compareVersionMenuOpen])
 
   useEffect(() => {
     if (compareOpen) {
@@ -2552,31 +2569,67 @@ export default function YouVersionReaderTab({
       onSelect: (id: number) => void,
       versions: readonly VersionMenuEntry[],
       menuClassName = '',
-    ) => (
-      <div className={`yv-reader-selector-menu ${menuClassName}`.trim()} role="menu" aria-label={ariaLabel}>
-        {versions.map((entry) => {
-          const entryLabel = formatVersionLabel(entry)
-          const isActive = entry.id === activeVersionId
-          return (
-            <div key={entry.id} className={`yv-reader-version-menu-item ${isActive ? 'active' : ''}`}>
-              <button
-                type="button"
-                className="yv-reader-version-menu-item-primary"
-                onClick={(event) => {
-                  event.stopPropagation()
-                  onSelect(entry.id)
-                }}
-              >
-                <span className="yv-reader-version-menu-item-main">
-                  <strong>{entryLabel.title}</strong>
-                  <span>{entryLabel.subtitle || 'Bible translation'}</span>
-                </span>
-              </button>
-            </div>
-          )
-        })}
-      </div>
-    ),
+      searchQuery = '',
+      onSearchQueryChange?: (value: string) => void,
+    ) => {
+      const trimmedQuery = searchQuery.trim().toLowerCase()
+      const filteredVersions = trimmedQuery
+        ? versions.filter((entry) => {
+            const haystack = [
+              entry.title,
+              entry.localized_title,
+              entry.abbreviation,
+              entry.localized_abbreviation,
+              entry.language_tag,
+            ]
+              .filter(Boolean)
+              .join(' ')
+              .toLowerCase()
+            return haystack.includes(trimmedQuery)
+          })
+        : versions
+
+      return (
+        <div className={`yv-reader-selector-menu ${menuClassName}`.trim()} role="menu" aria-label={ariaLabel}>
+          {onSearchQueryChange && (
+            <input
+              type="text"
+              className="yv-reader-version-menu-search"
+              placeholder="Search versions or languages…"
+              value={searchQuery}
+              onClick={(event) => event.stopPropagation()}
+              onChange={(event) => onSearchQueryChange(event.target.value)}
+              autoFocus
+            />
+          )}
+          {filteredVersions.length === 0 ? (
+            <div className="yv-reader-version-menu-empty">No versions match "{searchQuery}"</div>
+          ) : (
+            filteredVersions.map((entry) => {
+              const entryLabel = formatVersionLabel(entry)
+              const isActive = entry.id === activeVersionId
+              return (
+                <div key={entry.id} className={`yv-reader-version-menu-item ${isActive ? 'active' : ''}`}>
+                  <button
+                    type="button"
+                    className="yv-reader-version-menu-item-primary"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      onSelect(entry.id)
+                    }}
+                  >
+                    <span className="yv-reader-version-menu-item-main">
+                      <strong>{entryLabel.title}</strong>
+                      <span>{entryLabel.subtitle || 'Bible translation'}</span>
+                    </span>
+                  </button>
+                </div>
+              )
+            })
+          )}
+        </div>
+      )
+    },
     [],
   )
 
@@ -2662,7 +2715,7 @@ export default function YouVersionReaderTab({
                   subtitle={currentVersionSubtitle}
                   chevronSize={14}
                   menuRef={versionMenuRef}
-                  menu={renderVersionMenu('Bible version selection', resolvedVersionId, handleSelectCurrentVersion, availableVersions)}
+                  menu={renderVersionMenu('Bible version selection', resolvedVersionId, handleSelectCurrentVersion, availableVersions, '', versionSearchQuery, setVersionSearchQuery)}
                 />
                 <ReaderVersionSelector
                   wrapperClassName="yv-reader-selector-shell yv-reader-nav-header-selector"
@@ -2674,7 +2727,7 @@ export default function YouVersionReaderTab({
                   subtitle={compareVersionSubtitle}
                   chevronSize={14}
                   menuRef={compareVersionMenuRef}
-                  menu={renderVersionMenu('Compare Bible version selection', compareVersionId, handleSelectCompareVersion, compareAvailableVersions)}
+                  menu={renderVersionMenu('Compare Bible version selection', compareVersionId, handleSelectCompareVersion, compareAvailableVersions, '', compareVersionSearchQuery, setCompareVersionSearchQuery)}
                 />
               </div>
             ) : (
@@ -2688,7 +2741,7 @@ export default function YouVersionReaderTab({
                 subtitle={currentVersionSubtitle}
                 chevronSize={14}
                 menuRef={versionMenuRef}
-                menu={renderVersionMenu('Bible version selection', resolvedVersionId, handleSelectCurrentVersion, availableVersions)}
+                menu={renderVersionMenu('Bible version selection', resolvedVersionId, handleSelectCurrentVersion, availableVersions, '', versionSearchQuery, setVersionSearchQuery)}
               />
             )}
 
