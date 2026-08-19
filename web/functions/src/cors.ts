@@ -25,7 +25,7 @@ export function setCorsHeaders(res: Response, origin: string | null, methods = '
   res.setHeader('Access-Control-Allow-Methods', methods)
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'authorization, x-yvp-app-key, x-yvp-installation-id, x-yvp-sdk, content-type',
+    'authorization, x-yvp-app-key, x-yvp-installation-id, x-yvp-sdk, x-youversion-app-platform, x-youversion-app-version, x-youversion-client, content-type',
   )
   res.setHeader('Access-Control-Max-Age', '7200')
   if (origin) {

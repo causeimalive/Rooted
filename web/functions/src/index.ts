@@ -52,6 +52,10 @@ export const proxyYouVersion = onRequest(
       'x-yvp-app-key',
       'x-yvp-installation-id',
       'x-yvp-sdk',
+      'x-youversion-app-platform',
+      'x-youversion-app-version',
+      'x-youversion-client',
+      'user-agent',
       'accept-language',
       'accept',
       'content-type',
@@ -66,6 +70,21 @@ export const proxyYouVersion = onRequest(
     }
     if (!headers['x-yvp-sdk']) {
       headers['x-yvp-sdk'] = 'ReactSDK=2.5.0'
+    }
+    // Some YouVersion API hosts (e.g. search.youversionapi.com) reject
+    // requests missing these headers outright. The client SDK doesn't set
+    // them, so default them here rather than failing every search request.
+    if (!headers['x-youversion-app-platform']) {
+      headers['x-youversion-app-platform'] = 'web'
+    }
+    if (!headers['x-youversion-app-version']) {
+      headers['x-youversion-app-version'] = '1.0.0'
+    }
+    if (!headers['x-youversion-client']) {
+      headers['x-youversion-client'] = 'RootedInChrist'
+    }
+    if (!headers['user-agent']) {
+      headers['user-agent'] = 'RootedInChrist/1.0 (+https://rootedinchrist.faith)'
     }
 
     let body: Buffer | undefined
