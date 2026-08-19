@@ -564,21 +564,28 @@ function buildLocalKjvPassage(reference: ReaderReference, books: YouVersionBook[
   }
 }
 
-function filterVersionsForBrowse(
+function orderVersionsForBrowse(
   versions: readonly VersionMenuEntry[],
   language: 'en' | 'es' | null,
   activeVersionId?: number | null,
 ): VersionMenuEntry[] {
-  const filtered = language
-    ? versions.filter((entry) => {
-        const tag = entry.language_tag?.toLowerCase().trim() ?? ''
-        return !tag || tag.startsWith(language)
-      })
-    : Array.from(versions)
+  const preferred = language?.toLowerCase() ?? ''
+  const score = (entry: VersionMenuEntry): number => {
+    const tag = entry.language_tag?.toLowerCase().trim() ?? ''
+    if (preferred && tag.startsWith(preferred)) return 0
+    if (tag.startsWith('en')) return 1
+    return 2
+  }
 
-  if (activeVersionId == null || filtered.some((entry) => entry.id === activeVersionId)) return filtered
-  const active = versions.find((entry) => entry.id === activeVersionId)
-  return active ? [active, ...filtered] : filtered
+  return Array.from(versions).sort((a, b) => {
+    const groupDiff = score(a) - score(b)
+    if (groupDiff !== 0) return groupDiff
+    if (a.id === activeVersionId) return -1
+    if (b.id === activeVersionId) return 1
+    const titleA = (a.localized_title || a.title || a.abbreviation || '').toLowerCase()
+    const titleB = (b.localized_title || b.title || b.abbreviation || '').toLowerCase()
+    return titleA.localeCompare(titleB) || String(a.id).localeCompare(String(b.id))
+  })
 }
 
 function formatChapterNavDestination(book: YouVersionBook | undefined, reference: ReaderReference | undefined, fallback: string): string {
@@ -998,11 +1005,11 @@ export default function YouVersionReaderTab({
   }, [selectedVersion, onVersionChange, selectedVersionLabel])
   const resolvedBrowseLanguage = resolveVersionBrowseLanguagePreference(versionBrowseLanguagePreference, language)
   const browseVersions = useMemo(
-    () => filterVersionsForBrowse(catalogVersions, resolvedBrowseLanguage, resolvedVersionId),
+    () => orderVersionsForBrowse(catalogVersions, resolvedBrowseLanguage, resolvedVersionId),
     [catalogVersions, resolvedBrowseLanguage, resolvedVersionId],
   )
   const compareBrowseVersions = useMemo(
-    () => filterVersionsForBrowse(catalogVersions, resolvedBrowseLanguage, compareVersionId),
+    () => orderVersionsForBrowse(catalogVersions, resolvedBrowseLanguage, compareVersionId),
     [catalogVersions, resolvedBrowseLanguage, compareVersionId],
   )
   const compareVersion = useMemo(
