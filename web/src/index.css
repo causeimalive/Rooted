@@ -2830,8 +2830,14 @@ button.secondary {
 
 .map-place-popup-nav-btn span {
   color: #fff !important;
-  font-size: 1.5rem;
+  font-size: 1.7rem;
+  font-weight: 600;
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
 }
 
 .map-place-popup-nav-btn:hover,
@@ -3030,8 +3036,14 @@ button.secondary {
 
 .map-place-lightbox-nav span {
   color: #fff !important;
-  font-size: 1.5rem;
+  font-size: 2.2rem;
+  font-weight: 600;
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
 }
 
 .map-place-lightbox-nav:hover,
