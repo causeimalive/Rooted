@@ -829,6 +829,11 @@ export default function App() {
     setAudioLoading(true)
     setAudioError('')
     const versionId = readerVersion?.id ?? 111
+    if (versionId === -1 || versionId === -2 || !Number.isFinite(versionId) || versionId <= 0) {
+      setAudioUrl('')
+      setAudioLoading(false)
+      return () => { cancelled = true }
+    }
     fetchYouVersionAudioChapter(versionId, bookReference)
       .then((audio) => {
         if (cancelled) return
