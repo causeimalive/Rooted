@@ -50,6 +50,7 @@ export default function SyncVersionMenu({ open, lastReadVersion, lastReadBook, u
 
   const { versions: versionCollection, loading, error } = useVersions(languageRanges, undefined, {
     page_size: 99,
+    all_available: true,
   })
 
   const [extraVersionPages, setExtraVersionPages] = useState<BibleVersion[]>([])
@@ -60,7 +61,7 @@ export default function SyncVersionMenu({ open, lastReadVersion, lastReadBook, u
     let cancelled = false
     const fetchMore = async (nextToken: string) => {
       try {
-        const page = await bibleClient.getVersions(languageRanges, undefined, { page_size: 99, page_token: nextToken })
+        const page = await bibleClient.getVersions(languageRanges, undefined, { page_size: 99, page_token: nextToken, all_available: true })
         if (cancelled) return
         setExtraVersionPages((prev) => [...prev, ...page.data])
         if (page.next_page_token) await fetchMore(page.next_page_token)

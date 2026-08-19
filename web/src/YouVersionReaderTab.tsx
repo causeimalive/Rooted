@@ -109,7 +109,7 @@ async function fetchVersionsPage(
     throw new YouVersionRateLimitedError()
   }
   try {
-    return await bibleClient.getVersions(['*'], undefined, { page_size: 99, page_token: pageToken })
+    return await bibleClient.getVersions(['*'], undefined, { page_size: 99, page_token: pageToken, all_available: true })
   } catch (error) {
     if (getHttpStatus(error) === 429) {
       setRateLimitCooldown()
