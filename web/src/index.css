@@ -6,6 +6,13 @@ a,
 button,
 [role='button'] {
   cursor: pointer;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+[role='button'] {
+  user-select: none;
 }
 
 :root,
@@ -2781,6 +2788,8 @@ button.secondary {
   object-fit: cover;
   display: block;
   cursor: zoom-in;
+  -webkit-touch-callout: none;
+  user-select: none;
 }
 
 .map-place-popup-image-scrim {
@@ -3002,6 +3011,11 @@ button.secondary {
   height: max(40vh, min(70vh, calc(100vh - 12rem)));
   background: rgba(255, 255, 255, 0.03);
   border-radius: 0.75rem;
+}
+
+.map-place-lightbox-image-wrap img {
+  -webkit-touch-callout: none;
+  user-select: none;
 }
 
 .map-place-lightbox-image-click-zone {
