@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
-import { ChevronLeft, ChevronRight, GripVertical, Highlighter, Loader2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, GripVertical, Highlighter, Loader2, Pin, PinOff } from 'lucide-react'
 import { findVerse, getAllVerses } from './bible'
 import { 
   fetchYouVersionPassage, 
@@ -11,11 +11,14 @@ import { fetchNltPassage, NLT_ATTRIBUTION } from './nlt'
 import { Capacitor } from '@capacitor/core'
 import { useBibleClient, useBooks, useChapters, useHighlights, useVersion, useYVAuth } from '@youversion/platform-react-hooks'
 import {
+  getPinnedVersionIds,
   getUserPreference,
   removeUserPreference,
   resolveVersionBrowseLanguagePreference,
+  setPinnedVersionIds,
   setUserPreference,
   VERSION_BROWSE_LANGUAGE_CHANGED_EVENT,
+  VERSION_PINNED_CHANGED_EVENT,
   getVersionBrowseLanguagePreference,
 } from './userProfile'
 import { transformBibleHtml, getHttpStatus, type BiblePassage, type BibleVersion } from '@youversion/platform-core'
@@ -604,20 +607,23 @@ function orderVersionsForBrowse(
   versions: readonly VersionMenuEntry[],
   language: 'en' | 'es' | null,
   activeVersionId?: number | null,
+  pinnedVersionIds: readonly number[] = [],
 ): VersionMenuEntry[] {
   const preferred = language?.toLowerCase() ?? ''
+  const pinned = new Set(pinnedVersionIds)
   const score = (entry: VersionMenuEntry): number => {
+    if (isLocalFallbackVersion(entry)) return 0
+    if (pinned.has(entry.id)) return 1
+    if (entry.id === activeVersionId) return 2
     const tag = entry.language_tag?.toLowerCase().trim() ?? ''
-    if (preferred && tag.startsWith(preferred)) return 0
-    if (tag.startsWith('en')) return 1
-    return 2
+    if (preferred && tag.startsWith(preferred)) return 3
+    if (tag.startsWith('en')) return 4
+    return 5
   }
 
   return Array.from(versions).sort((a, b) => {
     const groupDiff = score(a) - score(b)
     if (groupDiff !== 0) return groupDiff
-    if (a.id === activeVersionId) return -1
-    if (b.id === activeVersionId) return 1
     const titleA = (a.localized_title || a.title || a.abbreviation || '').toLowerCase()
     const titleB = (b.localized_title || b.title || b.abbreviation || '').toLowerCase()
     return titleA.localeCompare(titleB) || String(a.id).localeCompare(String(b.id))
@@ -752,6 +758,7 @@ export default function YouVersionReaderTab({
   const userId = userInfo?.userId
   const userIdRef = useRef<string | undefined>(userId)
   const [versionBrowseLanguagePreference, setVersionBrowseLanguagePreference] = useState(() => getVersionBrowseLanguagePreference(userId))
+  const [pinnedVersionIds, setPinnedVersionIdsState] = useState<number[]>(() => getPinnedVersionIds(userId))
 
   useEffect(() => {
     userIdRef.current = userInfo?.userId
@@ -765,6 +772,26 @@ export default function YouVersionReaderTab({
     return () => {
       window.removeEventListener(VERSION_BROWSE_LANGUAGE_CHANGED_EVENT, syncLanguagePreference as EventListener)
       window.removeEventListener('storage', syncLanguagePreference)
+    }
+  }, [userId])
+
+  useEffect(() => {
+    const syncPinnedVersions = (event?: Event) => {
+      if (event && event.type !== 'storage') {
+        const detail = (event as CustomEvent<number[]>).detail
+        if (Array.isArray(detail)) {
+          setPinnedVersionIdsState(detail.filter((value) => Number.isFinite(value)))
+          return
+        }
+      }
+      setPinnedVersionIdsState(getPinnedVersionIds(userIdRef.current))
+    }
+    syncPinnedVersions()
+    window.addEventListener(VERSION_PINNED_CHANGED_EVENT, syncPinnedVersions as EventListener)
+    window.addEventListener('storage', syncPinnedVersions)
+    return () => {
+      window.removeEventListener(VERSION_PINNED_CHANGED_EVENT, syncPinnedVersions as EventListener)
+      window.removeEventListener('storage', syncPinnedVersions)
     }
   }, [userId])
 
@@ -1011,6 +1038,7 @@ export default function YouVersionReaderTab({
     ] as VersionMenuEntry[]
     return next.filter((entry, index, all) => all.findIndex((candidate) => candidate.id === entry.id) === index)
   }, [availableVersions])
+  const pinnedVersionIdSet = useMemo(() => new Set(pinnedVersionIds), [pinnedVersionIds])
 
   useEffect(() => {
     if (!catalogVersions.length) return
@@ -1046,12 +1074,12 @@ export default function YouVersionReaderTab({
   }, [selectedVersion, onVersionChange, selectedVersionLabel])
   const resolvedBrowseLanguage = resolveVersionBrowseLanguagePreference(versionBrowseLanguagePreference, language)
   const browseVersions = useMemo(
-    () => orderVersionsForBrowse(catalogVersions, resolvedBrowseLanguage, resolvedVersionId),
-    [catalogVersions, resolvedBrowseLanguage, resolvedVersionId],
+    () => orderVersionsForBrowse(catalogVersions, resolvedBrowseLanguage, resolvedVersionId, pinnedVersionIds),
+    [catalogVersions, pinnedVersionIds, resolvedBrowseLanguage, resolvedVersionId],
   )
   const compareBrowseVersions = useMemo(
-    () => orderVersionsForBrowse(catalogVersions, resolvedBrowseLanguage, compareVersionId),
-    [catalogVersions, resolvedBrowseLanguage, compareVersionId],
+    () => orderVersionsForBrowse(catalogVersions, resolvedBrowseLanguage, compareVersionId, pinnedVersionIds),
+    [catalogVersions, pinnedVersionIds, resolvedBrowseLanguage, compareVersionId],
   )
   const compareVersion = useMemo(
     () => catalogVersions.find((entry) => entry.id === compareVersionId),
@@ -1464,6 +1492,17 @@ export default function YouVersionReaderTab({
     setCompareVersionId(id)
     setCompareVersionMenuOpen(false)
   }, [])
+  const handleTogglePinVersion = useCallback(
+    (entry: VersionMenuEntry) => {
+      if (isLocalFallbackVersion(entry)) return
+      const next = pinnedVersionIds.includes(entry.id)
+        ? pinnedVersionIds.filter((id) => id !== entry.id)
+        : [...pinnedVersionIds, entry.id]
+      setPinnedVersionIdsState(next)
+      setPinnedVersionIds(userIdRef.current, next)
+    },
+    [pinnedVersionIds],
+  )
   const handleOpenBookSource = useCallback(() => {
     if (!currentBookInfoUrl) return
     window.open(currentBookInfoUrl, '_blank', 'noopener,noreferrer')
@@ -2883,11 +2922,16 @@ export default function YouVersionReaderTab({
           })
         : versions
       const featuredVersions = [LOCAL_KJV_VERSION, LOCAL_NLT_VERSION]
-      const visibleVersions = filteredVersions.filter((entry) => !featuredVersions.some((featured) => featured.id === entry.id))
+      const featuredIds = new Set(featuredVersions.map((entry) => entry.id))
+      const pinnedVersions = filteredVersions.filter((entry) => pinnedVersionIdSet.has(entry.id) && !featuredIds.has(entry.id))
+      const visibleVersions = filteredVersions.filter((entry) => !featuredIds.has(entry.id) && !pinnedVersionIdSet.has(entry.id))
 
       const renderEntry = (entry: VersionMenuEntry, badge?: string) => {
         const entryLabel = formatVersionLabel(entry)
         const isActive = entry.id === activeVersionId
+        const isPinned = pinnedVersionIdSet.has(entry.id)
+        const canTogglePin = !isLocalFallbackVersion(entry)
+        const pinLabel = isPinned ? `Unpin ${entryLabel.title}` : `Pin ${entryLabel.title}`
         return (
           <div key={entry.id} className={`yv-reader-version-menu-item ${isActive ? 'active' : ''}`}>
             <button
@@ -2903,6 +2947,20 @@ export default function YouVersionReaderTab({
                 <span>{badge || entryLabel.subtitle || 'Bible translation'}</span>
               </span>
             </button>
+            {canTogglePin ? (
+              <button
+                type="button"
+                className="yv-reader-version-menu-item-action"
+                title={pinLabel}
+                aria-label={pinLabel}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  handleTogglePinVersion(entry)
+                }}
+              >
+                {isPinned ? <PinOff size={14} /> : <Pin size={14} />}
+              </button>
+            ) : null}
           </div>
         )
       }
@@ -2937,15 +2995,19 @@ export default function YouVersionReaderTab({
               )}
             </>
           )}
-          {visibleVersions.length === 0 ? (
-            <div className="yv-reader-version-menu-empty">No versions match "{searchQuery}"</div>
-          ) : (
-            visibleVersions.map((entry) => renderEntry(entry))
+          {pinnedVersions.length > 0 && (
+            <>
+              <div className="yv-reader-version-menu-empty" style={{ marginBottom: '0.35rem', marginTop: featuredVersions.length > 0 ? '0.5rem' : 0 }}>
+                Pinned versions
+              </div>
+              {pinnedVersions.map((entry) => renderEntry(entry))}
+            </>
           )}
+          {visibleVersions.map((entry) => renderEntry(entry))}
         </div>
       )
     },
-    [],
+    [handleTogglePinVersion, pinnedVersionIdSet],
   )
 
   const startResize = useCallback(
