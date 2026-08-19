@@ -62,7 +62,7 @@ const COMPARE_FOCUS_LINE = 140
 // result across sessions so this only ever runs once per browser instead
 // of on every reader visit -- bump the version suffix if the shape of
 // what's cached ever needs to change.
-const ALL_VERSIONS_CACHE_KEY = 'youversion-all-bible-versions@1'
+const ALL_VERSIONS_CACHE_KEY = 'youversion-all-bible-versions@2'
 const VERSION_PAGE_DELAY_MS = 300
 // YouVersion's rate limit for the Bibles endpoint is shared across every
 // user of this app's key, not per-browser. It responded with a 300s
