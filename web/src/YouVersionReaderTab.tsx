@@ -737,7 +737,7 @@ export default function YouVersionReaderTab({
   const [localError, setLocalError] = useState('')
   const [versionId, setVersionId] = useState<number | null>(() => {
     const saved = Number(getUserPreference(userId, READER_VERSION_KEY))
-    return Number.isFinite(saved) && saved > 0 ? saved : null
+    return Number.isFinite(saved) ? saved : null
   })
   const [bookId, setBookId] = useState(() => getUserPreference(userId, READER_BOOK_KEY) ?? '')
   const [chapter, setChapter] = useState(() => {
@@ -785,12 +785,12 @@ export default function YouVersionReaderTab({
   const [compareVersionMenuOpen, setCompareVersionMenuOpen] = useState(false)
   const [compareVersionId, setCompareVersionId] = useState<number | null>(() => {
     const saved = Number(getUserPreference(userId, READER_COMPARE_KEY))
-    return Number.isFinite(saved) && saved > 0 ? saved : null
+    return Number.isFinite(saved) ? saved : null
   })
 
   useEffect(() => {
     const savedVersion = Number(getUserPreference(userId, READER_VERSION_KEY))
-    setVersionId(Number.isFinite(savedVersion) && savedVersion > 0 ? savedVersion : null)
+    setVersionId(Number.isFinite(savedVersion) ? savedVersion : null)
     setBookId(getUserPreference(userId, READER_BOOK_KEY) ?? '')
     const savedChapter = Number(getUserPreference(userId, READER_CHAPTER_KEY))
     setChapter(Number.isFinite(savedChapter) && savedChapter > 0 ? savedChapter : 1)
@@ -818,7 +818,7 @@ export default function YouVersionReaderTab({
     const savedHover = getUserPreference(userId, READER_HOVER_HIGHLIGHT_KEY)
     setHoverHighlightEnabled(savedHover === 'true')
     const savedCompareVersion = Number(getUserPreference(userId, READER_COMPARE_KEY))
-    setCompareVersionId(Number.isFinite(savedCompareVersion) && savedCompareVersion > 0 ? savedCompareVersion : null)
+    setCompareVersionId(Number.isFinite(savedCompareVersion) ? savedCompareVersion : null)
   }, [userId])
 
   const [compareSections, setCompareSections] = useState<CompareSection[]>([])
