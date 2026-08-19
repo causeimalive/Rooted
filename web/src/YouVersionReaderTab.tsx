@@ -2838,6 +2838,34 @@ export default function YouVersionReaderTab({
             return haystack.includes(trimmedQuery)
           })
         : versions
+      const featuredVersion = versions.find((entry) => isKjvVersion(entry)) ?? LOCAL_KJV_VERSION
+      const featuredVersions = [featuredVersion].filter(Boolean).filter((entry, index, all) => all.findIndex((candidate) => candidate.id === entry.id) === index)
+      const visibleVersions = [
+        ...featuredVersions,
+        ...filteredVersions.filter((entry) => !featuredVersions.some((featured) => featured.id === entry.id)),
+      ]
+
+      const renderEntry = (entry: VersionMenuEntry, badge?: string) => {
+        const entryLabel = formatVersionLabel(entry)
+        const isActive = entry.id === activeVersionId
+        return (
+          <div key={entry.id} className={`yv-reader-version-menu-item ${isActive ? 'active' : ''}`}>
+            <button
+              type="button"
+              className="yv-reader-version-menu-item-primary"
+              onClick={(event) => {
+                event.stopPropagation()
+                onSelect(entry.id)
+              }}
+            >
+              <span className="yv-reader-version-menu-item-main">
+                <strong>{entryLabel.title}</strong>
+                <span>{badge || entryLabel.subtitle || 'Bible translation'}</span>
+              </span>
+            </button>
+          </div>
+        )
+      }
 
       return (
         <div className={`yv-reader-selector-menu ${menuClassName}`.trim()} role="menu" aria-label={ariaLabel}>
@@ -2852,30 +2880,18 @@ export default function YouVersionReaderTab({
               autoFocus
             />
           )}
-          {filteredVersions.length === 0 ? (
+          {featuredVersions.length > 0 && (
+            <>
+              <div className="yv-reader-version-menu-empty" style={{ marginBottom: '0.35rem' }}>
+                Featured version
+              </div>
+              {featuredVersions.map((entry) => renderEntry(entry, entry.id === LOCAL_KJV_VERSION_ID ? 'Public-domain KJV fallback' : undefined))}
+            </>
+          )}
+          {visibleVersions.length === 0 ? (
             <div className="yv-reader-version-menu-empty">No versions match "{searchQuery}"</div>
           ) : (
-            filteredVersions.map((entry) => {
-              const entryLabel = formatVersionLabel(entry)
-              const isActive = entry.id === activeVersionId
-              return (
-                <div key={entry.id} className={`yv-reader-version-menu-item ${isActive ? 'active' : ''}`}>
-                  <button
-                    type="button"
-                    className="yv-reader-version-menu-item-primary"
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      onSelect(entry.id)
-                    }}
-                  >
-                    <span className="yv-reader-version-menu-item-main">
-                      <strong>{entryLabel.title}</strong>
-                      <span>{entryLabel.subtitle || 'Bible translation'}</span>
-                    </span>
-                  </button>
-                </div>
-              )
-            })
+            visibleVersions.map((entry) => renderEntry(entry))
           )}
         </div>
       )
