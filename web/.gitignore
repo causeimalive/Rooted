@@ -7,3 +7,5 @@ dist/
 .env
 .env.*
 scripts/.openbible-data/
+.firebase/
+tsconfig.tsbuildinfo
