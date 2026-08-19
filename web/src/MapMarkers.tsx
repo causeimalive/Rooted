@@ -19,7 +19,11 @@ type MapMarkersProps = {
 }
 
 const BOUNCE_DURATION = 1400
-const SPIDERFY_PIXEL_THRESHOLD = 24
+// Matches SuperClusterAlgorithm's maxZoom below: once the map is at or past
+// this zoom, SuperCluster won't split a cluster any further, so zooming in
+// again can't reveal more structure and we fall back to spiderfying instead.
+const CLUSTER_MAX_ZOOM = 16
+const CLUSTER_ZOOM_STEP = 3
 
 function buildIcon(active: boolean, relevant: boolean, palette: MapMarkersProps['palette']) {
   return {
@@ -249,34 +253,42 @@ export default function MapMarkers({
 
     const clusterer = new MarkerClusterer({
       map,
-      algorithm: new SuperClusterAlgorithm({ radius: 80, maxZoom: 16, minPoints: 3 }),
+      algorithm: new SuperClusterAlgorithm({ radius: 80, maxZoom: CLUSTER_MAX_ZOOM, minPoints: 3 }),
       onClusterClick: (_event, cluster, clusterMap) => {
         const clusterMarkers = (cluster as any).markers as google.maps.Marker[] | undefined
         const clusterCount = clusterMarkers?.length ?? cluster.count
         const center = cluster.position
         const key = `${center.lat().toFixed(5)},${center.lng().toFixed(5)},${clusterCount}`
+        const currentZoom = clusterMap.getZoom() ?? 6
 
         const wasSpiderfied = spiderfyRef.current?.key === key
         collapseSpiderfy()
         if (wasSpiderfied) return
 
-        if (clusterMarkers && clusterMarkers.length > 1) {
-          const zoom = clusterMap.getZoom() ?? 6
-          const mpp = metersPerPixel(center.lat(), zoom)
-          let maxPixels = 0
-          for (const m of clusterMarkers) {
-            const pos = m.getPosition()
-            if (!pos) continue
-            maxPixels = Math.max(maxPixels, haversineMeters(center, pos) / mpp)
-          }
-          if (maxPixels < SPIDERFY_PIXEL_THRESHOLD) {
-            spiderfy(clusterMap, center, clusterMarkers, key)
-            return
-          }
+        // Once SuperCluster can't split this cluster any further (we're at
+        // its maxZoom), zooming in again would do nothing to reveal the
+        // individual places, so fan them out around the cluster instead.
+        if (currentZoom >= CLUSTER_MAX_ZOOM && clusterMarkers && clusterMarkers.length > 1) {
+          spiderfy(clusterMap, center, clusterMarkers, key)
+          return
         }
 
+        // Otherwise, zoom in toward the cluster so it breaks apart into its
+        // sub-clusters or individual place markers.
+        const targetZoom = Math.min(CLUSTER_MAX_ZOOM, currentZoom + CLUSTER_ZOOM_STEP)
         const bounds = cluster.bounds
-        if (bounds) clusterMap.fitBounds(bounds, 40)
+        if (bounds && !bounds.getSouthWest().equals(bounds.getNorthEast())) {
+          clusterMap.fitBounds(bounds, 64)
+          google.maps.event.addListenerOnce(clusterMap, 'idle', () => {
+            const zoomAfterFit = clusterMap.getZoom()
+            if (zoomAfterFit == null || zoomAfterFit < targetZoom) {
+              clusterMap.setZoom(targetZoom)
+            }
+          })
+        } else {
+          clusterMap.panTo(center)
+          clusterMap.setZoom(targetZoom)
+        }
       },
       renderer: {
         render: (cluster: { count: number; position: google.maps.LatLng }) => {
