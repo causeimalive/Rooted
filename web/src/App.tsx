@@ -53,11 +53,9 @@ import { useEntityData } from './useEntityData'
 import {
   fetchYouVersionAudioChapter,
   fetchYouVersionPassage,
-  fetchYouVersionSearch,
   type YouVersionAudioChapter,
   type YouVersionBook,
   type YouVersionPassage,
-  type YouVersionSearchHit,
 } from './youversion'
 import {
   getAllPlaces,
@@ -596,9 +594,6 @@ export default function App() {
   }, [])
   useEffect(() => setHeaderQuery(query), [query])
   const [results, setResults] = useState<{ verse: Verse; score: number }[]>([])
-  const [yvSearchResults, setYvSearchResults] = useState<YouVersionSearchHit[]>([])
-  const [yvSearchLoading, setYvSearchLoading] = useState(false)
-  const [yvSearchError, setYvSearchError] = useState('')
   const [audioUrl, setAudioUrl] = useState('')
   const [audioTitle, setAudioTitle] = useState('')
   const [audioLoading, setAudioLoading] = useState(false)
@@ -747,39 +742,6 @@ export default function App() {
   }, [query])
 
   useEffect(() => {
-    const trimmed = query.trim()
-    if (!trimmed || trimmed.length < 3) {
-      setYvSearchResults([])
-      setYvSearchError('')
-      return
-    }
-    let cancelled = false
-    const timeout = window.setTimeout(() => {
-      setYvSearchLoading(true)
-      setYvSearchError('')
-      const savedVersion = Number(window.localStorage.getItem('bible-study-yv-version'))
-      const versionId = Number.isFinite(savedVersion) && savedVersion > 0 ? savedVersion : 1
-      fetchYouVersionSearch(trimmed, versionId, { perPage: 10 })
-        .then((hits) => {
-          if (cancelled) return
-          setYvSearchResults(hits)
-        })
-        .catch((error) => {
-          if (cancelled) return
-          setYvSearchError(error instanceof Error ? error.message : String(error))
-        })
-        .finally(() => {
-          if (!cancelled) setYvSearchLoading(false)
-        })
-    }, 400)
-    return () => {
-      cancelled = true
-      window.clearTimeout(timeout)
-      setYvSearchLoading(false)
-    }
-  }, [query])
-
-  useEffect(() => {
     const bookReference = selected
       ? chapterReferenceForAudio(selected)
       : lastReadBook && Number.isFinite(lastReadChapter) && lastReadChapter > 0
@@ -924,7 +886,7 @@ export default function App() {
           )}
         </h1>
         <div className="tabs">
-          <button className={`tab ${tab === 'search' ? 'active' : ''}`} onClick={() => { setQuery(''); setResults([]); setYvSearchResults([]); setYvSearchError(''); setHeaderQuery(''); setTab('search') }}>
+          <button className={`tab ${tab === 'search' ? 'active' : ''}`} onClick={() => { setQuery(''); setResults([]); setHeaderQuery(''); setTab('search') }}>
             <Search size={16} /> {t('search')}
           </button>
           <button className={`tab ${tab === 'reader' ? 'active' : ''}`} onClick={() => setTab('reader')}>
@@ -1017,9 +979,6 @@ export default function App() {
               onQuery={setQuery}
               onSearch={runSearch}
               results={results}
-              yvSearchResults={yvSearchResults}
-              yvSearchLoading={yvSearchLoading}
-              yvSearchError={yvSearchError}
               selectedId={selectedId}
               onSelect={setSelectedId}
               readerVersion={readerVersion}
@@ -1351,9 +1310,6 @@ function SearchTab({
   onQuery,
   onSearch,
   results,
-  yvSearchResults,
-  yvSearchLoading,
-  yvSearchError,
   selectedId,
   onSelect,
   readerVersion,
@@ -1367,9 +1323,6 @@ function SearchTab({
   onQuery: (q: string) => void
   onSearch: (q: string) => void
   results: { verse: Verse; score: number }[]
-  yvSearchResults: YouVersionSearchHit[]
-  yvSearchLoading: boolean
-  yvSearchError: string
   selectedId: string | null
   onSelect: (id: string) => void
   readerVersion: { id: number; name: string; abbreviation: string } | null

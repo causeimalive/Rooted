@@ -3,11 +3,9 @@ import { ChevronLeft, ChevronRight, GripVertical, Highlighter, Loader2 } from 'l
 import { findVerse, getAllVerses } from './bible'
 import { 
   fetchYouVersionPassage, 
-  fetchYouVersionSearch, 
   type YouVersionBook, 
   type YouVersionPassage, 
   type YouVersionVersion, 
-  type YouVersionSearchHit, 
 } from './youversion'
 import { Capacitor } from '@capacitor/core'
 import { useBibleClient, useBooks, useChapters, useHighlights, useVersion, useVersions, useYVAuth } from '@youversion/platform-react-hooks'

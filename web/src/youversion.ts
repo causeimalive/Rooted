@@ -173,21 +173,6 @@ export async function fetchYouVersionLanguages(options: YouVersionLanguageOption
   return Array.isArray(response) ? response : response.data ?? []
 }
 
-export interface YouVersionSearchHit {
-  id: string
-  reference: string
-  text: string
-  url?: string
-}
-
-export interface YouVersionSearchResponse {
-  data?: YouVersionSearchHit[]
-  hits?: YouVersionSearchHit[]
-  total?: number
-}
-
-const YOUVERSION_LEGACY_SEARCH_BASE = 'https://search.youversionapi.com'
-
 async function requestYouVersionLegacy<T>(
   base: string,
   path: string,
@@ -210,23 +195,6 @@ async function requestYouVersionLegacy<T>(
     throw new Error(`YouVersion request failed (${response.status}): ${message || response.statusText}`)
   }
   return response.json() as Promise<T>
-}
-
-export async function fetchYouVersionSearch(
-  query: string,
-  versionId: number,
-  options: { page?: number; perPage?: number } = {},
-): Promise<YouVersionSearchHit[]> {
-  const response = await requestYouVersionLegacy<YouVersionSearchResponse>(
-    YOUVERSION_LEGACY_SEARCH_BASE,
-    '/3.1/bible.json',
-    {
-      query,
-      version_id: versionId,
-      page: options.page ?? 1,
-    },
-  )
-  return response.data ?? response.hits ?? []
 }
 
 export interface YouVersionAudioDownloadUrls {
