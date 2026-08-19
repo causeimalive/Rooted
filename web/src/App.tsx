@@ -94,12 +94,14 @@ import {
   getCurrentUserId,
   getMemories,
   getRecentSearches,
+  getYouVersionAccessToken,
   importAllYouVersionHighlights,
   isBookmarked,
   saveMemory,
   syncUserData,
   toggleBookmark,
 } from './storage'
+import { linkYouVersionToFirebase } from './youversionFirebaseBridge'
 import { auth } from './firebase'
 import { Bookmark as BookmarkType, Memory, Verse, type LexiconEntry, type Place, type RecentSearch } from './types'
 import type { Character } from './types'
@@ -691,8 +693,12 @@ export default function App() {
     }
   }, [])
 
+  const [firebaseUid, setFirebaseUid] = useState<string | null | undefined>(undefined)
+  const youVersionBridgeAttemptedRef = useRef<string | null>(null)
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setFirebaseUid(firebaseUser?.uid ?? null)
       const userId = firebaseUser?.uid ?? yvUserId
       if (userId) {
         void syncUserData(userId).catch(() => {})
@@ -708,6 +714,21 @@ export default function App() {
       void syncUserData(yvUserId).catch(() => {})
     }
   }, [yvUserId])
+
+  // Signing in with YouVersion alone never creates a Firebase Auth session,
+  // so bookmarks/notes/recent searches for those users would otherwise only
+  // ever live in this one browser (see youversionFirebaseBridge.ts). Once a
+  // YouVersion sign-in is present and there isn't already a Firebase user
+  // (e.g. someone signed in with email/password directly), bridge it into a
+  // real Firebase session so the data becomes recoverable on any device.
+  useEffect(() => {
+    if (!yvUserId || firebaseUid === undefined || firebaseUid !== null) return
+    if (youVersionBridgeAttemptedRef.current === yvUserId) return
+    const accessToken = getYouVersionAccessToken()
+    if (!accessToken || !YOUVERSION_APP_KEY) return
+    youVersionBridgeAttemptedRef.current = yvUserId
+    void linkYouVersionToFirebase(yvUserId, accessToken, YOUVERSION_APP_KEY).catch(() => {})
+  }, [yvUserId, firebaseUid])
 
   useEffect(() => {
     if (tab !== 'search') {

@@ -69,6 +69,14 @@ export function getCurrentUserId(): string | null {
   return currentUserId
 }
 
+// Exposes the live YouVersion OAuth access token so it can be sent to the
+// mintYouVersionFirebaseToken Cloud Function, which verifies it against
+// YouVersion's API before bridging the sign-in into a real Firebase Auth
+// session (see youversionFirebaseBridge.ts).
+export function getYouVersionAccessToken(): string | null {
+  return YouVersionPlatformConfiguration.accessToken ?? null
+}
+
 function itemTimestamp(item: { createdAt?: string; updatedAt?: string }): number {
   return new Date(item.updatedAt || item.createdAt || 0).getTime()
 }
