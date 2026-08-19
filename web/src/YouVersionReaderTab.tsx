@@ -2838,12 +2838,8 @@ export default function YouVersionReaderTab({
             return haystack.includes(trimmedQuery)
           })
         : versions
-      const featuredVersion = versions.find((entry) => isKjvVersion(entry)) ?? LOCAL_KJV_VERSION
-      const featuredVersions = [featuredVersion].filter(Boolean).filter((entry, index, all) => all.findIndex((candidate) => candidate.id === entry.id) === index)
-      const visibleVersions = [
-        ...featuredVersions,
-        ...filteredVersions.filter((entry) => !featuredVersions.some((featured) => featured.id === entry.id)),
-      ]
+      const featuredVersions = [LOCAL_KJV_VERSION]
+      const visibleVersions = filteredVersions.filter((entry) => !featuredVersions.some((featured) => featured.id === entry.id))
 
       const renderEntry = (entry: VersionMenuEntry, badge?: string) => {
         const entryLabel = formatVersionLabel(entry)
