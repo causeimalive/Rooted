@@ -1,25 +1,54 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useBibleClient, useVersions } from '@youversion/platform-react-hooks'
 import { type BibleVersion } from '@youversion/platform-core'
+import { useI18n } from './i18n'
+import {
+  getVersionBrowseLanguagePreference,
+  resolveVersionBrowseLanguagePreference,
+  VERSION_BROWSE_LANGUAGE_CHANGED_EVENT,
+} from './userProfile'
 
 type SyncVersionMenuProps = {
   open: boolean
   lastReadVersion: number
   lastReadBook: string
+  userId?: string | null
   onClose: () => void
   onSync: (versionIds: number[], bookIds?: string[], onlySavedChapters?: boolean) => void
 }
 
-export default function SyncVersionMenu({ open, lastReadVersion, lastReadBook, onClose, onSync }: SyncVersionMenuProps) {
+export default function SyncVersionMenu({ open, lastReadVersion, lastReadBook, userId, onClose, onSync }: SyncVersionMenuProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [syncCurrentBook, setSyncCurrentBook] = useState(false)
   const [syncSavedChapters, setSyncSavedChapters] = useState(false)
   const [syncAll, setSyncAll] = useState(false)
+  const { language } = useI18n()
+  const [versionBrowseLanguagePreference, setVersionBrowseLanguagePreference] = useState(() => getVersionBrowseLanguagePreference(userId))
 
   const bibleClient = useBibleClient()
 
-  const { versions: versionCollection, loading, error } = useVersions('en', undefined, {
+  useEffect(() => {
+    setVersionBrowseLanguagePreference(getVersionBrowseLanguagePreference(userId))
+  }, [userId])
+
+  useEffect(() => {
+    const syncLanguagePreference = () => setVersionBrowseLanguagePreference(getVersionBrowseLanguagePreference(userId))
+    syncLanguagePreference()
+    window.addEventListener(VERSION_BROWSE_LANGUAGE_CHANGED_EVENT, syncLanguagePreference as EventListener)
+    window.addEventListener('storage', syncLanguagePreference)
+    return () => {
+      window.removeEventListener(VERSION_BROWSE_LANGUAGE_CHANGED_EVENT, syncLanguagePreference as EventListener)
+      window.removeEventListener('storage', syncLanguagePreference)
+    }
+  }, [userId])
+
+  const languageRanges = useMemo(() => {
+    const resolved = resolveVersionBrowseLanguagePreference(versionBrowseLanguagePreference, language)
+    return resolved ?? '*'
+  }, [language, versionBrowseLanguagePreference])
+
+  const { versions: versionCollection, loading, error } = useVersions(languageRanges, undefined, {
     page_size: 99,
   })
 
@@ -31,7 +60,7 @@ export default function SyncVersionMenu({ open, lastReadVersion, lastReadBook, o
     let cancelled = false
     const fetchMore = async (nextToken: string) => {
       try {
-        const page = await bibleClient.getVersions('en', undefined, { page_size: 99, page_token: nextToken })
+        const page = await bibleClient.getVersions(languageRanges, undefined, { page_size: 99, page_token: nextToken })
         if (cancelled) return
         setExtraVersionPages((prev) => [...prev, ...page.data])
         if (page.next_page_token) await fetchMore(page.next_page_token)
@@ -41,7 +70,7 @@ export default function SyncVersionMenu({ open, lastReadVersion, lastReadBook, o
     }
     fetchMore(token)
     return () => { cancelled = true }
-  }, [bibleClient, versionCollection])
+  }, [bibleClient, languageRanges, versionCollection])
 
   const versions = [...(versionCollection?.data ?? []), ...extraVersionPages] as BibleVersion[]
 

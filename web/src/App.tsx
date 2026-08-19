@@ -104,7 +104,13 @@ import { auth } from './firebase'
 import { Bookmark as BookmarkType, Memory, Verse, type LexiconEntry, type Place, type RecentSearch } from './types'
 import type { Character } from './types'
 import { useI18n } from './i18n'
-import { getUserPreference, setUserPreference } from './userProfile'
+import {
+  getUserPreference,
+  setUserPreference,
+  getVersionBrowseLanguagePreference,
+  setVersionBrowseLanguagePreference,
+  type VersionBrowseLanguagePreference,
+} from './userProfile'
 import { getWikipediaLink, useWikiImages, useWikiSummary, type WikiImage } from './wikipedia'
 import { useYVAuth } from '@youversion/platform-react-hooks'
 import { getYouVersionRedirectUrl } from './youversionRedirect'
@@ -212,9 +218,10 @@ const YOUVERSION_APP_KEY = import.meta.env.VITE_YVP_APP_KEY?.trim() ?? ''
 const READER_FONT_SIZE_KEY = 'bible-study-yv-font-size'
 const UI_SCALE_KEY = 'bible-study-ui-scale'
 
-function SettingsMenu({ lastReadBook }: { lastReadBook: string }) {
+function SettingsMenu({ lastReadBook, userId: propsUserId }: { lastReadBook: string; userId?: string | null }) {
   const { auth, userInfo } = useYVAuth()
-  const userId = userInfo?.userId
+  const { language } = useI18n()
+  const userId = propsUserId ?? userInfo?.userId
   const [isOpen, setIsOpen] = useState(false)
   const [isVersionMenuOpen, setIsVersionMenuOpen] = useState(false)
   const [fontSize, setFontSize] = useState(() => {
@@ -238,6 +245,18 @@ function SettingsMenu({ lastReadBook }: { lastReadBook: string }) {
   const dialogRef = useRef<HTMLDialogElement | null>(null)
 
   const lastReadVersion = Number(getUserPreference(userId, 'bible-study-yv-version'))
+  const [versionBrowseLanguage, setVersionBrowseLanguage] = useState<VersionBrowseLanguagePreference>(() => getVersionBrowseLanguagePreference(userId))
+
+  useEffect(() => {
+    const next = getVersionBrowseLanguagePreference(userId)
+    setVersionBrowseLanguage(next)
+    setVersionBrowseLanguagePreference(userId, next)
+  }, [userId])
+
+  const handleVersionBrowseLanguageChange = (next: VersionBrowseLanguagePreference) => {
+    setVersionBrowseLanguage(next)
+    setVersionBrowseLanguagePreference(userId, next)
+  }
 
   const CATEGORIES: { id: 'look-feel' | 'network' | 'youversion'; label: string; icon: typeof Cog }[] = [
     { id: 'look-feel', label: 'Look & feel', icon: Palette },
@@ -490,6 +509,20 @@ function SettingsMenu({ lastReadBook }: { lastReadBook: string }) {
                       </div>
                     </div>
                   </div>
+                  <div className="header-settings-card">
+                    <span>Version browse language</span>
+                    <small>Reader dropdowns show this language first. Search still checks every version.</small>
+                    <select
+                      value={versionBrowseLanguage}
+                      onChange={(event) => handleVersionBrowseLanguageChange(event.target.value as VersionBrowseLanguagePreference)}
+                      aria-label="Preferred Bible version language"
+                    >
+                      <option value="auto">Auto ({language.toUpperCase()})</option>
+                      <option value="en">English</option>
+                      <option value="es">Spanish</option>
+                      <option value="all">All languages</option>
+                    </select>
+                  </div>
                   <div className="header-settings-card header-settings-toggle">
                     <div>
                       <span>Bookmarks & highlights</span>
@@ -530,6 +563,7 @@ function SettingsMenu({ lastReadBook }: { lastReadBook: string }) {
             open={isVersionMenuOpen}
             lastReadVersion={lastReadVersion}
             lastReadBook={lastReadBook}
+            userId={userId}
             onClose={() => setIsVersionMenuOpen(false)}
             onSync={handleSyncSelected}
           />
@@ -880,7 +914,7 @@ export default function App() {
               <button className="theme-toggle" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} title={theme === 'dark' ? t('lightMode') : t('darkMode')}>
                 {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
               </button>
-              {YOUVERSION_APP_KEY ? <SettingsMenu lastReadBook={lastReadBook} /> : null}
+              {YOUVERSION_APP_KEY ? <SettingsMenu lastReadBook={lastReadBook} userId={yvUserId} /> : null}
               {YOUVERSION_APP_KEY ? <AuthSignOutButton /> : null}
             </span>
           )}
@@ -958,7 +992,7 @@ export default function App() {
               <button className="theme-toggle" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} title={theme === 'dark' ? t('lightMode') : t('darkMode')}>
                 {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
               </button>
-              {YOUVERSION_APP_KEY ? <SettingsMenu lastReadBook={lastReadBook} /> : null}
+              {YOUVERSION_APP_KEY ? <SettingsMenu lastReadBook={lastReadBook} userId={yvUserId} /> : null}
               {YOUVERSION_APP_KEY ? <AuthSignOutButton /> : null}
             </>
           )}
