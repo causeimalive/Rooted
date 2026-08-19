@@ -3718,6 +3718,9 @@ function MapPlacePopup({
 
               {allImages.length > 1 && (
                 <>
+                  <div className="map-place-popup-image-edge-hint map-place-popup-image-edge-hint-left" aria-hidden="true" />
+                  <div className="map-place-popup-image-edge-hint map-place-popup-image-edge-hint-right" aria-hidden="true" />
+
                   <button
                     type="button"
                     className="map-place-popup-image-click-zone map-place-popup-image-click-zone-left"
@@ -3730,22 +3733,6 @@ function MapPlacePopup({
                     onClick={nextImage}
                     aria-label="Next image"
                   />
-                  <button
-                    type="button"
-                    className="map-place-popup-nav-btn map-place-popup-nav-btn-left"
-                    onClick={previousImage}
-                    aria-label="Previous image"
-                  >
-                    <span aria-hidden="true">‹</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="map-place-popup-nav-btn map-place-popup-nav-btn-right"
-                    onClick={nextImage}
-                    aria-label="Next image"
-                  >
-                    <span aria-hidden="true">›</span>
-                  </button>
 
                   <div className="map-place-popup-image-count">
                     {activeImageIndex + 1} / {allImages.length}
