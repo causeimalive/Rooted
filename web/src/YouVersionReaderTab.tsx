@@ -1808,13 +1808,15 @@ export default function YouVersionReaderTab({
       for (const candidateVersionId of versionProbeOrder(preferredVersionId)) {
         try {
           const section = await loadSectionForVersion(candidateVersionId, reference)
-          if (candidateVersionId !== preferredVersionId) {
-            setVersionId(candidateVersionId)
+          if (section) {
+            if (candidateVersionId !== preferredVersionId) {
+              setVersionId(candidateVersionId)
+            }
+            setLocalError('')
+            return section
           }
-          setLocalError('')
-          return section
         } catch (error) {
-          if (!isAccessDeniedError(error)) throw error
+          if (!isAccessDeniedError(error) && !isPassageNotFoundError(error)) throw error
         }
       }
       return null
@@ -2092,9 +2094,25 @@ export default function YouVersionReaderTab({
 
         setSections(builtSections)
       } catch (loadError) {
-        if (!cancelled && (isAccessDeniedError(loadError) || isPassageNotFoundError(loadError) || isPassageNotFoundError(loadError))) {
+        if (!cancelled && (isAccessDeniedError(loadError) || isPassageNotFoundError(loadError))) {
           const recovered = await recoverAccessibleSection(firstReference, resolvedVersionId)
           if (recovered) return
+        }
+        if (!cancelled) {
+          const fallbackBook = localFallbackBooks[0]
+          if (fallbackBook) {
+            const fallbackChapter = Number(fallbackBook.chapters?.[0]?.id ?? fallbackBook.chapters?.[0]?.title ?? 1)
+            if (
+              Number.isFinite(fallbackChapter) &&
+              fallbackChapter > 0 &&
+              (firstReference.bookId !== fallbackBook.id || firstReference.chapter !== fallbackChapter)
+            ) {
+              setVersionId(LOCAL_KJV_VERSION_ID)
+              setBookId(fallbackBook.id)
+              setChapter(fallbackChapter)
+              return
+            }
+          }
         }
         throw loadError
       } finally {
@@ -2113,7 +2131,7 @@ export default function YouVersionReaderTab({
     return () => {
       cancelled = true
     }
-  }, [bookId, chapter, books, loadSection, resolvedVersionId, resolveChapterNumbers])
+  }, [bookId, chapter, books, loadSection, resolvedVersionId, resolveChapterNumbers, localFallbackBooks])
 
   useEffect(() => {
     if (!compareOpen || !resolvedVersionId || !currentIndexBook || compareVersionId === null) {
