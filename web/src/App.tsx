@@ -79,7 +79,13 @@ import { BASE_LAYERS, getMapOptions, type MapBaseLayer } from './mapTileLayers'
 import WikiMediaCard from './WikiMediaCard'
 import LexiconTab from './LexiconTab'
 import WayfinderTab from './WayfinderTab'
-import YouVersionReaderTab from './YouVersionReaderTab'
+import YouVersionReaderTab, {
+  ALL_VERSIONS_CACHE_KEY,
+  ALL_VERSIONS_CACHE_UPDATED_EVENT,
+  LOCAL_FALLBACK_VERSION_COUNT,
+} from './YouVersionReaderTab'
+import { getCachedData } from './indexedStorage'
+import type { BibleVersion } from '@youversion/platform-core'
 import SyncVersionMenu from './SyncVersionMenu'
 const NetworkThreeScene = lazy(() => import('./NetworkThreeScene'))
 import { SCENE_PALETTE } from './relationshipGraph/palette'
@@ -257,6 +263,27 @@ function SettingsMenu({ lastReadBook, userId: propsUserId }: { lastReadBook: str
     setVersionBrowseLanguage(next)
     setVersionBrowseLanguagePreference(userId, next)
   }
+
+  const [catalogVersionCount, setCatalogVersionCount] = useState<number | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    const loadCount = () => {
+      void getCachedData<BibleVersion[]>(ALL_VERSIONS_CACHE_KEY)
+        .then((cached) => {
+          if (!cancelled) setCatalogVersionCount(cached?.length ?? null)
+        })
+        .catch(() => {
+          if (!cancelled) setCatalogVersionCount(null)
+        })
+    }
+    loadCount()
+    window.addEventListener(ALL_VERSIONS_CACHE_UPDATED_EVENT, loadCount)
+    return () => {
+      cancelled = true
+      window.removeEventListener(ALL_VERSIONS_CACHE_UPDATED_EVENT, loadCount)
+    }
+  }, [])
+  const totalVersionCount = catalogVersionCount !== null ? catalogVersionCount + LOCAL_FALLBACK_VERSION_COUNT : null
 
   const CATEGORIES: { id: 'look-feel' | 'network' | 'youversion'; label: string; icon: typeof Cog }[] = [
     { id: 'look-feel', label: 'Look & feel', icon: Palette },
@@ -507,6 +534,16 @@ function SettingsMenu({ lastReadBook, userId: propsUserId }: { lastReadBook: str
                           <small>Sign in with YouVersion to sync highlights across devices.</small>
                         )}
                       </div>
+                    </div>
+                  </div>
+                  <div className="header-settings-card header-settings-toggle">
+                    <div>
+                      <span>Available Bible versions</span>
+                      <small>
+                        {totalVersionCount !== null
+                          ? `${totalVersionCount.toLocaleString()} versions, including King James Version and New Living Translation`
+                          : 'Open the reader once to load the full version count'}
+                      </small>
                     </div>
                   </div>
                   <div className="header-settings-card">

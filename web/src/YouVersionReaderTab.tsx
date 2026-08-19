@@ -63,7 +63,14 @@ const COMPARE_FOCUS_LINE = 140
 // result across sessions so this only ever runs once per browser instead
 // of on every reader visit -- bump the version suffix if the shape of
 // what's cached ever needs to change.
-const ALL_VERSIONS_CACHE_KEY = 'youversion-all-bible-versions@2'
+export const ALL_VERSIONS_CACHE_KEY = 'youversion-all-bible-versions@2'
+// Dispatched whenever the cached catalog is updated so other components
+// (e.g. the settings menu's version count) can refresh without re-fetching.
+export const ALL_VERSIONS_CACHE_UPDATED_EVENT = 'youversion-all-bible-versions-updated'
+// Local fallback versions (KJV + NLT) that always exist regardless of what
+// YouVersion's catalog returns for this app key -- see LOCAL_KJV_VERSION and
+// LOCAL_NLT_VERSION below.
+export const LOCAL_FALLBACK_VERSION_COUNT = 2
 const VERSION_PAGE_DELAY_MS = 300
 // YouVersion's rate limit for the Bibles endpoint is shared across every
 // user of this app's key, not per-browser. It responded with a 300s
@@ -917,7 +924,9 @@ export default function YouVersionReaderTab({
         })
         if (cancelled) return
         setAvailableVersions(all)
-        void setCachedData(ALL_VERSIONS_CACHE_KEY, all).catch(() => {})
+        void setCachedData(ALL_VERSIONS_CACHE_KEY, all)
+          .then(() => window.dispatchEvent(new CustomEvent(ALL_VERSIONS_CACHE_UPDATED_EVENT, { detail: all.length })))
+          .catch(() => {})
       } catch (error) {
         if (!cancelled && !versionsFetchedSoFar.length) {
           setVersionsError(error instanceof Error ? error : new Error(String(error)))
