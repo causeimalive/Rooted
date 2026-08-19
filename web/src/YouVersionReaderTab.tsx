@@ -336,6 +336,7 @@ type VersionMenuEntry = {
   localized_abbreviation?: string
   language_tag?: string | null
   copyright?: string | null
+  youversion_deep_link?: string | null
 }
 
 function findCompareTarget(pane: HTMLElement, section: string, verse: string): HTMLElement | null {
@@ -484,6 +485,82 @@ function formatVersionLabel(version: { title: string; localized_title?: string; 
   return {
     title: version.localized_title || version.title,
     subtitle: subtitleParts.join(' · '),
+  }
+}
+
+const LOCAL_KJV_VERSION_ID = -1
+const LOCAL_KJV_VERSION: VersionMenuEntry = {
+  id: LOCAL_KJV_VERSION_ID,
+  title: 'King James Version',
+  localized_title: 'King James Version',
+  abbreviation: 'KJV',
+  localized_abbreviation: 'KJV',
+  language_tag: 'en',
+  copyright: 'Public domain',
+}
+
+type VersionLike = {
+  id: number
+  title?: string
+  abbreviation?: string
+  localized_title?: string
+  localized_abbreviation?: string
+  language_tag?: string | null
+}
+
+function isKjvVersion(version: VersionLike | undefined): boolean {
+  if (!version) return false
+  const title = `${version.localized_title || version.title || ''} ${version.abbreviation || ''} ${version.localized_abbreviation || ''}`.toLowerCase()
+  return version.id === LOCAL_KJV_VERSION_ID || /king james version/.test(title) || /\bkjv\b/.test(title)
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function buildLocalKjvBooks(): YouVersionBook[] {
+  const books = new Map<string, { title: string; chapters: Map<number, string[]> }>()
+  for (const verse of getAllVerses()) {
+    const entry = books.get(verse.book) ?? { title: verse.bookName || verse.book, chapters: new Map<number, string[]>() }
+    const chapterVerses = entry.chapters.get(verse.chapter) ?? []
+    chapterVerses.push(verse.text)
+    entry.chapters.set(verse.chapter, chapterVerses)
+    books.set(verse.book, entry)
+  }
+
+  return Array.from(books.entries()).map(([id, entry]) => ({
+    id,
+    title: entry.title,
+    full_title: entry.title,
+    abbreviation: id,
+    chapters: Array.from(entry.chapters.keys())
+      .sort((a, b) => a - b)
+      .map((chapter) => ({ id: String(chapter), title: String(chapter) })),
+  }))
+}
+
+function buildLocalKjvPassage(reference: ReaderReference, books: YouVersionBook[]): BiblePassage | null {
+  const verses = getAllVerses().filter((verse) => verse.book === reference.bookId && verse.chapter === reference.chapter)
+  if (!verses.length) return null
+
+  const book = books.find((entry) => entry.id === reference.bookId)
+  const referenceLabel = `${book?.title || book?.full_title || reference.bookId} ${reference.chapter}`
+  const content = verses
+    .map(
+      (verse) =>
+        `<p class="yv-v" v="${verse.verse}"><sup class="yv-v-num">${verse.verse}</sup> ${escapeHtml(verse.text)}</p>`,
+    )
+    .join('')
+
+  return {
+    id: `${reference.bookId}.${reference.chapter}`,
+    content,
+    reference: referenceLabel,
   }
 }
 
@@ -880,33 +957,36 @@ export default function YouVersionReaderTab({
     }
   }, [compareVersionMenuOpen])
 
-  useEffect(() => {
-    if (!availableVersions.length) return
-    setVersionId((current) => {
-      if (current && availableVersions.some((entry) => entry.id === current)) return current
-      return availableVersions[0].id
-    })
+  const localKjvBooks = useMemo(() => buildLocalKjvBooks(), [])
+  const catalogVersions = useMemo(() => {
+    const next = [...availableVersions] as VersionMenuEntry[]
+    if (!next.some(isKjvVersion)) next.splice(Math.min(1, next.length), 0, LOCAL_KJV_VERSION)
+    return next
   }, [availableVersions])
+
+  useEffect(() => {
+    if (!catalogVersions.length) return
+    setVersionId((current) => {
+      if (current && catalogVersions.some((entry) => entry.id === current)) return current
+      return catalogVersions[0].id
+    })
+  }, [catalogVersions])
 
   const resolvedVersionId = useMemo(
     () => {
       const preferred = versionId ?? 111
-      return availableVersions.find((v) => v.id === preferred)?.id ?? availableVersions[0]?.id ?? preferred
+      return catalogVersions.find((v) => v.id === preferred)?.id ?? catalogVersions[0]?.id ?? preferred
     },
-    [availableVersions, versionId],
+    [catalogVersions, versionId],
   )
-  const { version, loading: versionLoading, error: versionError } = useVersion(resolvedVersionId ?? 1, {
-    enabled: resolvedVersionId !== null,
-  })
-  const catalogVersions = useMemo(() => {
-    if (availableVersions.length) return availableVersions
-    if (version) return [version as BibleVersion]
-    return []
-  }, [availableVersions, version])
   const selectedVersion = useMemo(
     () => catalogVersions.find((entry) => entry.id === resolvedVersionId) ?? catalogVersions[0],
     [catalogVersions, resolvedVersionId],
   )
+  const isLocalKjvSelected = isKjvVersion(selectedVersion)
+  const { version, loading: versionLoading, error: versionError } = useVersion(resolvedVersionId ?? 1, {
+    enabled: resolvedVersionId !== null && !isLocalKjvSelected,
+  })
   const selectedVersionLabel = useMemo(() => {
     if (!selectedVersion) return ''
     return selectedVersion.localized_abbreviation || selectedVersion.abbreviation || selectedVersion.localized_title || selectedVersion.title
@@ -931,9 +1011,9 @@ export default function YouVersionReaderTab({
   )
   const compareAvailableVersions = catalogVersions
   const { books: booksCollection, loading: booksLoading, error: booksError } = useBooks(resolvedVersionId ?? 1, {
-    enabled: resolvedVersionId !== null,
+    enabled: resolvedVersionId !== null && !isLocalKjvSelected,
   })
-  const books = booksCollection?.data ?? []
+  const books = isLocalKjvSelected ? localKjvBooks : booksCollection?.data ?? []
   const currentBook = useMemo(() => books.find((book) => book.id === bookId) ?? books[0], [books, bookId])
   const currentBookWithChapters = useMemo(
     () => (currentBook ? { ...currentBook, chapters: currentBook.chapters ?? [] } : undefined),
@@ -943,7 +1023,7 @@ export default function YouVersionReaderTab({
     resolvedVersionId ?? 1,
     currentBook?.id ?? '',
     {
-      enabled: resolvedVersionId !== null && Boolean(currentBook?.id),
+      enabled: resolvedVersionId !== null && Boolean(currentBook?.id) && !isLocalKjvSelected,
     },
   )
   const resolvedChapters = useMemo(
@@ -962,16 +1042,7 @@ export default function YouVersionReaderTab({
   }, [currentIndexBook?.id, resolvedVersionId])
   const currentChapter = useMemo(() => clampChapter(currentIndexBook, chapter), [currentIndexBook, chapter])
   const parsedReference = useMemo(() => parseReaderReference(referenceInput, books), [referenceInput, books])
-  const versionTitle = version?.localized_title || version?.title || 'Bible Reader'
-  const versionSubtitle = version?.localized_abbreviation || version?.abbreviation || version?.language_tag || ''
-  useEffect(() => {
-    if (selectedVersion || !version || !onVersionChange) return
-    onVersionChange({
-      id: version.id,
-      name: version.localized_title || version.title,
-      abbreviation: versionSubtitle,
-    })
-  }, [selectedVersion, version, onVersionChange, versionSubtitle])
+  const versionTitle = selectedVersion?.localized_title || selectedVersion?.title || version?.localized_title || version?.title || 'Bible Reader'
   const passageLabel = currentIndexBook ? `${getBookLabel(currentIndexBook)} ${getChapterTitle(currentIndexBook, currentChapter)}` : 'Choose a book'
   const currentVersionLabel = formatVersionLabel(selectedVersion)
   const anchorReference = useMemo<ReaderReference | undefined>(
@@ -988,7 +1059,7 @@ export default function YouVersionReaderTab({
     [anchorReference],
   )
   const compareVersionLabel = formatVersionLabel(compareVersion)
-  const highlightsEnabled = auth.isAuthenticated && resolvedVersionId !== null && highlightsPassageId !== ''
+  const highlightsEnabled = auth.isAuthenticated && resolvedVersionId !== null && highlightsPassageId !== '' && !isLocalKjvSelected
   const {
     highlights,
     loading: highlightsLoading,
@@ -1107,7 +1178,9 @@ export default function YouVersionReaderTab({
   const navigationReference = anchorReference
   const copyright = version?.copyright?.trim() ?? ''
   const catalogError = versionsError?.message || ''
-  const readerError = localError || versionError?.message || booksError?.message || chaptersError?.message || highlightsError?.message || ''
+  const readerError =
+    localError ||
+    (!isLocalKjvSelected ? versionError?.message || booksError?.message || chaptersError?.message || highlightsError?.message || '' : '')
   const isHighlightsPermissionError = Boolean(
     highlightsError &&
       (highlightsError.message?.includes('NOT_PERMITTED') ||
@@ -1525,6 +1598,17 @@ export default function YouVersionReaderTab({
     [catalogVersions],
   )
 
+  const loadPassageForVersion = useCallback(
+    async (versionId: number, reference: ReaderReference): Promise<BiblePassage | null> => {
+      if (versionId === LOCAL_KJV_VERSION_ID) {
+        return buildLocalKjvPassage(reference, localKjvBooks)
+      }
+      const chapterReference = formatReference(reference.bookId, reference.chapter)
+      return bibleClient.getPassage(versionId, chapterReference, 'html', true, true)
+    },
+    [bibleClient, localKjvBooks],
+  )
+
   const loadSectionForVersion = useCallback(
     async (versionId: number, reference: ReaderReference): Promise<ReaderSection | null> => {
       const chapterReference = formatReference(reference.bookId, reference.chapter)
@@ -1532,7 +1616,8 @@ export default function YouVersionReaderTab({
       const cached = sectionCacheRef.current.get(cacheKey)
       if (cached) return cached
 
-      const passage = await bibleClient.getPassage(versionId, chapterReference, 'html', true, true)
+      const passage = await loadPassageForVersion(versionId, reference)
+      if (!passage) return null
       const transformed = transformPassageForBrowser(
         passage.content,
         reference.bookId,
@@ -1556,7 +1641,7 @@ export default function YouVersionReaderTab({
       sectionCacheRef.current.set(cacheKey, section)
       return section
     },
-    [bibleClient, tagPositionsByVerseId, hasEntityData, bookNumberById, entityHighlightsEnabled],
+    [loadPassageForVersion, tagPositionsByVerseId, hasEntityData, bookNumberById, entityHighlightsEnabled],
   )
 
   const loadSection = useCallback(
@@ -1571,9 +1656,11 @@ export default function YouVersionReaderTab({
     async (currentVersionId: number, nextCompareVersionId: number, reference: ReaderReference): Promise<CompareSection | null> => {
       const chapterReference = formatReference(reference.bookId, reference.chapter)
       const [currentPassage, comparePassage] = await Promise.all([
-        bibleClient.getPassage(currentVersionId, chapterReference, 'html', true, true),
-        bibleClient.getPassage(nextCompareVersionId, chapterReference, 'html', true, true),
+        loadPassageForVersion(currentVersionId, reference),
+        loadPassageForVersion(nextCompareVersionId, reference),
       ])
+
+      if (!currentPassage || !comparePassage) return null
 
       const currentTransformed = transformPassageForBrowser(
         currentPassage.content,
@@ -1605,7 +1692,7 @@ export default function YouVersionReaderTab({
         compareVerses: extractVerseBlocks(compareTransformed.html),
       }
     },
-    [bibleClient, tagPositionsByVerseId, bookNumberById, entityHighlightsEnabled],
+    [loadPassageForVersion, tagPositionsByVerseId, bookNumberById, entityHighlightsEnabled],
   )
 
   const loadCompareSection = useCallback(
