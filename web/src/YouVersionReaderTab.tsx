@@ -443,7 +443,7 @@ function stripVerseLabel(html: string): string {
   const root = doc.body.firstElementChild
   if (!root) return html
 
-  root.querySelectorAll('.yv-vlbl, .vn').forEach((node) => node.remove())
+  root.querySelectorAll('.yv-vlbl, .vn, .yv-v-num').forEach((node) => node.remove())
   return root.innerHTML.trim()
 }
 
@@ -589,7 +589,7 @@ function buildLocalKjvPassage(reference: ReaderReference, books: YouVersionBook[
   const content = verses
     .map(
       (verse) =>
-        `<p class="yv-v" v="${verse.verse}"><sup class="yv-v-num">${verse.verse}</sup> ${escapeHtml(verse.text)}</p>`,
+        `<div class="yv-v" v="${verse.verse}"><p class="body"><span class="yv-vlbl">${verse.verse}</span>${escapeHtml(verse.text)}</p></div>`,
     )
     .join('')
 

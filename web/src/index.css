@@ -4876,6 +4876,7 @@ button.secondary {
 .yv-reader-verse-flow-content .yv-vlbl {
   color: var(--accent);
   font-weight: 700;
+  margin-right: 0.35em;
 }
 
 .yv-reader-verse-stack {
