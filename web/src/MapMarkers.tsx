@@ -182,6 +182,9 @@ export default function MapMarkers({
       const count = clusterMarkers.length
       const minVisiblePixels = Math.min(70, 22 + count * 5)
       const maxVisiblePixels = 90
+      const clusterIcon = buildClusterIcon(count, theme)
+      const clusterRadiusPx = Math.max(0, ((clusterIcon.scaledSize as google.maps.Size).width ?? 0) / 2 - 2)
+      const clusterRadiusMeters = clusterRadiusPx * mpp
       const lines: google.maps.Polyline[] = []
       const satellites: google.maps.Marker[] = []
 
@@ -212,11 +215,12 @@ export default function MapMarkers({
         const radiusPixels = Math.min(maxVisiblePixels, Math.max(minVisiblePixels, actualPixels))
         const satPos = offsetLatLng(center, bearing, radiusPixels * mpp)
 
+        const lineStart = offsetLatLng(center, bearing, clusterRadiusMeters)
         const line = new google.maps.Polyline({
           map: clusterMap,
-          path: [center, satPos],
+          path: [lineStart, satPos],
           strokeColor: theme === 'dark' ? '#7d8fa3' : '#8c7349',
-          strokeOpacity: 0.55,
+          strokeOpacity: 0.45,
           strokeWeight: 1,
           zIndex: 900,
         })
