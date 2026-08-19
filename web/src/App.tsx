@@ -3811,24 +3811,26 @@ function MapPlacePopup({
             onTouchEnd={handleTouchEnd}
           >
             <div className="map-place-lightbox-image-wrap">
-              <img key={activeImageIndex} src={activeImage.url || undefined} alt={activeImage.title} loading="lazy" />
+              <div className="map-place-lightbox-image-inner">
+                <img key={activeImageIndex} src={activeImage.url || undefined} alt={activeImage.title} loading="lazy" />
 
-              {allImages.length > 1 && (
-                <>
-                  <button
-                    type="button"
-                    className="map-place-lightbox-image-click-zone map-place-lightbox-image-click-zone-left"
-                    onClick={previousImage}
-                    aria-label="Previous image"
-                  />
-                  <button
-                    type="button"
-                    className="map-place-lightbox-image-click-zone map-place-lightbox-image-click-zone-right"
-                    onClick={nextImage}
-                    aria-label="Next image"
-                  />
-                </>
-              )}
+                {allImages.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      className="map-place-lightbox-image-click-zone map-place-lightbox-image-click-zone-left"
+                      onClick={previousImage}
+                      aria-label="Previous image"
+                    />
+                    <button
+                      type="button"
+                      className="map-place-lightbox-image-click-zone map-place-lightbox-image-click-zone-right"
+                      onClick={nextImage}
+                      aria-label="Next image"
+                    />
+                  </>
+                )}
+              </div>
             </div>
 
             {cleanImageCaption(activeImage.title) && (
