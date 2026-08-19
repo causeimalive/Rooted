@@ -966,9 +966,8 @@ export default function YouVersionReaderTab({
 
   const localKjvBooks = useMemo(() => buildLocalKjvBooks(), [])
   const catalogVersions = useMemo(() => {
-    const next = [...availableVersions] as VersionMenuEntry[]
-    if (!next.some(isKjvVersion)) next.splice(Math.min(1, next.length), 0, LOCAL_KJV_VERSION)
-    return next
+    const next = [LOCAL_KJV_VERSION, ...availableVersions.filter((entry) => !isKjvVersion(entry))] as VersionMenuEntry[]
+    return next.filter((entry, index, all) => all.findIndex((candidate) => candidate.id === entry.id) === index)
   }, [availableVersions])
 
   useEffect(() => {
