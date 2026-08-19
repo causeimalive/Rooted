@@ -3009,6 +3009,7 @@ button.secondary {
   justify-content: center;
   width: min(90vw, 1080px);
   height: max(40vh, min(70vh, calc(100vh - 12rem)));
+  background: rgba(255, 255, 255, 0.03);
   border-radius: 0.75rem;
 }
 
