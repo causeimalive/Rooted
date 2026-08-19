@@ -66,7 +66,11 @@ function normalizeNltHtml(html: string): string {
   if (!bibleText) return html
 
   bibleText.querySelectorAll('verse_export').forEach((verseExport) => {
-    const verseNumber = verseExport.getAttribute('vn')?.trim() ?? ''
+    let verseNumber = verseExport.getAttribute('vn')?.trim() ?? ''
+    if (!verseNumber) {
+      const vnNode = verseExport.querySelector<HTMLElement>('.vn')
+      verseNumber = vnNode?.textContent?.trim() ?? ''
+    }
     const wrapper = doc.createElement('div')
     wrapper.className = 'yv-v'
     if (verseNumber) wrapper.setAttribute('v', verseNumber)

@@ -4872,6 +4872,7 @@ button.secondary {
 }
 
 .yv-reader-passage-html .yv-vlbl,
+.yv-reader-passage-html .vn,
 .yv-reader-verse-content .yv-vlbl,
 .yv-reader-verse-flow-content .yv-vlbl {
   color: var(--accent);

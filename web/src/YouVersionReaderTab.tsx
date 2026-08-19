@@ -309,13 +309,15 @@ function transformPassageForBrowser(
 
 function extractVerseBlocks(content: string): VerseBlock[] {
   const doc = new DOMParser().parseFromString(content, 'text/html')
-  const verses = Array.from(doc.querySelectorAll<HTMLElement>('.yv-v[v]'))
+  const verses = Array.from(doc.querySelectorAll<HTMLElement>('.yv-v'))
 
   return verses
     .map((verse) => {
       const html = verse.innerHTML.trim()
+      const label = verse.querySelector<HTMLElement>('.yv-vlbl, .vn')?.textContent?.trim() ?? ''
+      const verseNumber = (verse.getAttribute('v')?.trim() ?? label).replace(/\D+/g, '')
       return {
-        verse: verse.getAttribute('v') ?? '',
+        verse: verseNumber,
         html,
         text: verse.textContent?.trim() ?? '',
         strippedHtml: stripVerseLabel(html),
@@ -1566,7 +1568,7 @@ export default function YouVersionReaderTab({
   const handleSaveVerse = useCallback(async (verseId: string, yvPassageId?: string) => {
     const isSaved = bookmarkedIds.has(verseId)
     onToggleBookmark(verseId, selectedVersion ? String(selectedVersion.id) : '', selectedVersionLabel || versionTitle)
-    if (!auth.isAuthenticated || resolvedVersionId === null) return
+    if (!auth.isAuthenticated || resolvedVersionId === null || isLocalFallbackSelected) return
     const highlightPassageId = yvPassageId ?? verseId
     setLocalError('')
     try {
