@@ -4922,6 +4922,21 @@ button.secondary {
   color: var(--accent);
 }
 
+.yv-reader-verse-content p,
+.yv-reader-verse-content .body,
+.yv-reader-verse-content .q1,
+.yv-reader-verse-content .q2,
+.yv-reader-verse-content .m,
+.yv-reader-verse-content .b,
+.yv-reader-verse-flow-content p,
+.yv-reader-verse-flow-content .body,
+.yv-reader-verse-flow-content .q1,
+.yv-reader-verse-flow-content .q2,
+.yv-reader-verse-flow-content .m,
+.yv-reader-verse-flow-content .b {
+  margin: 0;
+}
+
 .yv-reader-verse-content,
 .yv-reader-verse-flow-content {
   min-width: 0;
