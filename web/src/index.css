@@ -2813,114 +2813,22 @@ button.secondary {
 
 .map-place-popup-image-click-zone-left {
   left: 0;
-  background: linear-gradient(
-    90deg,
-    rgba(0, 0, 0, 0.28) 0%,
-    rgba(0, 0, 0, 0.2527) 5%,
-    rgba(0, 0, 0, 0.2268) 10%,
-    rgba(0, 0, 0, 0.2023) 15%,
-    rgba(0, 0, 0, 0.1792) 20%,
-    rgba(0, 0, 0, 0.1575) 25%,
-    rgba(0, 0, 0, 0.1372) 30%,
-    rgba(0, 0, 0, 0.1183) 35%,
-    rgba(0, 0, 0, 0.1008) 40%,
-    rgba(0, 0, 0, 0.0847) 45%,
-    rgba(0, 0, 0, 0.07) 50%,
-    rgba(0, 0, 0, 0.0567) 55%,
-    rgba(0, 0, 0, 0.0448) 60%,
-    rgba(0, 0, 0, 0.0343) 65%,
-    rgba(0, 0, 0, 0.0252) 70%,
-    rgba(0, 0, 0, 0.0175) 75%,
-    rgba(0, 0, 0, 0.0112) 80%,
-    rgba(0, 0, 0, 0.0063) 85%,
-    rgba(0, 0, 0, 0.0028) 90%,
-    rgba(0, 0, 0, 0.0007) 95%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg in oklab, rgba(0, 0, 0, 0.28), transparent);
 }
 
 .map-place-popup-image-click-zone-right {
   right: 0;
-  background: linear-gradient(
-    270deg,
-    rgba(0, 0, 0, 0.28) 0%,
-    rgba(0, 0, 0, 0.2527) 5%,
-    rgba(0, 0, 0, 0.2268) 10%,
-    rgba(0, 0, 0, 0.2023) 15%,
-    rgba(0, 0, 0, 0.1792) 20%,
-    rgba(0, 0, 0, 0.1575) 25%,
-    rgba(0, 0, 0, 0.1372) 30%,
-    rgba(0, 0, 0, 0.1183) 35%,
-    rgba(0, 0, 0, 0.1008) 40%,
-    rgba(0, 0, 0, 0.0847) 45%,
-    rgba(0, 0, 0, 0.07) 50%,
-    rgba(0, 0, 0, 0.0567) 55%,
-    rgba(0, 0, 0, 0.0448) 60%,
-    rgba(0, 0, 0, 0.0343) 65%,
-    rgba(0, 0, 0, 0.0252) 70%,
-    rgba(0, 0, 0, 0.0175) 75%,
-    rgba(0, 0, 0, 0.0112) 80%,
-    rgba(0, 0, 0, 0.0063) 85%,
-    rgba(0, 0, 0, 0.0028) 90%,
-    rgba(0, 0, 0, 0.0007) 95%,
-    transparent 100%
-  );
+  background: linear-gradient(270deg in oklab, rgba(0, 0, 0, 0.28), transparent);
 }
 
 .map-place-popup-image-click-zone-left:hover,
 .map-place-popup-image-click-zone-left:focus-visible {
-  background: linear-gradient(
-    90deg,
-    rgba(0, 0, 0, 0.5) 0%,
-    rgba(0, 0, 0, 0.4513) 5%,
-    rgba(0, 0, 0, 0.405) 10%,
-    rgba(0, 0, 0, 0.3613) 15%,
-    rgba(0, 0, 0, 0.32) 20%,
-    rgba(0, 0, 0, 0.2813) 25%,
-    rgba(0, 0, 0, 0.245) 30%,
-    rgba(0, 0, 0, 0.2113) 35%,
-    rgba(0, 0, 0, 0.18) 40%,
-    rgba(0, 0, 0, 0.1513) 45%,
-    rgba(0, 0, 0, 0.125) 50%,
-    rgba(0, 0, 0, 0.1013) 55%,
-    rgba(0, 0, 0, 0.08) 60%,
-    rgba(0, 0, 0, 0.0613) 65%,
-    rgba(0, 0, 0, 0.045) 70%,
-    rgba(0, 0, 0, 0.0313) 75%,
-    rgba(0, 0, 0, 0.02) 80%,
-    rgba(0, 0, 0, 0.0113) 85%,
-    rgba(0, 0, 0, 0.005) 90%,
-    rgba(0, 0, 0, 0.0013) 95%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg in oklab, rgba(0, 0, 0, 0.5), transparent);
 }
 
 .map-place-popup-image-click-zone-right:hover,
 .map-place-popup-image-click-zone-right:focus-visible {
-  background: linear-gradient(
-    270deg,
-    rgba(0, 0, 0, 0.5) 0%,
-    rgba(0, 0, 0, 0.4513) 5%,
-    rgba(0, 0, 0, 0.405) 10%,
-    rgba(0, 0, 0, 0.3613) 15%,
-    rgba(0, 0, 0, 0.32) 20%,
-    rgba(0, 0, 0, 0.2813) 25%,
-    rgba(0, 0, 0, 0.245) 30%,
-    rgba(0, 0, 0, 0.2113) 35%,
-    rgba(0, 0, 0, 0.18) 40%,
-    rgba(0, 0, 0, 0.1513) 45%,
-    rgba(0, 0, 0, 0.125) 50%,
-    rgba(0, 0, 0, 0.1013) 55%,
-    rgba(0, 0, 0, 0.08) 60%,
-    rgba(0, 0, 0, 0.0613) 65%,
-    rgba(0, 0, 0, 0.045) 70%,
-    rgba(0, 0, 0, 0.0313) 75%,
-    rgba(0, 0, 0, 0.02) 80%,
-    rgba(0, 0, 0, 0.0113) 85%,
-    rgba(0, 0, 0, 0.005) 90%,
-    rgba(0, 0, 0, 0.0013) 95%,
-    transparent 100%
-  );
+  background: linear-gradient(270deg in oklab, rgba(0, 0, 0, 0.5), transparent);
 }
 
 .map-place-popup-expand-btn {
@@ -3080,114 +2988,22 @@ button.secondary {
 
 .map-place-lightbox-image-click-zone-left {
   left: 0;
-  background: linear-gradient(
-    90deg,
-    rgba(0, 0, 0, 0.3) 0%,
-    rgba(0, 0, 0, 0.2708) 2.75%,
-    rgba(0, 0, 0, 0.243) 5.5%,
-    rgba(0, 0, 0, 0.2168) 8.25%,
-    rgba(0, 0, 0, 0.192) 11%,
-    rgba(0, 0, 0, 0.1688) 13.75%,
-    rgba(0, 0, 0, 0.147) 16.5%,
-    rgba(0, 0, 0, 0.1268) 19.25%,
-    rgba(0, 0, 0, 0.108) 22%,
-    rgba(0, 0, 0, 0.0908) 24.75%,
-    rgba(0, 0, 0, 0.075) 27.5%,
-    rgba(0, 0, 0, 0.0608) 30.25%,
-    rgba(0, 0, 0, 0.048) 33%,
-    rgba(0, 0, 0, 0.0368) 35.75%,
-    rgba(0, 0, 0, 0.027) 38.5%,
-    rgba(0, 0, 0, 0.0188) 41.25%,
-    rgba(0, 0, 0, 0.012) 44%,
-    rgba(0, 0, 0, 0.0068) 46.75%,
-    rgba(0, 0, 0, 0.003) 49.5%,
-    rgba(0, 0, 0, 0.0008) 52.25%,
-    transparent 55%
-  );
+  background: linear-gradient(90deg in oklab, rgba(0, 0, 0, 0.3), transparent);
 }
 
 .map-place-lightbox-image-click-zone-right {
   right: 0;
-  background: linear-gradient(
-    270deg,
-    rgba(0, 0, 0, 0.3) 0%,
-    rgba(0, 0, 0, 0.2708) 2.75%,
-    rgba(0, 0, 0, 0.243) 5.5%,
-    rgba(0, 0, 0, 0.2168) 8.25%,
-    rgba(0, 0, 0, 0.192) 11%,
-    rgba(0, 0, 0, 0.1688) 13.75%,
-    rgba(0, 0, 0, 0.147) 16.5%,
-    rgba(0, 0, 0, 0.1268) 19.25%,
-    rgba(0, 0, 0, 0.108) 22%,
-    rgba(0, 0, 0, 0.0908) 24.75%,
-    rgba(0, 0, 0, 0.075) 27.5%,
-    rgba(0, 0, 0, 0.0608) 30.25%,
-    rgba(0, 0, 0, 0.048) 33%,
-    rgba(0, 0, 0, 0.0368) 35.75%,
-    rgba(0, 0, 0, 0.027) 38.5%,
-    rgba(0, 0, 0, 0.0188) 41.25%,
-    rgba(0, 0, 0, 0.012) 44%,
-    rgba(0, 0, 0, 0.0068) 46.75%,
-    rgba(0, 0, 0, 0.003) 49.5%,
-    rgba(0, 0, 0, 0.0008) 52.25%,
-    transparent 55%
-  );
+  background: linear-gradient(270deg in oklab, rgba(0, 0, 0, 0.3), transparent);
 }
 
 .map-place-lightbox-image-click-zone-left:hover,
 .map-place-lightbox-image-click-zone-left:focus-visible {
-  background: linear-gradient(
-    90deg,
-    rgba(0, 0, 0, 0.5) 0%,
-    rgba(0, 0, 0, 0.4513) 2.75%,
-    rgba(0, 0, 0, 0.405) 5.5%,
-    rgba(0, 0, 0, 0.3613) 8.25%,
-    rgba(0, 0, 0, 0.32) 11%,
-    rgba(0, 0, 0, 0.2813) 13.75%,
-    rgba(0, 0, 0, 0.245) 16.5%,
-    rgba(0, 0, 0, 0.2113) 19.25%,
-    rgba(0, 0, 0, 0.18) 22%,
-    rgba(0, 0, 0, 0.1513) 24.75%,
-    rgba(0, 0, 0, 0.125) 27.5%,
-    rgba(0, 0, 0, 0.1013) 30.25%,
-    rgba(0, 0, 0, 0.08) 33%,
-    rgba(0, 0, 0, 0.0613) 35.75%,
-    rgba(0, 0, 0, 0.045) 38.5%,
-    rgba(0, 0, 0, 0.0313) 41.25%,
-    rgba(0, 0, 0, 0.02) 44%,
-    rgba(0, 0, 0, 0.0113) 46.75%,
-    rgba(0, 0, 0, 0.005) 49.5%,
-    rgba(0, 0, 0, 0.0013) 52.25%,
-    transparent 55%
-  );
+  background: linear-gradient(90deg in oklab, rgba(0, 0, 0, 0.5), transparent);
 }
 
 .map-place-lightbox-image-click-zone-right:hover,
 .map-place-lightbox-image-click-zone-right:focus-visible {
-  background: linear-gradient(
-    270deg,
-    rgba(0, 0, 0, 0.5) 0%,
-    rgba(0, 0, 0, 0.4513) 2.75%,
-    rgba(0, 0, 0, 0.405) 5.5%,
-    rgba(0, 0, 0, 0.3613) 8.25%,
-    rgba(0, 0, 0, 0.32) 11%,
-    rgba(0, 0, 0, 0.2813) 13.75%,
-    rgba(0, 0, 0, 0.245) 16.5%,
-    rgba(0, 0, 0, 0.2113) 19.25%,
-    rgba(0, 0, 0, 0.18) 22%,
-    rgba(0, 0, 0, 0.1513) 24.75%,
-    rgba(0, 0, 0, 0.125) 27.5%,
-    rgba(0, 0, 0, 0.1013) 30.25%,
-    rgba(0, 0, 0, 0.08) 33%,
-    rgba(0, 0, 0, 0.0613) 35.75%,
-    rgba(0, 0, 0, 0.045) 38.5%,
-    rgba(0, 0, 0, 0.0313) 41.25%,
-    rgba(0, 0, 0, 0.02) 44%,
-    rgba(0, 0, 0, 0.0113) 46.75%,
-    rgba(0, 0, 0, 0.005) 49.5%,
-    rgba(0, 0, 0, 0.0013) 52.25%,
-    transparent 55%
-  );
+  background: linear-gradient(270deg in oklab, rgba(0, 0, 0, 0.5), transparent);
 }
 
 .map-place-lightbox-close {
