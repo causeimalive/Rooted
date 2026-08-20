@@ -190,6 +190,7 @@ type CompareSection = {
   reference: string
   currentPassage: BiblePassage
   comparePassage: BiblePassage
+  compareSourceVersionId?: number
   currentHtml: string
   compareHtml: string
   currentVerses: VerseBlock[]
@@ -909,6 +910,7 @@ export default function YouVersionReaderTab({
   const [compareSections, setCompareSections] = useState<CompareSection[]>([])
   const compareCurrentPassage = useMemo(() => compareSections[0]?.currentPassage ?? null, [compareSections])
   const comparePassage = useMemo(() => compareSections[0]?.comparePassage ?? null, [compareSections])
+  const compareSourceVersionId = useMemo(() => compareSections[0]?.compareSourceVersionId ?? compareVersionId, [compareSections, compareVersionId])
   const [compareLoading, setCompareLoading] = useState(false)
   const [compareError, setCompareError] = useState('')
   const [bookIntroOpen, setBookIntroOpen] = useState(false)
@@ -1789,10 +1791,26 @@ export default function YouVersionReaderTab({
       if (!currentPassage) return null
 
       let comparePassage: BiblePassage | null = null
-      try {
-        comparePassage = await loadPassageForVersion(nextCompareVersionId, reference)
-      } catch (error) {
-        if (!isAccessDeniedError(error) && !isPassageNotFoundError(error)) throw error
+      let compareSourceVersionId: number | undefined = undefined
+
+      const compareFallbackIds = [
+        nextCompareVersionId,
+        LOCAL_KJV_VERSION_ID,
+        LOCAL_NLT_VERSION_ID,
+        currentVersionId,
+      ].filter((value, index, arr) => Number.isFinite(value) && value !== 0 && arr.indexOf(value) === index)
+
+      for (const candidate of compareFallbackIds) {
+        try {
+          const candidatePassage = await loadPassageForVersion(candidate, reference)
+          if (candidatePassage) {
+            comparePassage = candidatePassage
+            compareSourceVersionId = candidate
+            break
+          }
+        } catch (error) {
+          if (!isAccessDeniedError(error) && !isPassageNotFoundError(error)) throw error
+        }
       }
 
       const currentTransformed = transformPassageForBrowser(
@@ -1812,7 +1830,7 @@ export default function YouVersionReaderTab({
             tagPositionsByVerseId,
             bookNumberById,
             entityHighlightsEnabled,
-            isLocalVersionId(nextCompareVersionId),
+            isLocalVersionId(compareSourceVersionId ?? nextCompareVersionId),
           )
         : { html: '', text: '' }
 
@@ -1824,6 +1842,7 @@ export default function YouVersionReaderTab({
         reference: currentPassage.reference || comparePassage?.reference || chapterReference,
         currentPassage,
         comparePassage: comparePassage ?? missingComparePassage,
+        compareSourceVersionId,
         currentHtml: currentTransformed.html,
         compareHtml: compareTransformed.html,
         currentVerses: extractVerseBlocks(currentTransformed.html),
@@ -2737,9 +2756,9 @@ export default function YouVersionReaderTab({
       tagPositionsByVerseId,
       bookNumberById,
       entityHighlightsEnabled,
-      isLocalVersionId(compareVersionId),
+      isLocalVersionId(compareSourceVersionId),
     ).html
-  }, [comparePassage, tagPositionsByVerseId, bookNumberById, entityHighlightsEnabled, compareVersionId])
+  }, [comparePassage, tagPositionsByVerseId, bookNumberById, entityHighlightsEnabled, compareSourceVersionId])
   const comparePassageVerses = useMemo(
     () => (comparePassageHtml ? extractVerseBlocks(comparePassageHtml) : []),
     [comparePassageHtml],
@@ -2859,6 +2878,7 @@ export default function YouVersionReaderTab({
     (side: ComparePaneSide): ReactNode => {
       const isCurrent = side === 'current'
       const isFlow = readerView === 'verse'
+      const selectedCompareVersion = catalogVersions.find((entry) => entry.id === compareVersionId)
 
       if (readerView === 'html') {
         if (!compareSections.length) {
@@ -2877,6 +2897,12 @@ export default function YouVersionReaderTab({
                   <div>
                     <strong>{section.reference}</strong>
                     <span>{isCurrent ? section.currentPassage.id : section.comparePassage.id}</span>
+                    {!isCurrent && section.compareSourceVersionId && section.compareSourceVersionId !== compareVersionId && (
+                      <div className="yv-reader-compare-fallback-notice">
+                        {selectedCompareVersion?.title ?? 'Selected version'} unavailable; showing{' '}
+                        {catalogVersions.find((entry) => entry.id === section.compareSourceVersionId)?.title ?? 'a fallback version'}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div dangerouslySetInnerHTML={{ __html: isCurrent ? section.currentHtml : section.compareHtml }} />
@@ -2901,6 +2927,12 @@ export default function YouVersionReaderTab({
                   <div>
                     <strong>{section.reference}</strong>
                     <span>{isCurrent ? section.currentPassage.id : section.comparePassage.id}</span>
+                    {!isCurrent && section.compareSourceVersionId && section.compareSourceVersionId !== compareVersionId && (
+                      <div className="yv-reader-compare-fallback-notice">
+                        {selectedCompareVersion?.title ?? 'Selected version'} unavailable; showing{' '}
+                        {catalogVersions.find((entry) => entry.id === section.compareSourceVersionId)?.title ?? 'a fallback version'}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className={isFlow ? 'yv-reader-verse-flow yv-reader-compare-verse-flow' : 'yv-reader-compare-verse-stack'}>
@@ -2951,7 +2983,7 @@ export default function YouVersionReaderTab({
         </>
       )
     },
-    [compareSections, compareSelection, handleCompareVerseClick, readerView, bookmarkedIds, handleSaveVerse],
+    [compareSections, compareSelection, handleCompareVerseClick, readerView, bookmarkedIds, handleSaveVerse, catalogVersions, compareVersionId],
   )
 
   const compareGrid = useMemo(
