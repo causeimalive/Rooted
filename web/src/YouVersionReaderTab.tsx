@@ -604,7 +604,7 @@ function buildLocalKjvPassage(reference: ReaderReference, books: YouVersionBook[
   const content = verses
     .map(
       (verse) =>
-        `<div class="yv-v" v="${verse.verse}"><p class="body"><span class="yv-vlbl">${verse.verse}</span>${escapeHtml(verse.text)}</p></div>`,
+        `<div class="yv-v" v="${verse.verse}"><span class="yv-vlbl">${verse.verse}</span>${escapeHtml(verse.text)} </div>`,
     )
     .join('')
 
@@ -1720,14 +1720,27 @@ export default function YouVersionReaderTab({
 
       const passage = await loadPassageForVersion(versionId, reference)
       if (!passage) return null
-      const transformed = transformPassageForBrowser(
-        passage.content,
-        reference.bookId,
-        reference.chapter,
-        tagPositionsByVerseId,
-        bookNumberById,
-        entityHighlightsEnabled,
-      )
+      const isLocal = versionId === LOCAL_KJV_VERSION_ID || versionId === LOCAL_NLT_VERSION_ID
+      let html: string
+      if (isLocal) {
+        let marked = passage.content
+        if (reference.bookId && reference.chapter !== undefined) {
+          marked = applyRedLetterMarkup(marked, reference.bookId, reference.chapter)
+          if (entityHighlightsEnabled && Object.keys(tagPositionsByVerseId).length > 0) {
+            marked = applyEntityMarkup(marked, reference.bookId, reference.chapter, tagPositionsByVerseId, bookNumberById)
+          }
+        }
+        html = marked
+      } else {
+        html = transformPassageForBrowser(
+          passage.content,
+          reference.bookId,
+          reference.chapter,
+          tagPositionsByVerseId,
+          bookNumberById,
+          entityHighlightsEnabled,
+        ).html
+      }
 
       const section: ReaderSection = {
         key: chapterReference,
@@ -1735,9 +1748,9 @@ export default function YouVersionReaderTab({
         chapter: reference.chapter,
         reference: passage.reference || chapterReference,
         passageId: passage.id,
-        content: transformed.html,
-        plainText: transformed.text,
-        verses: extractVerseBlocks(transformed.html),
+        content: html,
+        plainText: new DOMParser().parseFromString(html, 'text/html').body.textContent ?? '',
+        verses: extractVerseBlocks(html),
       }
 
       sectionCacheRef.current.set(cacheKey, section)
