@@ -73,10 +73,16 @@ function normalizeNltHtml(html: string): string {
   let match: RegExpExecArray | null
   while ((match = verseExportPattern.exec(cleaned))) {
     const verseNumber = match[2].trim()
-    const inner = match[4]
-      .replace(/<span\b([^>]*?)class="vn"([^>]*?)>/gi, '<span$1class="yv-vlbl"$2>')
-      .replace(/class="vn"/gi, 'class="yv-vlbl"')
-    verseBlocks.push(`<div class="yv-v yv-v-nlt" v="${verseNumber}">${inner}</div>`)
+    const innerDoc = new DOMParser().parseFromString(`<div>${match[4]}</div>`, 'text/html')
+    const innerRoot = innerDoc.body.firstElementChild
+    if (!innerRoot) continue
+
+    innerRoot.querySelectorAll('.vn').forEach((node) => {
+      node.classList.remove('vn')
+      node.classList.add('yv-vlbl')
+    })
+
+    verseBlocks.push(`<div class="yv-v yv-v-nlt" v="${verseNumber}">${innerRoot.innerHTML.trim()}</div>`)
   }
 
   return verseBlocks.join(' ')
