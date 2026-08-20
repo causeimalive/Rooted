@@ -860,12 +860,12 @@ export default function YouVersionReaderTab({
   const [compareVersionMenuOpen, setCompareVersionMenuOpen] = useState(false)
   const [compareVersionId, setCompareVersionId] = useState<number | null>(() => {
     const saved = Number(getUserPreference(userId, READER_COMPARE_KEY))
-    return Number.isFinite(saved) ? saved : null
+    return Number.isFinite(saved) && saved !== 0 ? saved : null
   })
 
   useEffect(() => {
     const savedVersion = Number(getUserPreference(userId, READER_VERSION_KEY))
-    setVersionId(Number.isFinite(savedVersion) ? savedVersion : null)
+    setVersionId(Number.isFinite(savedVersion) && savedVersion !== 0 ? savedVersion : null)
     setBookId(getUserPreference(userId, READER_BOOK_KEY) ?? '')
     const savedChapter = Number(getUserPreference(userId, READER_CHAPTER_KEY))
     setChapter(Number.isFinite(savedChapter) && savedChapter > 0 ? savedChapter : 1)
