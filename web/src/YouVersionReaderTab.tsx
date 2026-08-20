@@ -1642,7 +1642,7 @@ export default function YouVersionReaderTab({
   }, [compareVersionId])
 
   useEffect(() => {
-    if (!compareOpen || (compareVersionId !== null && compareVersionId > 0) || !compareAvailableVersions.length || resolvedVersionId === null) return
+    if (!compareOpen || (compareVersionId !== null && compareVersionId !== 0) || !compareAvailableVersions.length || resolvedVersionId === null) return
     const fallbackCompare = compareAvailableVersions.find((entry) => entry.id !== resolvedVersionId)
     if (fallbackCompare) {
       setCompareVersionId(fallbackCompare.id)
@@ -1650,7 +1650,7 @@ export default function YouVersionReaderTab({
   }, [availableVersions, compareAvailableVersions, compareOpen, compareVersionId, resolvedVersionId])
 
   useEffect(() => {
-    if (!compareOpen || compareVersionId === null || compareVersionId <= 0 || resolvedVersionId === null) return
+    if (!compareOpen || compareVersionId === null || compareVersionId === 0 || resolvedVersionId === null) return
     if (compareVersionId !== resolvedVersionId) return
 
     const fallbackCompare = compareAvailableVersions.find((entry) => entry.id !== resolvedVersionId)
@@ -1816,7 +1816,7 @@ export default function YouVersionReaderTab({
 
   const loadCompareSection = useCallback(
     async (reference: ReaderReference): Promise<CompareSection | null> => {
-      if (resolvedVersionId === null || compareVersionId === null || compareVersionId <= 0) return null
+      if (resolvedVersionId === null || compareVersionId === null || compareVersionId === 0) return null
       return loadCompareSectionForVersion(resolvedVersionId, compareVersionId, reference)
     },
     [compareVersionId, loadCompareSectionForVersion, resolvedVersionId],
