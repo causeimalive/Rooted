@@ -9,6 +9,7 @@ import {
 } from './youversion'
 import { fetchNltPassage, NLT_ATTRIBUTION } from './nlt'
 import { canUseBibleApi, fetchBibleApiPassage } from './bibleApiFallback'
+import { fetchApiBibleBibles, fetchApiBiblePassage, findApiBibleId } from './apiBible'
 import { Capacitor } from '@capacitor/core'
 import { useBibleClient, useBooks, useChapters, useHighlights, useVersion, useYVAuth } from '@youversion/platform-react-hooks'
 import {
@@ -1719,6 +1720,15 @@ export default function YouVersionReaderTab({
       try {
         return await bibleClient.getPassage(versionId, chapterReference, 'html', true, true)
       } catch (error) {
+        if (version) {
+          const bibles = await fetchApiBibleBibles()
+          const apiBibleId = findApiBibleId(version, bibles)
+          if (apiBibleId) {
+            const apiPassage = await fetchApiBiblePassage(apiBibleId, reference)
+            if (apiPassage) return apiPassage
+          }
+        }
+
         if (!version || !canUseBibleApi(version)) throw error
         const fallback = await fetchBibleApiPassage(version, reference)
         if (!fallback) throw error
