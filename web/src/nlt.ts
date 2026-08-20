@@ -59,36 +59,27 @@ function extractBibleTextHtml(document: string): string {
 }
 
 // The NLT.TO API wraps each verse in a non-standard <verse_export> tag and
-// uses its own verse-label markup. Rewrite each verse into a .yv-v[v] block
-// with a .yv-vlbl number and the original content, which is the shape the
-// reader's extractVerseBlocks expects for chapter / verse / compare views.
+// uses its own verse-label markup. Parse those verse_export blocks directly
+// so DOM repair doesn't bleed content across verse boundaries, then rewrite
+// each verse into a .yv-v[v] block with a .yv-vlbl number, which is the shape
+// the reader's extractVerseBlocks expects for chapter / verse / compare views.
 function normalizeNltHtml(html: string): string {
-  const doc = new DOMParser().parseFromString(html, 'text/html')
-  const bibleText = doc.body
-  if (!bibleText) return html
+  const cleaned = html
+    .replace(/<h2 class="chapter-number"[\s\S]*?<\/h2>/gi, '')
+    .replace(/<h2 class="bk_ch_vs_header"[\s\S]*?<\/h2>/gi, '')
 
-  bibleText.querySelectorAll('h2.chapter-number').forEach((node) => node.remove())
+  const verseBlocks: string[] = []
+  const verseExportPattern = /<verse_export\b([^>]*)vn="(\d+)"([^>]*)>([\s\S]*?)<\/verse_export>/gi
+  let match: RegExpExecArray | null
+  while ((match = verseExportPattern.exec(cleaned))) {
+    const verseNumber = match[2].trim()
+    const inner = match[4]
+      .replace(/<span\b([^>]*?)class="vn"([^>]*?)>/gi, '<span$1class="yv-vlbl"$2>')
+      .replace(/class="vn"/gi, 'class="yv-vlbl"')
+    verseBlocks.push(`<div class="yv-v yv-v-nlt" v="${verseNumber}">${inner}</div>`)
+  }
 
-  bibleText.querySelectorAll('verse_export').forEach((verseExport) => {
-    const verseNumber = verseExport.getAttribute('vn')?.trim() ?? ''
-    const wrapper = doc.createElement('div')
-    wrapper.className = 'yv-v'
-    if (verseNumber) wrapper.setAttribute('v', verseNumber)
-
-    verseExport.querySelectorAll('.vn').forEach((node) => {
-      node.classList.remove('vn')
-      node.classList.add('yv-vlbl')
-    })
-
-    while (verseExport.firstChild) {
-      wrapper.appendChild(verseExport.firstChild)
-    }
-
-    verseExport.replaceWith(wrapper, doc.createTextNode(' '))
-  })
-
-  bibleText.querySelector('h2.bk_ch_vs_header')?.remove()
-  return bibleText.innerHTML
+  return verseBlocks.join(' ')
 }
 
 export async function probeNltPassage(bookId: string, chapter: number): Promise<boolean> {

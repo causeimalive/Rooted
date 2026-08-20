@@ -4882,6 +4882,11 @@ button.secondary {
   display: inline;
 }
 
+.yv-reader-passage-html .yv-v.yv-v-nlt {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
 .yv-reader-passage-html .yv-v p,
 .yv-reader-passage-html .yv-v .p {
   display: inline;
