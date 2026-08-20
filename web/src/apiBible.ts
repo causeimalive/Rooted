@@ -45,7 +45,9 @@ let biblesCache: ApiBible[] | null = null
 let biblesPromise: Promise<ApiBible[]> | null = null
 
 function getApiKey(): string | null {
-  return import.meta.env?.VITE_API_BIBLE_KEY ?? null
+  const fromVite = typeof import.meta.env !== 'undefined' ? (import.meta.env?.VITE_API_BIBLE_KEY as string | undefined) : undefined
+  const fromProcess = typeof process !== 'undefined' ? process.env?.VITE_API_BIBLE_KEY : undefined
+  return fromVite ?? fromProcess ?? null
 }
 
 async function fetchWithKey<T>(path: string, init?: RequestInit): Promise<T | null> {
@@ -161,12 +163,12 @@ const OSIS_TO_API_BIBLE: Record<string, string> = {
   '1Thess': '1TH', '1Th': '1TH', '2Thess': '2TH', '2Th': '2TH',
   '1Tim': '1TI', '1Ti': '1TI', '2Tim': '2TI', '2Ti': '2TI',
   Titus: 'TIT', Tit: 'TIT', Phlm: 'PHM', Phm: 'PHM',
-  Heb: 'HEB', Jas: 'JAS', '1Pet': '1PE', '1Pe': '1PE', '2Pet': '2PE', '2Pe': '2PE',
+  Heb: 'HEB', Jas: 'JAS', Jam: 'JAS', '1Pet': '1PE', '1Pe': '1PE', '2Pet': '2PE', '2Pe': '2PE',
   '1John': '1JN', '1Jo': '1JN', '1Jn': '1JN', '2John': '2JN', '2Jo': '2JN', '2Jn': '2JN',
   '3John': '3JN', '3Jo': '3JN', '3Jn': '3JN', Jude: 'JUD', Jud: 'JUD', Rev: 'REV',
 }
 
-function getApiBibleBookCode(bookId: string): string {
+export function getApiBibleBookCode(bookId: string): string {
   return OSIS_TO_API_BIBLE[bookId] ?? bookId.toUpperCase()
 }
 
@@ -183,6 +185,12 @@ export async function fetchApiBiblePassage(
     content: normalizeApiBibleContent(result.data.content),
     reference: result.data.reference,
   }
+}
+
+export async function probeApiBiblePassage(bibleId: string, reference: ApiBibleReference): Promise<boolean> {
+  const chapterId = `${getApiBibleBookCode(reference.bookId)}.${reference.chapter}`
+  const result = await fetchWithKey<ApiBibleChapter>(`/bibles/${bibleId}/chapters/${chapterId}`)
+  return Boolean(result?.data?.content && result.data.content.length > 0)
 }
 
 export async function canUseApiBible(

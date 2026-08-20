@@ -11,6 +11,7 @@ import { fetchNltPassage, NLT_ATTRIBUTION } from './nlt'
 import { fetchBibleApiPassage } from './bibleApiFallback'
 import { fetchApiBiblePassage } from './apiBible'
 import { isKnownUnavailableVersion, resolveVersionSources } from './bibleSources'
+import { WORKING_VERSION_IDS } from './workingVersionIds'
 import { Capacitor } from '@capacitor/core'
 import { useBibleClient, useBooks, useChapters, useHighlights, useVersion, useYVAuth } from '@youversion/platform-react-hooks'
 import {
@@ -190,8 +191,9 @@ type CompareSection = {
   chapter: number
   reference: string
   currentPassage: BiblePassage
-  comparePassage: BiblePassage
+  comparePassage: BiblePassage | null
   compareSourceVersionId?: number
+  compareUnavailable?: boolean
   currentHtml: string
   compareHtml: string
   currentVerses: VerseBlock[]
@@ -1055,14 +1057,20 @@ export default function YouVersionReaderTab({
   }, [compareVersionMenuOpen])
 
   const localFallbackBooks = useMemo(() => buildLocalFallbackBooks(), [])
+  const workingVersionIdSet = useMemo(() => new Set(WORKING_VERSION_IDS), [])
   const catalogVersions = useMemo(() => {
     const next = [
       LOCAL_KJV_VERSION,
       LOCAL_NLT_VERSION,
-      ...availableVersions.filter((entry) => !isLocalFallbackVersion(entry) && !isKnownUnavailableVersion(entry)),
+      ...availableVersions.filter(
+        (entry) =>
+          !isLocalFallbackVersion(entry) &&
+          !isKnownUnavailableVersion(entry) &&
+          workingVersionIdSet.has(entry.id),
+      ),
     ] as VersionMenuEntry[]
     return next.filter((entry, index, all) => all.findIndex((candidate) => candidate.id === entry.id) === index)
-  }, [availableVersions])
+  }, [availableVersions, workingVersionIdSet])
   const pinnedVersionIdSet = useMemo(() => new Set(pinnedVersionIds), [pinnedVersionIds])
 
   useEffect(() => {
@@ -1799,29 +1807,6 @@ export default function YouVersionReaderTab({
       const currentPassage = await loadPassageForVersion(currentVersionId, reference)
       if (!currentPassage) return null
 
-      let comparePassage: BiblePassage | null = null
-      let compareSourceVersionId: number | undefined = undefined
-
-      const compareFallbackIds = [
-        nextCompareVersionId,
-        LOCAL_KJV_VERSION_ID,
-        LOCAL_NLT_VERSION_ID,
-        currentVersionId,
-      ].filter((value, index, arr) => Number.isFinite(value) && value !== 0 && arr.indexOf(value) === index)
-
-      for (const candidate of compareFallbackIds) {
-        try {
-          const candidatePassage = await loadPassageForVersion(candidate, reference)
-          if (candidatePassage) {
-            comparePassage = candidatePassage
-            compareSourceVersionId = candidate
-            break
-          }
-        } catch (error) {
-          if (!isAccessDeniedError(error) && !isPassageNotFoundError(error)) throw error
-        }
-      }
-
       const currentTransformed = transformPassageForBrowser(
         currentPassage.content,
         reference.bookId,
@@ -1831,6 +1816,16 @@ export default function YouVersionReaderTab({
         entityHighlightsEnabled,
         isLocalVersionId(currentVersionId),
       )
+
+      let comparePassage: BiblePassage | null = null
+      let compareUnavailable = false
+      try {
+        comparePassage = await loadPassageForVersion(nextCompareVersionId, reference)
+      } catch (error) {
+        if (!isAccessDeniedError(error) && !isPassageNotFoundError(error)) throw error
+      }
+      if (!comparePassage) compareUnavailable = true
+
       const compareTransformed = comparePassage
         ? transformPassageForBrowser(
             comparePassage.content,
@@ -1839,19 +1834,19 @@ export default function YouVersionReaderTab({
             tagPositionsByVerseId,
             bookNumberById,
             entityHighlightsEnabled,
-            isLocalVersionId(compareSourceVersionId ?? nextCompareVersionId),
+            isLocalVersionId(nextCompareVersionId),
           )
         : { html: '', text: '' }
 
-      const missingComparePassage = { id: 'missing', content: '', reference: 'Unavailable' } as unknown as BiblePassage
       return {
         key: chapterReference,
         bookId: reference.bookId,
         chapter: reference.chapter,
         reference: currentPassage.reference || comparePassage?.reference || chapterReference,
         currentPassage,
-        comparePassage: comparePassage ?? missingComparePassage,
-        compareSourceVersionId,
+        comparePassage,
+        compareSourceVersionId: nextCompareVersionId,
+        compareUnavailable,
         currentHtml: currentTransformed.html,
         compareHtml: compareTransformed.html,
         currentVerses: extractVerseBlocks(currentTransformed.html),
@@ -1888,28 +1883,6 @@ export default function YouVersionReaderTab({
       return null
     },
     [loadSectionForVersion, versionProbeOrder],
-  )
-
-  const recoverAccessibleCompareSection = useCallback(
-    async (reference: ReaderReference, preferredCompareVersionId: number | null): Promise<CompareSection | null> => {
-      if (resolvedVersionId === null) return null
-      const candidateVersionIds = versionProbeOrder(preferredCompareVersionId).filter((candidate) => candidate !== resolvedVersionId)
-      for (const candidateVersionId of candidateVersionIds) {
-        try {
-          const compareSection = await loadCompareSectionForVersion(resolvedVersionId, candidateVersionId, reference)
-          if (candidateVersionId !== preferredCompareVersionId) {
-            setCompareVersionId(candidateVersionId)
-          }
-          setLocalError('')
-          setCompareError('')
-          return compareSection
-        } catch (error) {
-          if (!isAccessDeniedError(error) && !isPassageNotFoundError(error)) throw error
-        }
-      }
-      return null
-    },
-    [loadCompareSectionForVersion, resolvedVersionId, versionProbeOrder],
   )
 
   useEffect(() => {
@@ -2056,11 +2029,7 @@ export default function YouVersionReaderTab({
       if (!section) return
       setCompareSections((current) => (current.some((entry) => entry.key === section.key) ? current : [...current, section]))
     } catch (loadError) {
-      if (isAccessDeniedError(loadError) || isPassageNotFoundError(loadError)) {
-        const recovered = await recoverAccessibleCompareSection(next, compareVersionId)
-        if (recovered) return
-      }
-      setLocalError(formatPassageError(loadError))
+      setCompareError(formatPassageError(loadError))
     } finally {
       compareLoadingMoreRef.current = false
       setCompareLoading(false)
@@ -2098,11 +2067,7 @@ export default function YouVersionReaderTab({
         shell.scrollTop = previousScrollTop + (nextScrollHeight - previousScrollHeight)
       })
     } catch (loadError) {
-      if (isAccessDeniedError(loadError) || isPassageNotFoundError(loadError)) {
-        const recovered = await recoverAccessibleCompareSection(previous, compareVersionId)
-        if (recovered) return
-      }
-      setLocalError(formatPassageError(loadError))
+      setCompareError(formatPassageError(loadError))
     } finally {
       compareLoadingMoreRef.current = false
       setCompareLoading(false)
@@ -2236,14 +2201,8 @@ export default function YouVersionReaderTab({
         if (cancelled) return
 
         setCompareSections(builtSections)
-        if (builtSections[0] && !builtSections[0].compareHtml.trim()) {
-          setCompareError('This version does not contain this passage.')
-        }
       } catch (loadError) {
-        if (!cancelled && isAccessDeniedError(loadError) || isPassageNotFoundError(loadError)) {
-          const recovered = await recoverAccessibleCompareSection({ bookId: currentIndexBook.id, chapter: currentChapter }, compareVersionId)
-          if (recovered) return
-        }
+        if (cancelled) return
         throw loadError
       } finally {
         compareLoadingMoreRef.current = false
@@ -2254,7 +2213,6 @@ export default function YouVersionReaderTab({
     void loadBufferedCompareSections().catch((loadError) => {
       if (cancelled) return
       const message = formatPassageError(loadError)
-      setLocalError(message)
       setCompareError(message)
       compareLoadingMoreRef.current = false
       setIsLoadingSections(false)
@@ -2888,6 +2846,11 @@ export default function YouVersionReaderTab({
       const isCurrent = side === 'current'
       const isFlow = readerView === 'verse'
       const selectedCompareVersion = catalogVersions.find((entry) => entry.id === compareVersionId)
+      const compareUnavailableNotice = (
+        <div className="yv-reader-compare-fallback-notice">
+          {selectedCompareVersion?.title ?? 'This version'} is not available for this passage.
+        </div>
+      )
 
       if (readerView === 'html') {
         if (!compareSections.length) {
@@ -2905,16 +2868,13 @@ export default function YouVersionReaderTab({
                 <div className="yv-reader-section-header">
                   <div>
                     <strong>{section.reference}</strong>
-                    <span>{isCurrent ? section.currentPassage.id : section.comparePassage.id}</span>
-                    {!isCurrent && section.compareSourceVersionId && section.compareSourceVersionId !== compareVersionId && (
-                      <div className="yv-reader-compare-fallback-notice">
-                        {selectedCompareVersion?.title ?? 'Selected version'} unavailable; showing{' '}
-                        {catalogVersions.find((entry) => entry.id === section.compareSourceVersionId)?.title ?? 'a fallback version'}
-                      </div>
-                    )}
+                    <span>{isCurrent ? section.currentPassage.id : section.comparePassage?.id ?? ''}</span>
+                    {!isCurrent && section.compareUnavailable && compareUnavailableNotice}
                   </div>
                 </div>
-                <div dangerouslySetInnerHTML={{ __html: isCurrent ? section.currentHtml : section.compareHtml }} />
+                {(isCurrent || !section.compareUnavailable) && (
+                  <div dangerouslySetInnerHTML={{ __html: isCurrent ? section.currentHtml : section.compareHtml }} />
+                )}
               </article>
             ))}
           </>
@@ -2925,6 +2885,22 @@ export default function YouVersionReaderTab({
         <>
           {compareSections.map((section) => {
             const sectionVerses = isCurrent ? section.currentVerses : section.compareVerses
+            if (!isCurrent && section.compareUnavailable) {
+              return (
+                <div
+                  key={`${side}-${section.key}`}
+                  className="yv-reader-section yv-reader-compare-section"
+                  data-section={section.key}
+                >
+                  <div className="yv-reader-section-header">
+                    <div>
+                      <strong>{section.reference}</strong>
+                      {compareUnavailableNotice}
+                    </div>
+                  </div>
+                </div>
+              )
+            }
             if (!sectionVerses.length) return null
             return (
               <div
@@ -2935,13 +2911,7 @@ export default function YouVersionReaderTab({
                 <div className="yv-reader-section-header">
                   <div>
                     <strong>{section.reference}</strong>
-                    <span>{isCurrent ? section.currentPassage.id : section.comparePassage.id}</span>
-                    {!isCurrent && section.compareSourceVersionId && section.compareSourceVersionId !== compareVersionId && (
-                      <div className="yv-reader-compare-fallback-notice">
-                        {selectedCompareVersion?.title ?? 'Selected version'} unavailable; showing{' '}
-                        {catalogVersions.find((entry) => entry.id === section.compareSourceVersionId)?.title ?? 'a fallback version'}
-                      </div>
-                    )}
+                    <span>{isCurrent ? section.currentPassage.id : section.comparePassage?.id ?? ''}</span>
                   </div>
                 </div>
                 <div className={isFlow ? 'yv-reader-verse-flow yv-reader-compare-verse-flow' : 'yv-reader-compare-verse-stack'}>

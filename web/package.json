@@ -10,7 +10,8 @@
     "generate:logos": "node scripts/generate-logos.mjs",
     "build:gazetteer": "node scripts/build-gazetteer.mjs",
     "check:gazetteer": "node scripts/build-gazetteer.mjs --check",
-    "spread:duplicate-coordinates": "node scripts/spread-duplicate-coordinates.mjs"
+    "spread:duplicate-coordinates": "node scripts/spread-duplicate-coordinates.mjs",
+    "probe:versions": "npx tsx scripts/probe-versions.ts"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",

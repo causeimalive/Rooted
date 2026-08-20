@@ -55,6 +55,8 @@ const BOOK_NAMES: Record<string, string> = {
   Est: 'Esther',
   Job: 'Job',
   Psa: 'Psalms',
+  Ps: 'Psalms',
+  Exod: 'Exodus',
   Pro: 'Proverbs',
   Ecc: 'Ecclesiastes',
   Son: 'Song of Solomon',
@@ -130,6 +132,23 @@ function getBibleApiTranslation(version: VersionMenuEntry): string | null {
 
 export function canUseBibleApi(version: VersionMenuEntry): boolean {
   return getBibleApiTranslation(version) !== null
+}
+
+export async function probeBibleApiPassage(version: VersionMenuEntry, reference: ReaderReference): Promise<boolean> {
+  const translation = getBibleApiTranslation(version)
+  if (!translation) return false
+
+  const bookName = BOOK_NAMES[reference.bookId]
+  if (!bookName) return false
+
+  const url = `https://bible-api.com/${encodeURIComponent(bookName)}+${reference.chapter}?translation=${translation}`
+  const response = await fetch(url)
+  if (!response.ok) return false
+
+  const data = (await response.json()) as {
+    verses?: Array<{ verse?: number }>
+  } | null
+  return Array.isArray(data?.verses) && data.verses.length > 0
 }
 
 export async function fetchBibleApiPassage(

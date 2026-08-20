@@ -4688,6 +4688,17 @@ button.secondary {
   flex: 1;
 }
 
+.yv-reader-compare-fallback-notice {
+  margin-top: 0.35rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.08);
+  color: var(--danger, #ef4444);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
 .yv-reader-passage-shell {
   --reader-font-size: 1.02rem;
   flex: 1;

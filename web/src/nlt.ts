@@ -17,7 +17,9 @@ export interface NltPassage {
 }
 
 function getNltApiKey(): string {
-  const key = import.meta.env.VITE_NLT_API_KEY?.trim()
+  const fromVite = typeof import.meta.env !== 'undefined' ? (import.meta.env.VITE_NLT_API_KEY?.trim() as string | undefined) : undefined
+  const fromProcess = typeof process !== 'undefined' ? process.env?.VITE_NLT_API_KEY?.trim() : undefined
+  const key = fromVite ?? fromProcess
   if (!key) {
     throw new Error('Missing VITE_NLT_API_KEY. Add your Tyndale NLT.TO API key to the web app environment.')
   }
@@ -30,19 +32,21 @@ function getNltApiKey(): string {
 // particular), but it does reliably resolve full English book names, so map
 // to those instead. Verified against the live API for all 66 books.
 const NLT_BOOK_NAMES: Record<string, string> = {
-  Gen: 'Genesis', Exod: 'Exodus', Lev: 'Leviticus', Num: 'Numbers', Deut: 'Deuteronomy',
-  Josh: 'Joshua', Judg: 'Judges', Ruth: 'Ruth', '1Sam': '1 Samuel', '2Sam': '2 Samuel',
-  '1Kgs': '1 Kings', '2Kgs': '2 Kings', '1Chr': '1 Chronicles', '2Chr': '2 Chronicles',
-  Ezra: 'Ezra', Neh: 'Nehemiah', Esth: 'Esther', Job: 'Job', Ps: 'Psalm', Prov: 'Proverbs',
-  Eccl: 'Ecclesiastes', Song: 'Song of Songs', Isa: 'Isaiah', Jer: 'Jeremiah', Lam: 'Lamentations',
-  Ezek: 'Ezekiel', Dan: 'Daniel', Hos: 'Hosea', Joel: 'Joel', Amos: 'Amos', Obad: 'Obadiah',
-  Jonah: 'Jonah', Mic: 'Micah', Nah: 'Nahum', Hab: 'Habakkuk', Zeph: 'Zephaniah', Hag: 'Haggai',
-  Zech: 'Zechariah', Mal: 'Malachi', Matt: 'Matthew', Mark: 'Mark', Luke: 'Luke', John: 'John',
-  Acts: 'Acts', Rom: 'Romans', '1Cor': '1 Corinthians', '2Cor': '2 Corinthians', Gal: 'Galatians',
-  Eph: 'Ephesians', Phil: 'Philippians', Col: 'Colossians', '1Thess': '1 Thessalonians',
-  '2Thess': '2 Thessalonians', '1Tim': '1 Timothy', '2Tim': '2 Timothy', Titus: 'Titus',
-  Phlm: 'Philemon', Heb: 'Hebrews', Jas: 'James', '1Pet': '1 Peter', '2Pet': '2 Peter',
-  '1John': '1 John', '2John': '2 John', '3John': '3 John', Jude: 'Jude', Rev: 'Revelation',
+  Gen: 'Genesis', Exod: 'Exodus', Exo: 'Exodus', Lev: 'Leviticus', Num: 'Numbers', Deut: 'Deuteronomy', Deu: 'Deuteronomy',
+  Josh: 'Joshua', Jos: 'Joshua', Judg: 'Judges', Jdg: 'Judges', Ruth: 'Ruth', Rut: 'Ruth', '1Sam': '1 Samuel', '1Sa': '1 Samuel', '2Sam': '2 Samuel', '2Sa': '2 Samuel',
+  '1Kgs': '1 Kings', '1Ki': '1 Kings', '2Kgs': '2 Kings', '2Ki': '2 Kings', '1Chr': '1 Chronicles', '1Ch': '1 Chronicles', '2Chr': '2 Chronicles', '2Ch': '2 Chronicles',
+  Ezra: 'Ezra', Ezr: 'Ezra', Neh: 'Nehemiah', Esth: 'Esther', Est: 'Esther', Job: 'Job', Ps: 'Psalm', Psa: 'Psalm', Prov: 'Proverbs', Pro: 'Proverbs',
+  Eccl: 'Ecclesiastes', Ecc: 'Ecclesiastes', Song: 'Song of Songs', Sng: 'Song of Songs', Son: 'Song of Songs', Isa: 'Isaiah', Jer: 'Jeremiah', Lam: 'Lamentations',
+  Ezek: 'Ezekiel', Eze: 'Ezekiel', Dan: 'Daniel', Hos: 'Hosea', Joel: 'Joel', Joe: 'Joel', Amos: 'Amos', Amo: 'Amos', Obad: 'Obadiah', Oba: 'Obadiah',
+  Jonah: 'Jonah', Jon: 'Jonah', Mic: 'Micah', Nah: 'Nahum', Hab: 'Habakkuk', Zeph: 'Zephaniah', Zep: 'Zephaniah', Hag: 'Haggai', Zech: 'Zechariah', Zec: 'Zechariah', Mal: 'Malachi',
+  Matt: 'Matthew', Mat: 'Matthew', Mark: 'Mark', Mar: 'Mark', Luke: 'Luke', Luk: 'Luke', John: 'John', Joh: 'John', Jn: 'John', Acts: 'Acts', Act: 'Acts', Rom: 'Romans',
+  '1Cor': '1 Corinthians', '1Co': '1 Corinthians', '2Cor': '2 Corinthians', '2Co': '2 Corinthians', Gal: 'Galatians', Eph: 'Ephesians', Phil: 'Philippians', Php: 'Philippians', Phi: 'Philippians', Col: 'Colossians',
+  '1Thess': '1 Thessalonians', '1Th': '1 Thessalonians', '2Thess': '2 Thessalonians', '2Th': '2 Thessalonians',
+  '1Tim': '1 Timothy', '1Ti': '1 Timothy', '2Tim': '2 Timothy', '2Ti': '2 Timothy',
+  Titus: 'Titus', Tit: 'Titus', Phlm: 'Philemon', Phm: 'Philemon', Heb: 'Hebrews', Jas: 'James', Jam: 'James',
+  '1Pet': '1 Peter', '1Pe': '1 Peter', '2Pet': '2 Peter', '2Pe': '2 Peter',
+  '1John': '1 John', '1Jo': '1 John', '1Jn': '1 John', '2John': '2 John', '2Jo': '2 John', '2Jn': '2 John',
+  '3John': '3 John', '3Jo': '3 John', '3Jn': '3 John', Jude: 'Jude', Jud: 'Jude', Rev: 'Revelation',
 }
 
 function resolveNltBookName(bookId: string): string {
@@ -85,6 +89,27 @@ function normalizeNltHtml(html: string): string {
 
   bibleText.querySelector('h2.bk_ch_vs_header')?.remove()
   return bibleText.innerHTML
+}
+
+export async function probeNltPassage(bookId: string, chapter: number): Promise<boolean> {
+  try {
+    const key = getNltApiKey()
+    const ref = `${resolveNltBookName(bookId)}.${chapter}`
+    const url = new URL(`${NLT_API_BASE}/passages`)
+    url.searchParams.set('ref', ref)
+    url.searchParams.set('version', 'NLT')
+    url.searchParams.set('key', key)
+
+    const response = await fetch(url.toString())
+    if (!response.ok) return false
+
+    const document = await response.text()
+    const bibleTextHtml = extractBibleTextHtml(document)
+    const headerMatch = bibleTextHtml.match(/<h2 class="bk_ch_vs_header">([^<]*)<\/h2>/)
+    return Boolean(headerMatch)
+  } catch {
+    return false
+  }
 }
 
 export async function fetchNltPassage(bookId: string, chapter: number): Promise<NltPassage> {

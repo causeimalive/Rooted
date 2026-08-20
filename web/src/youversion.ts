@@ -75,7 +75,9 @@ export interface YouVersionLanguageOptions {
 }
 
 function getAppKey(): string {
-  const key = import.meta.env.VITE_YVP_APP_KEY?.trim()
+  const fromVite = typeof import.meta.env !== 'undefined' ? (import.meta.env.VITE_YVP_APP_KEY?.trim() as string | undefined) : undefined
+  const fromProcess = typeof process !== 'undefined' ? process.env?.VITE_YVP_APP_KEY?.trim() : undefined
+  const key = fromVite ?? fromProcess
   if (!key) {
     throw new Error('Missing VITE_YVP_APP_KEY. Add your YouVersion app key to the web app environment.')
   }

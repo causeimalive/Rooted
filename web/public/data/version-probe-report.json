@@ -1,0 +1,368 @@
+[
+  {
+    "id": -1,
+    "title": "King James Version",
+    "abbreviation": "KJV",
+    "ok": true,
+    "failures": [],
+    "details": {}
+  },
+  {
+    "id": -2,
+    "title": "New Living Translation",
+    "abbreviation": "NLT",
+    "ok": true,
+    "failures": [],
+    "details": {}
+  },
+  {
+    "id": 12,
+    "title": "American Standard Version",
+    "abbreviation": "ASV",
+    "ok": true,
+    "failures": [],
+    "details": {}
+  },
+  {
+    "id": 42,
+    "title": "Catholic Public Domain Version",
+    "abbreviation": "CPDV",
+    "ok": false,
+    "failures": [
+      "Gen.1",
+      "Exod.20",
+      "Psa.19",
+      "Jon.1",
+      "Mat.5",
+      "Act.1",
+      "1Co.13",
+      "Rev.1"
+    ],
+    "details": {
+      "Gen.1": "Request failed with status 404",
+      "Exod.20": "Request failed with status 404",
+      "Psa.19": "Request failed with status 404",
+      "Jon.1": "Request failed with status 404",
+      "Mat.5": "Request failed with status 404",
+      "Act.1": "Request failed with status 404",
+      "1Co.13": "Request failed with status 404",
+      "Rev.1": "Request failed with status 404"
+    }
+  },
+  {
+    "id": 100,
+    "title": "New American Standard Bible 1995",
+    "abbreviation": "NASB1995",
+    "ok": false,
+    "failures": [
+      "Gen.1",
+      "Exod.20",
+      "Psa.19",
+      "Jon.1",
+      "Mat.5",
+      "Act.1",
+      "1Co.13",
+      "Rev.1"
+    ],
+    "details": {
+      "Gen.1": "no sources",
+      "Exod.20": "no sources",
+      "Psa.19": "no sources",
+      "Jon.1": "no sources",
+      "Mat.5": "no sources",
+      "Act.1": "no sources",
+      "1Co.13": "no sources",
+      "Rev.1": "no sources"
+    }
+  },
+  {
+    "id": 110,
+    "title": "New International Reader’s Version 2014",
+    "abbreviation": "NIrV",
+    "ok": false,
+    "failures": [
+      "Gen.1",
+      "Exod.20",
+      "Psa.19",
+      "Jon.1",
+      "Mat.5",
+      "Act.1",
+      "1Co.13",
+      "Rev.1"
+    ],
+    "details": {
+      "Gen.1": "Request failed with status 404",
+      "Exod.20": "Request failed with status 404",
+      "Psa.19": "Request failed with status 404",
+      "Jon.1": "Request failed with status 404",
+      "Mat.5": "Request failed with status 404",
+      "Act.1": "Request failed with status 404",
+      "1Co.13": "Request failed with status 404",
+      "Rev.1": "Request failed with status 404"
+    }
+  },
+  {
+    "id": 111,
+    "title": "New International Version 2011",
+    "abbreviation": "NIV11",
+    "ok": true,
+    "failures": [],
+    "details": {}
+  },
+  {
+    "id": 113,
+    "title": "New International Version (Anglicized) 2011",
+    "abbreviation": "NIVUK11",
+    "ok": false,
+    "failures": [
+      "Gen.1",
+      "Exod.20",
+      "Psa.19",
+      "Jon.1",
+      "Mat.5",
+      "Act.1",
+      "1Co.13",
+      "Rev.1"
+    ],
+    "details": {
+      "Gen.1": "Request failed with status 404",
+      "Exod.20": "Request failed with status 404",
+      "Psa.19": "Request failed with status 404",
+      "Jon.1": "Request failed with status 404",
+      "Mat.5": "Request failed with status 404",
+      "Act.1": "Request failed with status 404",
+      "1Co.13": "Request failed with status 404",
+      "Rev.1": "Request failed with status 404"
+    }
+  },
+  {
+    "id": 130,
+    "title": "The Orthodox Jewish Bible",
+    "abbreviation": "TOJB2011",
+    "ok": true,
+    "failures": [],
+    "details": {}
+  },
+  {
+    "id": 206,
+    "title": "World English Bible, American English Edition, without Strong's Numbers",
+    "abbreviation": "engWEBUS",
+    "ok": true,
+    "failures": [],
+    "details": {}
+  },
+  {
+    "id": 1207,
+    "title": "World Messianic Bible British Edition",
+    "abbreviation": "WMBBE",
+    "ok": true,
+    "failures": [],
+    "details": {}
+  },
+  {
+    "id": 1209,
+    "title": "World Messianic Bible",
+    "abbreviation": "WMB",
+    "ok": true,
+    "failures": [],
+    "details": {}
+  },
+  {
+    "id": 1588,
+    "title": "Amplified Bible",
+    "abbreviation": "AMP",
+    "ok": false,
+    "failures": [
+      "Gen.1",
+      "Exod.20",
+      "Psa.19",
+      "Jon.1",
+      "Mat.5",
+      "Act.1",
+      "1Co.13",
+      "Rev.1"
+    ],
+    "details": {
+      "Gen.1": "no sources",
+      "Exod.20": "no sources",
+      "Psa.19": "no sources",
+      "Jon.1": "no sources",
+      "Mat.5": "no sources",
+      "Act.1": "no sources",
+      "1Co.13": "no sources",
+      "Rev.1": "no sources"
+    }
+  },
+  {
+    "id": 1849,
+    "title": "The Passion Translation (In Review)",
+    "abbreviation": "TPT",
+    "ok": false,
+    "failures": [
+      "Gen.1",
+      "Exod.20",
+      "Psa.19",
+      "Jon.1",
+      "Mat.5",
+      "Act.1",
+      "1Co.13",
+      "Rev.1"
+    ],
+    "details": {
+      "Gen.1": "no sources",
+      "Exod.20": "no sources",
+      "Psa.19": "no sources",
+      "Jon.1": "no sources",
+      "Mat.5": "no sources",
+      "Act.1": "no sources",
+      "1Co.13": "no sources",
+      "Rev.1": "no sources"
+    }
+  },
+  {
+    "id": 1932,
+    "title": "Free Bible Version",
+    "abbreviation": "FBV",
+    "ok": true,
+    "failures": [],
+    "details": {}
+  },
+  {
+    "id": 2079,
+    "title": "EasyEnglish Bible 2024",
+    "abbreviation": "EASY",
+    "ok": false,
+    "failures": [
+      "Gen.1",
+      "Exod.20",
+      "Psa.19",
+      "Jon.1",
+      "Mat.5",
+      "Act.1",
+      "1Co.13",
+      "Rev.1"
+    ],
+    "details": {
+      "Gen.1": "no sources",
+      "Exod.20": "no sources",
+      "Psa.19": "no sources",
+      "Jon.1": "no sources",
+      "Mat.5": "no sources",
+      "Act.1": "no sources",
+      "1Co.13": "no sources",
+      "Rev.1": "no sources"
+    }
+  },
+  {
+    "id": 2163,
+    "title": "Geneva Bible",
+    "abbreviation": "enggnv",
+    "ok": true,
+    "failures": [],
+    "details": {}
+  },
+  {
+    "id": 2530,
+    "title": "Plain English Version (Aboriginal)",
+    "abbreviation": "PEV",
+    "ok": false,
+    "failures": [
+      "Gen.1",
+      "Exod.20",
+      "Psa.19",
+      "Jon.1",
+      "Mat.5",
+      "Act.1",
+      "1Co.13",
+      "Rev.1"
+    ],
+    "details": {
+      "Gen.1": "Request failed with status 404",
+      "Exod.20": "Request failed with status 404",
+      "Psa.19": "Request failed with status 404",
+      "Jon.1": "Request failed with status 404",
+      "Mat.5": "Request failed with status 404",
+      "Act.1": "Request failed with status 404",
+      "1Co.13": "Request failed with status 404",
+      "Rev.1": "Request failed with status 404"
+    }
+  },
+  {
+    "id": 2660,
+    "title": "Literal Standard Version",
+    "abbreviation": "LSV",
+    "ok": true,
+    "failures": [],
+    "details": {}
+  },
+  {
+    "id": 2692,
+    "title": "New American Standard Bible 2020",
+    "abbreviation": "NASB2020",
+    "ok": false,
+    "failures": [
+      "Gen.1",
+      "Exod.20",
+      "Psa.19",
+      "Jon.1",
+      "Mat.5",
+      "Act.1",
+      "1Co.13",
+      "Rev.1"
+    ],
+    "details": {
+      "Gen.1": "no sources",
+      "Exod.20": "no sources",
+      "Psa.19": "no sources",
+      "Jon.1": "no sources",
+      "Mat.5": "no sources",
+      "Act.1": "no sources",
+      "1Co.13": "no sources",
+      "Rev.1": "no sources"
+    }
+  },
+  {
+    "id": 3034,
+    "title": "Berean Standard Bible",
+    "abbreviation": "BSB",
+    "ok": false,
+    "failures": [
+      "Gen.1",
+      "Exod.20",
+      "Psa.19",
+      "Jon.1",
+      "Mat.5",
+      "Act.1",
+      "1Co.13",
+      "Rev.1"
+    ],
+    "details": {
+      "Gen.1": "Request failed with status 404",
+      "Exod.20": "Request failed with status 404",
+      "Psa.19": "Request failed with status 404",
+      "Jon.1": "Request failed with status 404",
+      "Mat.5": "Request failed with status 404",
+      "Act.1": "Request failed with status 404",
+      "1Co.13": "Request failed with status 404",
+      "Rev.1": "Request failed with status 404"
+    }
+  },
+  {
+    "id": 3427,
+    "title": "The Text-Critical English New Testament",
+    "abbreviation": "TCENT",
+    "ok": false,
+    "failures": [
+      "Gen.1",
+      "Exod.20",
+      "Psa.19",
+      "Jon.1"
+    ],
+    "details": {
+      "Gen.1": "Request failed with status 404",
+      "Exod.20": "Request failed with status 404",
+      "Psa.19": "Request failed with status 404",
+      "Jon.1": "Request failed with status 404"
+    }
+  }
+]
