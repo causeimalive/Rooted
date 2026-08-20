@@ -281,6 +281,10 @@ function formatPassageError(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
+function isLocalVersionId(versionId: number | null): boolean {
+  return versionId === LOCAL_KJV_VERSION_ID || versionId === LOCAL_NLT_VERSION_ID
+}
+
 function transformPassageForBrowser(
   content: string,
   bookId?: string,
@@ -288,6 +292,7 @@ function transformPassageForBrowser(
   tagPositionsByVerseId: Record<string, { wordIndex: number; tag: string }[]> = {},
   bookNumberById: Record<string, number> = {},
   entityHighlightsEnabled = false,
+  isLocal = false,
 ): { html: string; text: string } {
   if (/^\s*Access denied/i.test(content)) {
     return {
@@ -295,10 +300,13 @@ function transformPassageForBrowser(
       text: 'This translation requires a YouVersion account or is not available in your region. Sign in to read it.',
     }
   }
-  const html = transformBibleHtml(content, {
-    parseHtml: (value) => new DOMParser().parseFromString(value, 'text/html'),
-    serializeHtml: (doc) => doc.body.innerHTML,
-  }).html
+  let html = content
+  if (!isLocal) {
+    html = transformBibleHtml(content, {
+      parseHtml: (value) => new DOMParser().parseFromString(value, 'text/html'),
+      serializeHtml: (doc) => doc.body.innerHTML,
+    }).html
+  }
   let marked = bookId && chapter !== undefined ? applyRedLetterMarkup(html, bookId, chapter) : html
   if (bookId && chapter !== undefined && entityHighlightsEnabled && Object.keys(tagPositionsByVerseId).length > 0) {
     marked = applyEntityMarkup(marked, bookId, chapter, tagPositionsByVerseId, bookNumberById)
@@ -1720,27 +1728,15 @@ export default function YouVersionReaderTab({
 
       const passage = await loadPassageForVersion(versionId, reference)
       if (!passage) return null
-      const isLocal = versionId === LOCAL_KJV_VERSION_ID || versionId === LOCAL_NLT_VERSION_ID
-      let html: string
-      if (isLocal) {
-        let marked = passage.content
-        if (reference.bookId && reference.chapter !== undefined) {
-          marked = applyRedLetterMarkup(marked, reference.bookId, reference.chapter)
-          if (entityHighlightsEnabled && Object.keys(tagPositionsByVerseId).length > 0) {
-            marked = applyEntityMarkup(marked, reference.bookId, reference.chapter, tagPositionsByVerseId, bookNumberById)
-          }
-        }
-        html = marked
-      } else {
-        html = transformPassageForBrowser(
-          passage.content,
-          reference.bookId,
-          reference.chapter,
-          tagPositionsByVerseId,
-          bookNumberById,
-          entityHighlightsEnabled,
-        ).html
-      }
+      const transformed = transformPassageForBrowser(
+        passage.content,
+        reference.bookId,
+        reference.chapter,
+        tagPositionsByVerseId,
+        bookNumberById,
+        entityHighlightsEnabled,
+        isLocalVersionId(versionId),
+      )
 
       const section: ReaderSection = {
         key: chapterReference,
@@ -1748,9 +1744,9 @@ export default function YouVersionReaderTab({
         chapter: reference.chapter,
         reference: passage.reference || chapterReference,
         passageId: passage.id,
-        content: html,
-        plainText: new DOMParser().parseFromString(html, 'text/html').body.textContent ?? '',
-        verses: extractVerseBlocks(html),
+        content: transformed.html,
+        plainText: transformed.text,
+        verses: extractVerseBlocks(transformed.html),
       }
 
       sectionCacheRef.current.set(cacheKey, section)
@@ -1787,6 +1783,7 @@ export default function YouVersionReaderTab({
         tagPositionsByVerseId,
         bookNumberById,
         entityHighlightsEnabled,
+        isLocalVersionId(currentVersionId),
       )
       const compareTransformed = comparePassage
         ? transformPassageForBrowser(
@@ -1796,6 +1793,7 @@ export default function YouVersionReaderTab({
             tagPositionsByVerseId,
             bookNumberById,
             entityHighlightsEnabled,
+            isLocalVersionId(nextCompareVersionId),
           )
         : { html: '', text: '' }
 
@@ -2688,8 +2686,16 @@ export default function YouVersionReaderTab({
   const compareCurrentPassageHtml = useMemo(() => {
     if (!compareCurrentPassage) return ''
     const ref = parsePassageId(compareCurrentPassage.id)
-    return transformPassageForBrowser(compareCurrentPassage.content, ref?.bookId, ref?.chapter, tagPositionsByVerseId, bookNumberById, entityHighlightsEnabled).html
-  }, [compareCurrentPassage, tagPositionsByVerseId, bookNumberById, entityHighlightsEnabled, compareVersionId])
+    return transformPassageForBrowser(
+      compareCurrentPassage.content,
+      ref?.bookId,
+      ref?.chapter,
+      tagPositionsByVerseId,
+      bookNumberById,
+      entityHighlightsEnabled,
+      isLocalVersionId(resolvedVersionId),
+    ).html
+  }, [compareCurrentPassage, tagPositionsByVerseId, bookNumberById, entityHighlightsEnabled, resolvedVersionId])
   const compareCurrentVerses = useMemo(
     () => (compareCurrentPassageHtml ? extractVerseBlocks(compareCurrentPassageHtml) : []),
     [compareCurrentPassageHtml],
@@ -2697,7 +2703,15 @@ export default function YouVersionReaderTab({
   const comparePassageHtml = useMemo(() => {
     if (!comparePassage) return ''
     const ref = parsePassageId(comparePassage.id)
-    return transformPassageForBrowser(comparePassage.content, ref?.bookId, ref?.chapter, tagPositionsByVerseId, bookNumberById, entityHighlightsEnabled).html
+    return transformPassageForBrowser(
+      comparePassage.content,
+      ref?.bookId,
+      ref?.chapter,
+      tagPositionsByVerseId,
+      bookNumberById,
+      entityHighlightsEnabled,
+      isLocalVersionId(compareVersionId),
+    ).html
   }, [comparePassage, tagPositionsByVerseId, bookNumberById, entityHighlightsEnabled, compareVersionId])
   const comparePassageVerses = useMemo(
     () => (comparePassageHtml ? extractVerseBlocks(comparePassageHtml) : []),
