@@ -61,7 +61,7 @@ function extractBibleTextHtml(document: string): string {
 // verse blocks the same way it does for live YouVersion content.
 function normalizeNltHtml(html: string): string {
   const doc = new DOMParser().parseFromString(html, 'text/html')
-  const bibleText = doc.querySelector('#bibletext')
+  const bibleText = doc.body
   if (!bibleText) return html
 
   bibleText.querySelectorAll('h2.chapter-number').forEach((node) => node.remove())
