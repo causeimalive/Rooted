@@ -141,11 +141,40 @@ function normalizeApiBibleContent(html: string): string {
   return doc.body.innerHTML
 }
 
+const OSIS_TO_API_BIBLE: Record<string, string> = {
+  Gen: 'GEN', Exod: 'EXO', Exo: 'EXO', Lev: 'LEV', Num: 'NUM', Deut: 'DEU', Deu: 'DEU',
+  Josh: 'JOS', Jos: 'JOS', Judg: 'JDG', Jdg: 'JDG', Ruth: 'RUT', Rut: 'RUT',
+  '1Sam': '1SA', '1Sa': '1SA', '2Sam': '2SA', '2Sa': '2SA',
+  '1Kgs': '1KI', '1Ki': '1KI', '2Kgs': '2KI', '2Ki': '2KI',
+  '1Chr': '1CH', '1Ch': '1CH', '2Chr': '2CH', '2Ch': '2CH',
+  Ezra: 'EZR', Ezr: 'EZR', Neh: 'NEH', Esth: 'EST', Est: 'EST', Job: 'JOB',
+  Ps: 'PSA', Psa: 'PSA', Prov: 'PRO', Pro: 'PRO', Eccl: 'ECC', Ecc: 'ECC',
+  Song: 'SNG', Sng: 'SNG', Cant: 'SNG', Isa: 'ISA', Jer: 'JER', Lam: 'LAM',
+  Ezek: 'EZE', Eze: 'EZE', Dan: 'DAN', Hos: 'HOS', Joel: 'JOL', Joe: 'JOL',
+  Amos: 'AMO', Amo: 'AMO', Obad: 'OBA', Oba: 'OBA', Jonah: 'JON', Jon: 'JON',
+  Mic: 'MIC', Micah: 'MIC', Nah: 'NAH', Hab: 'HAB', Zeph: 'ZEP', Zep: 'ZEP',
+  Hag: 'HAG', Zech: 'ZEC', Zec: 'ZEC', Mal: 'MAL', Malachi: 'MAL',
+  Matt: 'MAT', Mat: 'MAT', Mark: 'MRK', Mar: 'MRK', Luke: 'LUK', Luk: 'LUK',
+  John: 'JHN', Joh: 'JHN', Jn: 'JHN', Acts: 'ACT', Act: 'ACT', Rom: 'ROM',
+  '1Cor': '1CO', '1Co': '1CO', '2Cor': '2CO', '2Co': '2CO', Gal: 'GAL',
+  Eph: 'EPH', Phil: 'PHP', Php: 'PHP', Phi: 'PHP', Col: 'COL',
+  '1Thess': '1TH', '1Th': '1TH', '2Thess': '2TH', '2Th': '2TH',
+  '1Tim': '1TI', '1Ti': '1TI', '2Tim': '2TI', '2Ti': '2TI',
+  Titus: 'TIT', Tit: 'TIT', Phlm: 'PHM', Phm: 'PHM',
+  Heb: 'HEB', Jas: 'JAS', '1Pet': '1PE', '1Pe': '1PE', '2Pet': '2PE', '2Pe': '2PE',
+  '1John': '1JN', '1Jo': '1JN', '1Jn': '1JN', '2John': '2JN', '2Jo': '2JN', '2Jn': '2JN',
+  '3John': '3JN', '3Jo': '3JN', '3Jn': '3JN', Jude: 'JUD', Jud: 'JUD', Rev: 'REV',
+}
+
+function getApiBibleBookCode(bookId: string): string {
+  return OSIS_TO_API_BIBLE[bookId] ?? bookId.toUpperCase()
+}
+
 export async function fetchApiBiblePassage(
   bibleId: string,
   reference: ApiBibleReference,
 ): Promise<BiblePassage | null> {
-  const chapterId = `${reference.bookId.toUpperCase()}.${reference.chapter}`
+  const chapterId = `${getApiBibleBookCode(reference.bookId)}.${reference.chapter}`
   const result = await fetchWithKey<ApiBibleChapter>(`/bibles/${bibleId}/chapters/${chapterId}`)
   if (!result?.data?.content) return null
 
