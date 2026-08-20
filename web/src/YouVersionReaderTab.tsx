@@ -11,7 +11,7 @@ import { fetchNltPassage, NLT_ATTRIBUTION } from './nlt'
 import { fetchBibleApiPassage } from './bibleApiFallback'
 import { fetchApiBiblePassage } from './apiBible'
 import { resolveVersionSources } from './bibleSources'
-import { WORKING_VERSION_IDS } from './workingVersionIds'
+import { EXCLUDED_VERSION_IDS } from './workingVersionIds'
 import { Capacitor } from '@capacitor/core'
 import { useBibleClient, useBooks, useChapters, useHighlights, useVersion, useYVAuth } from '@youversion/platform-react-hooks'
 import {
@@ -552,6 +552,32 @@ const LOCAL_NLT_VERSION: VersionMenuEntry = {
   copyright: NLT_ATTRIBUTION,
 }
 
+// CSB and NKJV aren't in YouVersion's catalog for this app key at all, but
+// both are licensed and available through API.Bible, so they get their own
+// synthetic negative ids (like KJV/NLT above) routed entirely through
+// resolveVersionSources' generic API.Bible matching.
+const CSB_VERSION_ID = -3
+const CSB_VERSION: VersionMenuEntry = {
+  id: CSB_VERSION_ID,
+  title: 'Christian Standard Bible',
+  localized_title: 'Christian Standard Bible',
+  abbreviation: 'CSB',
+  localized_abbreviation: 'CSB',
+  language_tag: 'en',
+  copyright: '© 2017 Holman Bible Publishers. Used by permission. Christian Standard Bible®, and CSB® are federally registered trademarks of Holman Bible Publishers.',
+}
+
+const NKJV_VERSION_ID = -4
+const NKJV_VERSION: VersionMenuEntry = {
+  id: NKJV_VERSION_ID,
+  title: 'New King James Version',
+  localized_title: 'New King James Version',
+  abbreviation: 'NKJV',
+  localized_abbreviation: 'NKJV',
+  language_tag: 'en',
+  copyright: '© 1982 Thomas Nelson. Used by permission. All rights reserved.',
+}
+
 type VersionLike = {
   id: number
   title?: string
@@ -573,8 +599,12 @@ function isNltVersion(version: VersionLike | undefined): boolean {
   return version.id === LOCAL_NLT_VERSION_ID || /living translation/.test(title) || /\bnlt\b/.test(title)
 }
 
+// Any synthetic (non-YouVersion) catalog entry uses a negative id -- KJV,
+// NLT, and the API.Bible-only extras below (CSB, NKJV). These have no
+// YouVersion book/chapter list to fetch, so they all use the shared local
+// book navigation data instead.
 function isLocalFallbackVersion(version: VersionLike | undefined): boolean {
-  return isKjvVersion(version) || isNltVersion(version)
+  return typeof version?.id === 'number' && version.id < 0
 }
 
 function escapeHtml(value: string): string {
@@ -1058,17 +1088,24 @@ export default function YouVersionReaderTab({
   }, [compareVersionMenuOpen])
 
   const localFallbackBooks = useMemo(() => buildLocalFallbackBooks(), [])
-  const workingVersionIdSet = useMemo(() => new Set(WORKING_VERSION_IDS), [])
+  // Only versions explicitly confirmed broken (partial-Bible translations
+  // missing books/chapters, verified directly against the API) are hidden.
+  // Untested versions -- e.g. every non-English translation, since the probe
+  // only checks English -- are shown and rely on resolveVersionSources plus
+  // the reader's per-passage/per-pane error handling at read time.
+  const excludedVersionIdSet = useMemo(() => new Set(EXCLUDED_VERSION_IDS), [])
   const catalogVersions = useMemo(() => {
     const next = [
       LOCAL_KJV_VERSION,
       LOCAL_NLT_VERSION,
+      CSB_VERSION,
+      NKJV_VERSION,
       ...availableVersions.filter(
-        (entry) => !isLocalFallbackVersion(entry) && workingVersionIdSet.has(entry.id),
+        (entry) => !isLocalFallbackVersion(entry) && !excludedVersionIdSet.has(entry.id),
       ),
     ] as VersionMenuEntry[]
     return next.filter((entry, index, all) => all.findIndex((candidate) => candidate.id === entry.id) === index)
-  }, [availableVersions, workingVersionIdSet])
+  }, [availableVersions, excludedVersionIdSet])
   const pinnedVersionIdSet = useMemo(() => new Set(pinnedVersionIds), [pinnedVersionIds])
 
   useEffect(() => {
