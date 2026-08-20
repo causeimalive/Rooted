@@ -1,6 +1,9 @@
 const ANONYMOUS_USER_ID = 'anonymous'
 
-export type VersionBrowseLanguagePreference = 'auto' | 'en' | 'es' | 'all'
+// 'auto' follows the app's UI language; 'all' shows every language; any
+// other value is a real YouVersion language_tag (e.g. "en", "es", "fr",
+// "swh") derived from the live version catalog.
+export type VersionBrowseLanguagePreference = string
 export const VERSION_BROWSE_LANGUAGE_KEY = 'bible-study-yv-version-browse-language'
 export const VERSION_BROWSE_LANGUAGE_CHANGED_EVENT = 'bible-study-yv-version-browse-language-changed'
 export const VERSION_PINNED_KEY = 'bible-study-yv-version-pinned-ids'
@@ -27,7 +30,7 @@ export function removeUserPreference(userId: string | null | undefined, key: str
 }
 
 function isVersionBrowseLanguagePreference(value: string | null): value is VersionBrowseLanguagePreference {
-  return value === 'auto' || value === 'en' || value === 'es' || value === 'all'
+  return typeof value === 'string' && value.trim().length > 0
 }
 
 function parseVersionIdList(value: string | null): number[] {
@@ -71,8 +74,8 @@ export function setVersionBrowseLanguagePreference(
 export function resolveVersionBrowseLanguagePreference(
   preference: VersionBrowseLanguagePreference,
   appLanguage: string,
-): 'en' | 'es' | null {
+): string | null {
   if (preference === 'all') return null
-  if (preference === 'auto') return appLanguage.toLowerCase().startsWith('es') ? 'es' : 'en'
-  return preference
+  if (preference === 'auto') return appLanguage.toLowerCase().trim()
+  return preference.toLowerCase().trim()
 }

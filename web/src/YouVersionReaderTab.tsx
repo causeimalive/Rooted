@@ -24,7 +24,9 @@ import {
   VERSION_BROWSE_LANGUAGE_CHANGED_EVENT,
   VERSION_PINNED_CHANGED_EVENT,
   getVersionBrowseLanguagePreference,
+  setVersionBrowseLanguagePreference as persistVersionBrowseLanguagePreference,
 } from './userProfile'
+import { buildLanguageOptions } from './languageCatalog'
 import { transformBibleHtml, getHttpStatus, type BiblePassage, type BibleVersion } from '@youversion/platform-core'
 import { getCachedData, setCachedData } from './indexedStorage'
 import { getTestamentForBook, type Testament } from './bookTaxonomy'
@@ -660,31 +662,43 @@ function buildLocalKjvPassage(reference: ReaderReference, books: YouVersionBook[
   }
 }
 
+// Filters the version picker down to exactly the selected browse language
+// (an exact language_tag match -- not a prefix match, since prefix matching
+// on codes like "en" would also match unrelated tags such as "ena"/"enq").
+// `language === null` means "all languages", so no filtering happens. The
+// currently active version and any pinned versions always stay visible so
+// switching the language filter never hides what's already selected/pinned.
 function orderVersionsForBrowse(
   versions: readonly VersionMenuEntry[],
-  language: 'en' | 'es' | null,
+  language: string | null,
   activeVersionId?: number | null,
   pinnedVersionIds: readonly number[] = [],
 ): VersionMenuEntry[] {
-  const preferred = language?.toLowerCase() ?? ''
+  const preferred = language?.toLowerCase().trim() ?? ''
   const pinned = new Set(pinnedVersionIds)
+
+  const matchesLanguage = (entry: VersionMenuEntry): boolean => {
+    if (!preferred) return true
+    if (entry.id === activeVersionId || pinned.has(entry.id)) return true
+    return (entry.language_tag?.toLowerCase().trim() ?? '') === preferred
+  }
+
   const score = (entry: VersionMenuEntry): number => {
     if (isLocalFallbackVersion(entry)) return 0
     if (pinned.has(entry.id)) return 1
     if (entry.id === activeVersionId) return 2
-    const tag = entry.language_tag?.toLowerCase().trim() ?? ''
-    if (preferred && tag.startsWith(preferred)) return 3
-    if (tag.startsWith('en')) return 4
-    return 5
+    return 3
   }
 
-  return Array.from(versions).sort((a, b) => {
-    const groupDiff = score(a) - score(b)
-    if (groupDiff !== 0) return groupDiff
-    const titleA = (a.localized_title || a.title || a.abbreviation || '').toLowerCase()
-    const titleB = (b.localized_title || b.title || b.abbreviation || '').toLowerCase()
-    return titleA.localeCompare(titleB) || String(a.id).localeCompare(String(b.id))
-  })
+  return versions
+    .filter(matchesLanguage)
+    .sort((a, b) => {
+      const groupDiff = score(a) - score(b)
+      if (groupDiff !== 0) return groupDiff
+      const titleA = (a.localized_title || a.title || a.abbreviation || '').toLowerCase()
+      const titleB = (b.localized_title || b.title || b.abbreviation || '').toLowerCase()
+      return titleA.localeCompare(titleB) || String(a.id).localeCompare(String(b.id))
+    })
 }
 
 function formatChapterNavDestination(book: YouVersionBook | undefined, reference: ReaderReference | undefined, fallback: string): string {
@@ -801,8 +815,7 @@ export default function YouVersionReaderTab({
   onVersionChange?: (version: { id: number; name: string; abbreviation: string }) => void
   onLastReadChange?: (bookId: string, chapter: number, bookName: string) => void
 }) {
-  const { t, language, setLanguage } = useI18n()
-  const handleToggleLanguage = () => setLanguage(language === 'en' ? 'es' : 'en')
+  const { t, language } = useI18n()
   const { tagPositionsByVerseId } = useEntityData()
   const hasEntityData = Object.keys(tagPositionsByVerseId).length > 0
   const { auth, signOut, userInfo } = useYVAuth()
@@ -830,7 +843,15 @@ export default function YouVersionReaderTab({
       window.removeEventListener(VERSION_BROWSE_LANGUAGE_CHANGED_EVENT, syncLanguagePreference as EventListener)
       window.removeEventListener('storage', syncLanguagePreference)
     }
-  }, [userId])
+  }, [])
+
+  const handleSelectBrowseLanguage = useCallback(
+    (tag: string) => {
+      setVersionBrowseLanguagePreference(tag)
+      persistVersionBrowseLanguagePreference(userIdRef.current, tag)
+    },
+    [],
+  )
 
   useEffect(() => {
     const syncPinnedVersions = (event?: Event) => {
@@ -1088,6 +1109,12 @@ export default function YouVersionReaderTab({
   }, [compareVersionMenuOpen])
 
   const localFallbackBooks = useMemo(() => buildLocalFallbackBooks(), [])
+  // The single app-wide language control (replaces the old separate en/es
+  // toggle): every real language present in the live catalog, plus "auto"
+  // and "all". Selecting a specific language filters every version dropdown
+  // down to that language; selecting English or Spanish also changes the
+  // app's UI text (see the sync effect in App.tsx's SettingsMenu).
+  const languageOptions = useMemo(() => buildLanguageOptions(availableVersions), [availableVersions])
   // Only versions explicitly confirmed broken (partial-Bible translations
   // missing books/chapters, verified directly against the API) are hidden.
   // Untested versions -- e.g. every non-English translation, since the probe
@@ -1376,6 +1403,15 @@ export default function YouVersionReaderTab({
         return { value: entry.id, label: label.title, subtitle: label.subtitle }
       }),
     [compareBrowseVersions],
+  )
+
+  const mobileLanguageOptions = useMemo(
+    () => [
+      { value: 'auto', label: `Auto (${language.toUpperCase()})` },
+      { value: 'all', label: 'All languages' },
+      ...languageOptions.map((option) => ({ value: option.tag, label: option.label })),
+    ],
+    [language, languageOptions],
   )
 
   const activeVerseNumber = useMemo(() => {
@@ -3335,7 +3371,8 @@ export default function YouVersionReaderTab({
                 activeVerse={activeVerseNumber}
                 activeVersionId={resolvedVersionId}
                 activeCompareVersionId={compareVersionId}
-                activeLanguage={language}
+                languageOptions={mobileLanguageOptions}
+                activeBrowseLanguage={versionBrowseLanguagePreference}
                 audioAvailable={Boolean(audioUrl)}
                 audioLoading={audioLoading}
                 audioPlaying={audioPlaying}
@@ -3345,7 +3382,7 @@ export default function YouVersionReaderTab({
                 onSelectVerse={handleSelectVerse}
                 onSelectVersion={handleSelectCurrentVersion}
                 onSelectCompareVersion={handleSelectCompareVersion}
-                onToggleLanguage={handleToggleLanguage}
+                onSelectBrowseLanguage={handleSelectBrowseLanguage}
                 onToggleAudio={onToggleAudio}
               />
 

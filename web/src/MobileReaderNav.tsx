@@ -1,7 +1,6 @@
 import { memo, useState } from 'react'
 import { Loader2, Pause, Volume2 } from 'lucide-react'
 import MobileWheelPicker, { type WheelOption } from './MobileWheelPicker'
-import type { Language } from './i18n'
 
 type MobileReaderNavProps = {
   bookOptions: WheelOption<string>[]
@@ -14,7 +13,8 @@ type MobileReaderNavProps = {
   activeVerse?: number
   activeVersionId: number | null
   activeCompareVersionId?: number | null
-  activeLanguage: Language
+  languageOptions: WheelOption<string>[]
+  activeBrowseLanguage: string
   audioAvailable?: boolean
   audioLoading?: boolean
   audioPlaying?: boolean
@@ -24,7 +24,7 @@ type MobileReaderNavProps = {
   onSelectVerse: (verse: number) => void
   onSelectVersion: (id: number) => void
   onSelectCompareVersion?: (id: number) => void
-  onToggleLanguage: () => void
+  onSelectBrowseLanguage: (tag: string) => void
   onToggleAudio?: () => void
 }
 
@@ -39,7 +39,8 @@ function MobileReaderNav({
   activeVerse = 1,
   activeVersionId,
   activeCompareVersionId,
-  activeLanguage,
+  languageOptions,
+  activeBrowseLanguage,
   audioAvailable,
   audioLoading,
   audioPlaying,
@@ -49,15 +50,16 @@ function MobileReaderNav({
   onSelectVerse,
   onSelectVersion,
   onSelectCompareVersion,
-  onToggleLanguage,
+  onSelectBrowseLanguage,
   onToggleAudio,
 }: MobileReaderNavProps) {
-  const [open, setOpen] = useState<'book' | 'chapterVerse' | 'version' | 'compare' | null>(null)
+  const [open, setOpen] = useState<'book' | 'chapterVerse' | 'version' | 'compare' | 'language' | null>(null)
   const close = () => setOpen(null)
 
   const activeBook = bookOptions.find((book) => book.value === activeBookId)
   const activeVersion = versionOptions.find((version) => version.value === activeVersionId)
   const activeCompareVersion = compareVersionOptions?.find((version) => version.value === activeCompareVersionId)
+  const activeLanguageOption = languageOptions.find((option) => option.value === activeBrowseLanguage)
   const audioDisabled = !onToggleAudio || audioLoading || !audioAvailable
   const audioLabel = audioLoading ? 'Loading audio' : audioPlaying ? 'Pause audio' : 'Play audio'
   const audioIcon = audioLoading ? <Loader2 size={15} className="spin" /> : audioPlaying ? <Pause size={15} /> : <Volume2 size={15} />
@@ -77,9 +79,9 @@ function MobileReaderNav({
         <span className="mobile-reader-nav-label">Chapter / Verse</span>
         <span className="mobile-reader-nav-value">{activeChapter}:{activeVerse}</span>
       </button>
-      <button type="button" className="mobile-reader-nav-pill" onClick={onToggleLanguage} aria-label={`Switch app language to ${activeLanguage === 'en' ? 'Spanish' : 'English'}`} title={`Language · ${activeLanguage.toUpperCase()}`}>
+      <button type="button" className="mobile-reader-nav-pill" onClick={() => setOpen('language')} title="Language">
         <span className="mobile-reader-nav-label">Lang</span>
-        <span className="mobile-reader-nav-value">{activeLanguage.toUpperCase()}</span>
+        <span className="mobile-reader-nav-value">{activeLanguageOption?.label || 'Language'}</span>
       </button>
       <button type="button" className="mobile-reader-nav-pill mobile-reader-nav-pill--audio" onClick={() => void onToggleAudio?.()} aria-label={audioLabel} title={audioLabel} disabled={audioDisabled}>
         <span className="mobile-reader-nav-label">Audio</span>
@@ -138,6 +140,16 @@ function MobileReaderNav({
           closeOnSelect={false}
         />
       ) : null}
+      <MobileWheelPicker
+        open={open === 'language'}
+        onClose={close}
+        title="Language"
+        subtitle="Filters version dropdowns; English/Spanish also change app text"
+        options={languageOptions}
+        activeValue={activeBrowseLanguage}
+        onSelect={onSelectBrowseLanguage}
+        closeOnSelect
+      />
     </div>
   )
 }

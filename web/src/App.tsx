@@ -115,8 +115,11 @@ import {
   setUserPreference,
   getVersionBrowseLanguagePreference,
   setVersionBrowseLanguagePreference,
+  resolveVersionBrowseLanguagePreference,
+  VERSION_BROWSE_LANGUAGE_CHANGED_EVENT,
   type VersionBrowseLanguagePreference,
 } from './userProfile'
+import { buildLanguageOptions } from './languageCatalog'
 import { getWikipediaLink, useWikiImages, useWikiSummary, type WikiImage } from './wikipedia'
 import { useYVAuth } from '@youversion/platform-react-hooks'
 import { getYouVersionRedirectUrl } from './youversionRedirect'
@@ -226,7 +229,7 @@ const UI_SCALE_KEY = 'bible-study-ui-scale'
 
 function SettingsMenu({ lastReadBook, userId: propsUserId }: { lastReadBook: string; userId?: string | null }) {
   const { auth, userInfo } = useYVAuth()
-  const { language } = useI18n()
+  const { language, setLanguage } = useI18n()
   const userId = propsUserId ?? userInfo?.userId
   const [isOpen, setIsOpen] = useState(false)
   const [isVersionMenuOpen, setIsVersionMenuOpen] = useState(false)
@@ -259,10 +262,50 @@ function SettingsMenu({ lastReadBook, userId: propsUserId }: { lastReadBook: str
     setVersionBrowseLanguagePreference(userId, next)
   }, [userId])
 
+  // Stay in sync if the language is changed elsewhere (e.g. the reader's own
+  // quick-access language picker), and vice versa -- there's only one
+  // underlying preference now, shared everywhere via this event.
+  useEffect(() => {
+    const sync = () => setVersionBrowseLanguage(getVersionBrowseLanguagePreference(userId))
+    window.addEventListener(VERSION_BROWSE_LANGUAGE_CHANGED_EVENT, sync)
+    window.addEventListener('storage', sync)
+    return () => {
+      window.removeEventListener(VERSION_BROWSE_LANGUAGE_CHANGED_EVENT, sync)
+      window.removeEventListener('storage', sync)
+    }
+  }, [userId])
+
   const handleVersionBrowseLanguageChange = (next: VersionBrowseLanguagePreference) => {
     setVersionBrowseLanguage(next)
     setVersionBrowseLanguagePreference(userId, next)
   }
+
+  // The version-browse language is now the single app-wide language control.
+  // Only English/Spanish have real UI translations, so setLanguage silently
+  // no-ops for every other language -- Bible version filtering still applies
+  // to all of them via resolveVersionBrowseLanguagePreference elsewhere.
+  useEffect(() => {
+    const resolved = resolveVersionBrowseLanguagePreference(versionBrowseLanguage, language)
+    if (resolved) setLanguage(resolved as 'en' | 'es')
+  }, [versionBrowseLanguage, language, setLanguage])
+
+  const [versionLanguageOptions, setVersionLanguageOptions] = useState<{ tag: string; label: string }[]>([])
+  useEffect(() => {
+    let cancelled = false
+    const loadOptions = () => {
+      void getCachedData<BibleVersion[]>(ALL_VERSIONS_CACHE_KEY)
+        .then((cached) => {
+          if (!cancelled && cached?.length) setVersionLanguageOptions(buildLanguageOptions(cached))
+        })
+        .catch(() => {})
+    }
+    loadOptions()
+    window.addEventListener(ALL_VERSIONS_CACHE_UPDATED_EVENT, loadOptions)
+    return () => {
+      cancelled = true
+      window.removeEventListener(ALL_VERSIONS_CACHE_UPDATED_EVENT, loadOptions)
+    }
+  }, [])
 
   const [catalogVersionCount, setCatalogVersionCount] = useState<number | null>(null)
   useEffect(() => {
@@ -547,17 +590,20 @@ function SettingsMenu({ lastReadBook, userId: propsUserId }: { lastReadBook: str
                     </div>
                   </div>
                   <div className="header-settings-card">
-                    <span>Version browse language</span>
-                    <small>Reader dropdowns show this language first. Search still checks every version.</small>
+                    <span>App & version language</span>
+                    <small>Reader dropdowns show only this language. English and Spanish also change the app's text; other languages only affect Bible versions.</small>
                     <select
                       value={versionBrowseLanguage}
                       onChange={(event) => handleVersionBrowseLanguageChange(event.target.value as VersionBrowseLanguagePreference)}
-                      aria-label="Preferred Bible version language"
+                      aria-label="App and Bible version language"
                     >
                       <option value="auto">Auto ({language.toUpperCase()})</option>
-                      <option value="en">English</option>
-                      <option value="es">Spanish</option>
                       <option value="all">All languages</option>
+                      {versionLanguageOptions.map((option) => (
+                        <option key={option.tag} value={option.tag}>
+                          {option.label}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div className="header-settings-card header-settings-toggle">
@@ -646,7 +692,7 @@ export default function App() {
     }
   }, [isNative])
 
-  const { t, language, setLanguage } = useI18n()
+  const { t, language } = useI18n()
   const { auth: yvAuth, userInfo } = useYVAuth()
   const yvUserId = yvAuth.isAuthenticated ? userInfo?.userId : undefined
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -1022,15 +1068,6 @@ export default function App() {
           )}
           {!isNative && (
             <>
-              <button
-                type="button"
-                className="language-toggle"
-                onClick={() => setLanguage(language === 'en' ? 'es' : 'en')}
-                title={t('language')}
-                aria-label={`${t('language')} (${language.toUpperCase()})`}
-              >
-                <span aria-hidden="true">{language.toUpperCase()}</span>
-              </button>
               <button className="theme-toggle" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} title={theme === 'dark' ? t('lightMode') : t('darkMode')}>
                 {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
               </button>
