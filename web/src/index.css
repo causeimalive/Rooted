@@ -4882,9 +4882,10 @@ button.secondary {
   display: inline;
 }
 
-.yv-reader-passage-html .yv-v.yv-v-nlt {
-  display: block;
-  margin-bottom: 0.35rem;
+.yv-reader-passage-html .yv-nlt-subhead {
+  margin: 0.9rem 0 0.4rem;
+  font-size: 1.05rem;
+  font-weight: 700;
 }
 
 .yv-reader-passage-html .yv-v p,

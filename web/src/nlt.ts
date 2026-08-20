@@ -58,34 +58,73 @@ function extractBibleTextHtml(document: string): string {
   return match ? match[1] : document
 }
 
-// The NLT.TO API wraps each verse in a non-standard <verse_export> tag and
-// uses its own verse-label markup. Parse those verse_export blocks directly
-// so DOM repair doesn't bleed content across verse boundaries, then rewrite
-// each verse into a .yv-v[v] block with a .yv-vlbl number, which is the shape
-// the reader's extractVerseBlocks expects for chapter / verse / compare views.
+// The NLT.TO API's source HTML is print typesetting, not a clean per-verse
+// structure: a <p> commonly opens inside one <verse_export> and doesn't
+// close until a later one, so that a whole paragraph (e.g. three verses of
+// dialogue) is one print paragraph. A real HTML parse of the whole chapter
+// at once would (per the HTML5 <p> auto-close rules) turn those dangling
+// <p> tags into deep, incorrect *nesting* of subsequent verse_export
+// elements inside earlier ones -- producing duplicated/garbled content when
+// each verse is later extracted independently. verse_export boundaries in
+// the raw text are still well-formed and sequential, though, so this parses
+// verses directly out of the raw string with a regex instead of trusting a
+// DOM parse of the whole thing.
+//
+// Rather than try to faithfully reproduce NLT's print paragraph grouping
+// (which would require tracking open/close state across verse
+// boundaries), every verse's own <p>/</p> markup is stripped and each verse
+// is rendered as an inline .yv-v span, the same shape every other
+// translation's verses take in this reader (inline spans that flow
+// together within the chapter, not one block per verse). This keeps verse
+// boundaries correct for compare/hover/bookmark without any risk of the
+// nesting bug above, at the cost of NLT's exact print paragraph breaks.
 function normalizeNltHtml(html: string): string {
+  // NLT varies which heading level it uses for these by book/genre (e.g.
+  // Genesis uses <h2 class="chapter-number">/<h3 class="subhead">, Psalms
+  // uses <h3 class="chapter-number">/<h4 class="subhead">) -- match any
+  // heading level rather than hardcoding one, or the wrong-leveled heading
+  // leaks into the verse text unstripped.
   const cleaned = html
-    .replace(/<h2 class="chapter-number"[\s\S]*?<\/h2>/gi, '')
-    .replace(/<h2 class="bk_ch_vs_header"[\s\S]*?<\/h2>/gi, '')
+    .replace(/<h[1-6] class="chapter-number">[\s\S]*?<\/h[1-6]>/gi, '')
+    .replace(/<h[1-6] class="bk_ch_vs_header">[\s\S]*?<\/h[1-6]>/gi, '')
 
-  const verseBlocks: string[] = []
-  const verseExportPattern = /<verse_export\b([^>]*)vn="(\d+)"([^>]*)>([\s\S]*?)<\/verse_export>/gi
+  const blocks: string[] = []
+  const verseExportPattern = /<verse_export\b[^>]*vn="(\d+)"[^>]*>([\s\S]*?)<\/verse_export>/gi
   let match: RegExpExecArray | null
   while ((match = verseExportPattern.exec(cleaned))) {
-    const verseNumber = match[2].trim()
-    const innerDoc = new DOMParser().parseFromString(`<div>${match[4]}</div>`, 'text/html')
-    const innerRoot = innerDoc.body.firstElementChild
-    if (!innerRoot) continue
+    const verseNumber = match[1].trim()
+    let inner = match[2]
 
-    innerRoot.querySelectorAll('.vn').forEach((node) => {
-      node.classList.remove('vn')
-      node.classList.add('yv-vlbl')
+    // NLT occasionally places a new section subheading mid-chapter, inside
+    // whichever verse it precedes. Pull it out as its own heading block
+    // rather than nesting a block-level heading inside the inline verse
+    // span below (which HTML doesn't allow and browsers render
+    // inconsistently).
+    inner = inner.replace(/<(h[1-6]) class="subhead">([\s\S]*?)<\/\1>/gi, (_full, _tag: string, headingHtml: string) => {
+      blocks.push(`<h3 class="yv-nlt-subhead">${headingHtml}</h3>`)
+      return ''
     })
 
-    verseBlocks.push(`<div class="yv-v yv-v-nlt" v="${verseNumber}">${innerRoot.innerHTML.trim()}</div>`)
+    // Turn paragraph markup into line breaks instead of real <p> elements --
+    // see comment above for why real paragraphs aren't safe here. This still
+    // keeps multi-line poetry (e.g. Genesis 1:27) readable as separate
+    // lines instead of one run-on sentence.
+    inner = inner
+      .replace(/<p\b[^>]*>/gi, '<br>')
+      .replace(/<\/p>/gi, '')
+      .replace(/^(?:\s*<br>)+/i, '')
+      .replace(/(?:<br>\s*)+$/i, '')
+      .replace(/(?:<br>\s*){2,}/gi, '<br>')
+
+    inner = inner
+      .replace(/<span\b([^>]*?)class="vn"([^>]*?)>/gi, '<span$1class="yv-vlbl"$2>')
+      .replace(/class="vn"/gi, 'class="yv-vlbl"')
+      .trim()
+
+    blocks.push(`<span class="yv-v yv-v-nlt" v="${verseNumber}">${inner}</span>`)
   }
 
-  return verseBlocks.join(' ')
+  return blocks.join(' ')
 }
 
 export async function probeNltPassage(bookId: string, chapter: number): Promise<boolean> {
