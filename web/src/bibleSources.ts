@@ -19,43 +19,7 @@ export type SourceEntry =
   | { kind: 'bibleApi' }
   | { kind: 'youversion' }
 
-// Translations that cannot be served from any source currently wired in.
-const UNAVAILABLE_TITLES: string[] = [
-  'amplified bible',
-  'the message',
-  'new american standard bible',
-  'nasb 1995',
-  'new american standard bible 2020',
-  'english standard version',
-  'the passion translation',
-  'easy english bible',
-  'easy to read version',
-]
-
-function normalizeForMatch(value?: string | null): string {
-  return (value ?? '').toLowerCase().replace(/[^a-z0-9]/g, '')
-}
-
-export function isKnownUnavailableVersion(version: VersionMenuEntry): boolean {
-  const sources = [
-    normalizeForMatch(version.title),
-    normalizeForMatch(version.localized_title),
-    normalizeForMatch(version.abbreviation),
-    normalizeForMatch(version.localized_abbreviation),
-  ].filter(Boolean)
-
-  for (const source of sources) {
-    for (const unavailable of UNAVAILABLE_TITLES) {
-      const normalizedUnavailable = normalizeForMatch(unavailable)
-      if (source === normalizedUnavailable || source.includes(normalizedUnavailable)) return true
-    }
-  }
-  return false
-}
-
 export async function resolveVersionSources(version: VersionMenuEntry): Promise<SourceEntry[]> {
-  if (isKnownUnavailableVersion(version)) return []
-
   const sources: SourceEntry[] = []
 
   if (version.id === -1) {

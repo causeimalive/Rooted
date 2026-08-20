@@ -4,6 +4,7 @@ import { resolveVersionSources, type VersionMenuEntry } from '../src/bibleSource
 import { probeApiBiblePassage } from '../src/apiBible.ts'
 import { probeBibleApiPassage } from '../src/bibleApiFallback.ts'
 import { probeNltPassage } from '../src/nlt.ts'
+import { osisToUsfm } from '../src/usfm.ts'
 
 const envPath = new URL('../.env', import.meta.url)
 const envText = readFileSync(envPath, 'utf-8')
@@ -104,7 +105,8 @@ async function probeVersion(
           }
           lastError = 'bible-api.com probe failed'
         } else if (source.kind === 'youversion') {
-          const passage = await bibleClient.getPassage(version.id, formatRef(ref), 'html', true, true)
+          const usfmRef = formatRef({ bookId: osisToUsfm(ref.bookId), chapter: ref.chapter })
+          const passage = await bibleClient.getPassage(version.id, usfmRef, 'html', true, true)
           if (passage?.content && passage.content.length > 0) {
             success = true
             break

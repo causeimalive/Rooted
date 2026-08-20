@@ -1,1 +1,1 @@
-export const WORKING_VERSION_IDS: number[] = [-1, -2, 12, 111, 130, 206, 1207, 1209, 1932, 2163, 2660]
+export const WORKING_VERSION_IDS: number[] = [-1, -2, 12, 42, 100, 110, 111, 113, 130, 206, 1207, 1209, 1588, 1932, 2079, 2163, 2660, 2692, 3034]

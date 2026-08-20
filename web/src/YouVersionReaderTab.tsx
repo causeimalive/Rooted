@@ -10,7 +10,7 @@ import {
 import { fetchNltPassage, NLT_ATTRIBUTION } from './nlt'
 import { fetchBibleApiPassage } from './bibleApiFallback'
 import { fetchApiBiblePassage } from './apiBible'
-import { isKnownUnavailableVersion, resolveVersionSources } from './bibleSources'
+import { resolveVersionSources } from './bibleSources'
 import { WORKING_VERSION_IDS } from './workingVersionIds'
 import { Capacitor } from '@capacitor/core'
 import { useBibleClient, useBooks, useChapters, useHighlights, useVersion, useYVAuth } from '@youversion/platform-react-hooks'
@@ -41,6 +41,7 @@ import ReaderVersionSelector from './ReaderVersionSelector'
 import MobileReaderNav from './MobileReaderNav'
 import { useI18n } from './i18n'
 import { importYouVersionHighlights } from './storage'
+import { osisToUsfm } from './usfm'
 import type { Bookmark, ReaderView } from './types'
 
 const READER_VERSION_KEY = 'bible-study-yv-version'
@@ -1063,10 +1064,7 @@ export default function YouVersionReaderTab({
       LOCAL_KJV_VERSION,
       LOCAL_NLT_VERSION,
       ...availableVersions.filter(
-        (entry) =>
-          !isLocalFallbackVersion(entry) &&
-          !isKnownUnavailableVersion(entry) &&
-          workingVersionIdSet.has(entry.id),
+        (entry) => !isLocalFallbackVersion(entry) && workingVersionIdSet.has(entry.id),
       ),
     ] as VersionMenuEntry[]
     return next.filter((entry, index, all) => all.findIndex((candidate) => candidate.id === entry.id) === index)
@@ -1743,7 +1741,11 @@ export default function YouVersionReaderTab({
             const passage = await fetchBibleApiPassage(version, reference)
             if (passage) return passage
           } else if (source.kind === 'youversion') {
-            const chapterReference = formatReference(reference.bookId, reference.chapter)
+            // YouVersion's passage endpoint requires the exact-case USFM book
+            // code (e.g. "PSA", "1SA", "NAM"). Our internal reference.bookId
+            // can be OSIS-style mixed case (e.g. "Ps", "1Sam") when it comes
+            // from the local KJV/NLT fallback data, so normalize it here.
+            const chapterReference = formatReference(osisToUsfm(reference.bookId), reference.chapter)
             return await bibleClient.getPassage(versionId, chapterReference, 'html', true, true)
           }
         } catch (error) {
