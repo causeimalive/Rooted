@@ -981,7 +981,16 @@ export default function YouVersionReaderTab({
   const compareComparePaneRef = useRef<HTMLElement | null>(null)
   const compareVersionMenuRef = useRef<HTMLDivElement | null>(null)
   const compareLoadingMoreRef = useRef(false)
-  const readerSelectionSourceRef = useRef<'reader' | null>(null)
+  // Tracks the verseId we just asked the parent to select via onSelect(), so
+  // the effect below can tell "this selectedVerse update is the round-trip
+  // for our own navigation" apart from "the parent's selectedVerse prop just
+  // hasn't caught up yet". Without this, an in-flight (stale) selectedVerse
+  // from a previous, unrelated selection could get misread as confirmation
+  // of the new one and get written into referenceInput -- which then poisons
+  // anchorReference/navigationReference (used for prev/next chapter nav)
+  // with the wrong book/chapter even though the visible passage content
+  // (driven by bookId/chapter state directly) already updated correctly.
+  const pendingReaderSelectionIdRef = useRef<string | null>(null)
   const lastSelectedVerseIdRef = useRef<string | null>(null)
   const compareSelectionScrollKeyRef = useRef('')
 
@@ -2412,8 +2421,15 @@ export default function YouVersionReaderTab({
     if (!selectedVerse || !books.length) return
 
     const selectedVerseId = selectedVerse.id
-    if (readerSelectionSourceRef.current === 'reader') {
-      readerSelectionSourceRef.current = null
+    if (pendingReaderSelectionIdRef.current) {
+      if (selectedVerseId !== pendingReaderSelectionIdRef.current) {
+        // Parent hasn't propagated our navigation yet -- this is a stale
+        // prop update from before it. Ignore it rather than treating it as
+        // confirmation, so we don't overwrite referenceInput with the wrong
+        // (previous) book/chapter.
+        return
+      }
+      pendingReaderSelectionIdRef.current = null
       setReferenceInput(`${selectedVerse.bookName} ${selectedVerse.chapter}:${selectedVerse.verse}`)
       lastSelectedVerseIdRef.current = selectedVerseId
       return
@@ -2440,7 +2456,7 @@ export default function YouVersionReaderTab({
 
   const handleReaderVerseSelect = useCallback(
     (verseId: string) => {
-      readerSelectionSourceRef.current = 'reader'
+      pendingReaderSelectionIdRef.current = verseId
       onSelect(verseId)
     },
     [onSelect],
@@ -2586,8 +2602,13 @@ export default function YouVersionReaderTab({
     [activeBookId, currentIndexBook, visibleBooks],
   )
 
-  const chapterNavigationBookId = navigationReference?.bookId ?? currentIndexBook?.id ?? bookId
-  const chapterNavigationChapter = navigationReference?.chapter ?? currentChapter
+  // Deliberately NOT using navigationReference/anchorReference here: those
+  // can reflect a free-text reference-input parse rather than the passage
+  // actually on screen. currentIndexBook/currentChapter are the same state
+  // that drives the visible passage content, so prev/next chapter nav can
+  // never point somewhere different than what's currently displayed.
+  const chapterNavigationBookId = currentIndexBook?.id ?? bookId
+  const chapterNavigationChapter = currentChapter
 
   const resolveAdjacentReference = useMemo(() => {
     if (!chapterNavigationBookId) return { previous: undefined, next: undefined }
@@ -2626,7 +2647,7 @@ export default function YouVersionReaderTab({
     const bookCode = bookCodeById[reference.bookId] ?? reference.bookId
     const verseNum = reference.verse ?? 1
     const selectedVerseId = `${bookCode}.${reference.chapter}.${verseNum}`
-    readerSelectionSourceRef.current = 'reader'
+    pendingReaderSelectionIdRef.current = selectedVerseId
     onSelect(selectedVerseId)
   }, [bookCodeById, onSelect, setBookAndChapter, setFocusedSectionKey, setReferenceInput, setTargetVerse])
 
@@ -2896,9 +2917,10 @@ export default function YouVersionReaderTab({
       const rawBookId = chapterParts[0]
       const chapter = chapterParts[1]
       if (rawBookId && chapter) {
-        readerSelectionSourceRef.current = 'reader'
         const bookCode = bookCodeById[rawBookId] ?? rawBookId
-        onSelect(`${bookCode}.${chapter}.${verse}`)
+        const selectedVerseId = `${bookCode}.${chapter}.${verse}`
+        pendingReaderSelectionIdRef.current = selectedVerseId
+        onSelect(selectedVerseId)
         setReferenceInput(`${bookCode} ${chapter}:${verse}`)
       }
     },
