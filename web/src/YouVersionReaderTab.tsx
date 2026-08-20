@@ -10,6 +10,7 @@ import {
 import { fetchNltPassage, NLT_ATTRIBUTION } from './nlt'
 import { canUseBibleApi, fetchBibleApiPassage } from './bibleApiFallback'
 import { fetchApiBibleBibles, fetchApiBiblePassage, findApiBibleId } from './apiBible'
+import { isKnownUnavailableVersion } from './bibleSources'
 import { Capacitor } from '@capacitor/core'
 import { useBibleClient, useBooks, useChapters, useHighlights, useVersion, useYVAuth } from '@youversion/platform-react-hooks'
 import {
@@ -1058,7 +1059,7 @@ export default function YouVersionReaderTab({
     const next = [
       LOCAL_KJV_VERSION,
       LOCAL_NLT_VERSION,
-      ...availableVersions.filter((entry) => !isLocalFallbackVersion(entry)),
+      ...availableVersions.filter((entry) => !isLocalFallbackVersion(entry) && !isKnownUnavailableVersion(entry)),
     ] as VersionMenuEntry[]
     return next.filter((entry, index, all) => all.findIndex((candidate) => candidate.id === entry.id) === index)
   }, [availableVersions])

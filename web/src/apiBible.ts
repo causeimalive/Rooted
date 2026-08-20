@@ -41,6 +41,9 @@ type ApiBibleChapter = {
 
 const API_BASE = 'https://rest.api.bible/v1'
 
+let biblesCache: ApiBible[] | null = null
+let biblesPromise: Promise<ApiBible[]> | null = null
+
 function getApiKey(): string | null {
   return import.meta.env?.VITE_API_BIBLE_KEY ?? null
 }
@@ -63,8 +66,15 @@ async function fetchWithKey<T>(path: string, init?: RequestInit): Promise<T | nu
 }
 
 export async function fetchApiBibleBibles(): Promise<ApiBible[]> {
-  const result = await fetchWithKey<ApiBibleList>('/bibles')
-  return result?.data ?? []
+  if (biblesCache) return biblesCache
+  if (biblesPromise) return biblesPromise
+
+  biblesPromise = fetchWithKey<ApiBibleList>('/bibles').then((result) => {
+    biblesCache = result?.data ?? []
+    return biblesCache
+  })
+
+  return biblesPromise
 }
 
 function normalizeForMatch(value?: string | null): string {
