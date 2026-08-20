@@ -919,7 +919,21 @@ export default function YouVersionReaderTab({
     return Number.isFinite(saved) && saved !== 0 ? saved : null
   })
 
+  // YouVersion's auth state can briefly flicker (userInfo -> undefined ->
+  // userInfo again) during silent token refreshes, without the user actually
+  // signing out. userId is keyed into every stored preference, so naively
+  // re-running this hydration on every userId change would snap the reader
+  // back to whatever was last saved under the *other* bucket (e.g. the
+  // anonymous bucket's old book/chapter) mid-read, then back again on the
+  // next flicker -- visible as the reader repeatedly jumping between two
+  // books/chapters. Only hydrate once per distinct userId value actually
+  // seen, so a value flickering back to one we've already processed is a
+  // no-op instead of another reset.
+  const hydratedUserIdsRef = useRef<Set<string | undefined>>(new Set([userId]))
   useEffect(() => {
+    if (hydratedUserIdsRef.current.has(userId)) return
+    hydratedUserIdsRef.current.add(userId)
+
     const savedVersion = Number(getUserPreference(userId, READER_VERSION_KEY))
     setVersionId(Number.isFinite(savedVersion) && savedVersion !== 0 ? savedVersion : null)
     setBookId(getUserPreference(userId, READER_BOOK_KEY) ?? '')
