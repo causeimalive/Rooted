@@ -29,9 +29,11 @@ type ReaderBookListProps = {
   visibleBooks: YouVersionBook[]
   activeBookId: string
   onSelectBook: (bookId: string, chapter: number) => void
+  isLoading?: boolean
+  error?: string | null
 }
 
-function ReaderBookList({ visibleBooks, activeBookId, onSelectBook }: ReaderBookListProps) {
+function ReaderBookList({ visibleBooks, activeBookId, onSelectBook, isLoading, error }: ReaderBookListProps) {
   const rows = useMemo(() => visibleBooks.map((book) => ({ book, row: formatBookRow(book) })), [visibleBooks])
 
   const handleClick = useCallback(
@@ -51,6 +53,14 @@ function ReaderBookList({ visibleBooks, activeBookId, onSelectBook }: ReaderBook
       <div className="yv-reader-nav-section">
         <div className="yv-reader-nav-section-label">Books</div>
         <div className="yv-reader-book-list yv-reader-book-list-scroll">
+          {!visibleBooks.length && isLoading && (
+            <div className="yv-reader-empty-state">Loading books...</div>
+          )}
+          {!visibleBooks.length && !isLoading && (
+            <div className="yv-reader-empty-state">
+              {error ? `Could not load books: ${error}` : 'No books for this version'}
+            </div>
+          )}
           {rows.map(({ book, row }) => (
             <button
               key={book.id}

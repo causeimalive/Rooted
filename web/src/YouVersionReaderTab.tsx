@@ -1913,6 +1913,14 @@ export default function YouVersionReaderTab({
     setTestamentFilter(currentTestament)
   }, [currentIndexBook, testamentFilter])
 
+  useEffect(() => {
+    if (!books.length) return
+    if (testamentFilter === 'all') return
+    if (!visibleBooks.length) {
+      setTestamentFilter('all')
+    }
+  }, [books, visibleBooks, testamentFilter])
+
   const setBookAndChapter = useCallback((nextBookId: string, nextChapter: number) => {
     setBookId(nextBookId)
     setChapter(nextChapter)
@@ -3221,6 +3229,8 @@ export default function YouVersionReaderTab({
                 visibleBooks={visibleBooks}
                 activeBookId={activeBookId}
                 onSelectBook={handleSelectBook}
+                isLoading={!isLocalFallbackSelected && booksLoading}
+                error={booksError?.message}
               />
 
               <ReaderChapterList
