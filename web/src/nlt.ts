@@ -55,10 +55,9 @@ function extractBibleTextHtml(document: string): string {
 }
 
 // The NLT.TO API wraps each verse in a non-standard <verse_export> tag and
-// uses its own verse-label markup. Rewrite it into the same empty marker +
-// visible label structure the YouVersion HTML transformer expects, so the
-// rest of the reader pipeline (chapter / verse / compare cards) can extract
-// verse blocks the same way it does for live YouVersion content.
+// uses its own verse-label markup. Rewrite each verse into a .yv-v[v] block
+// with a .yv-vlbl number and the original content, which is the shape the
+// reader's extractVerseBlocks expects for chapter / verse / compare views.
 function normalizeNltHtml(html: string): string {
   const doc = new DOMParser().parseFromString(html, 'text/html')
   const bibleText = doc.body
@@ -68,29 +67,20 @@ function normalizeNltHtml(html: string): string {
 
   bibleText.querySelectorAll('verse_export').forEach((verseExport) => {
     const verseNumber = verseExport.getAttribute('vn')?.trim() ?? ''
-    const marker = doc.createElement('span')
-    marker.className = 'yv-v'
-    if (verseNumber) marker.setAttribute('v', verseNumber)
+    const wrapper = doc.createElement('div')
+    wrapper.className = 'yv-v'
+    if (verseNumber) wrapper.setAttribute('v', verseNumber)
 
-    const vn = verseExport.querySelector<HTMLElement>('.vn')
-    if (vn) {
-      vn.classList.remove('vn')
-      vn.classList.add('yv-vlbl')
-      vn.before(marker)
-    } else if (verseNumber) {
-      const label = doc.createElement('span')
-      label.className = 'yv-vlbl'
-      label.textContent = verseNumber
-      verseExport.insertBefore(marker, verseExport.firstChild)
-      verseExport.insertBefore(label, marker.nextSibling)
-    }
+    verseExport.querySelectorAll('.vn').forEach((node) => {
+      node.classList.remove('vn')
+      node.classList.add('yv-vlbl')
+    })
 
-    const parent = verseExport.parentNode
-    if (!parent) return
     while (verseExport.firstChild) {
-      parent.insertBefore(verseExport.firstChild, verseExport)
+      wrapper.appendChild(verseExport.firstChild)
     }
-    parent.removeChild(verseExport)
+
+    verseExport.replaceWith(wrapper)
   })
 
   bibleText.querySelector('h2.bk_ch_vs_header')?.remove()
