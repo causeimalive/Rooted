@@ -1766,13 +1766,14 @@ export default function YouVersionReaderTab({
   const loadCompareSectionForVersion = useCallback(
     async (currentVersionId: number, nextCompareVersionId: number, reference: ReaderReference): Promise<CompareSection | null> => {
       const chapterReference = formatReference(reference.bookId, reference.chapter)
-      const [currentPassage, comparePassage] = await Promise.all([
-        loadPassageForVersion(currentVersionId, reference),
-        loadPassageForVersion(nextCompareVersionId, reference),
-      ])
+      const currentPassage = await loadPassageForVersion(currentVersionId, reference)
+      if (!currentPassage) return null
 
-      if (!currentPassage || !comparePassage) {
-        throw new Error(PASSAGE_NOT_FOUND_MESSAGE)
+      let comparePassage: BiblePassage | null = null
+      try {
+        comparePassage = await loadPassageForVersion(nextCompareVersionId, reference)
+      } catch (error) {
+        if (!isAccessDeniedError(error) && !isPassageNotFoundError(error)) throw error
       }
 
       const currentTransformed = transformPassageForBrowser(
@@ -1784,23 +1785,26 @@ export default function YouVersionReaderTab({
         entityHighlightsEnabled,
         isLocalVersionId(currentVersionId),
       )
-      const compareTransformed = transformPassageForBrowser(
-        comparePassage.content,
-        reference.bookId,
-        reference.chapter,
-        tagPositionsByVerseId,
-        bookNumberById,
-        entityHighlightsEnabled,
-        isLocalVersionId(nextCompareVersionId),
-      )
+      const compareTransformed = comparePassage
+        ? transformPassageForBrowser(
+            comparePassage.content,
+            reference.bookId,
+            reference.chapter,
+            tagPositionsByVerseId,
+            bookNumberById,
+            entityHighlightsEnabled,
+            isLocalVersionId(nextCompareVersionId),
+          )
+        : { html: '', text: '' }
 
+      const missingComparePassage = { id: 'missing', content: '', reference: 'Unavailable' } as unknown as BiblePassage
       return {
         key: chapterReference,
         bookId: reference.bookId,
         chapter: reference.chapter,
-        reference: currentPassage.reference || comparePassage.reference || chapterReference,
+        reference: currentPassage.reference || comparePassage?.reference || chapterReference,
         currentPassage,
-        comparePassage,
+        comparePassage: comparePassage ?? missingComparePassage,
         currentHtml: currentTransformed.html,
         compareHtml: compareTransformed.html,
         currentVerses: extractVerseBlocks(currentTransformed.html),
