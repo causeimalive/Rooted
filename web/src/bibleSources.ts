@@ -1,3 +1,6 @@
+import { canUseBibleApi, fetchBibleApiPassage, type VersionMenuEntry as BibleApiVersionMenuEntry } from './bibleApiFallback'
+import { fetchApiBibleBibles, fetchApiBiblePassage, findApiBibleId, type ApiBibleVersionMatch } from './apiBible'
+
 export type VersionMenuEntry = {
   id: number
   title: string
@@ -9,28 +12,23 @@ export type VersionMenuEntry = {
   youversion_deep_link?: string | null
 }
 
-// Known major English translations that cannot currently be served from any
-// licensed source wired into the app. Keeping this list means the UI can hide
-// these versions from the dropdown instead of letting the user select a
-// translation that will 404 from every source.
-export const UNAVAILABLE_VERSION_TITLES: string[] = [
+export type SourceEntry =
+  | { kind: 'localKjv' }
+  | { kind: 'localNlt' }
+  | { kind: 'apiBible'; bibleId: string }
+  | { kind: 'bibleApi' }
+  | { kind: 'youversion' }
+
+// Translations that cannot be served from any source currently wired in.
+const UNAVAILABLE_TITLES: string[] = [
   'amplified bible',
-  'amplified',
-  'the amplified bible',
   'the message',
-  'message',
   'new american standard bible',
-  'nasb',
   'nasb 1995',
-  'nasb2020',
   'new american standard bible 2020',
   'english standard version',
-  'esv',
   'the passion translation',
-  'tpt',
-  'passion translation',
   'easy english bible',
-  'easy',
   'easy to read version',
 ]
 
@@ -47,10 +45,45 @@ export function isKnownUnavailableVersion(version: VersionMenuEntry): boolean {
   ].filter(Boolean)
 
   for (const source of sources) {
-    for (const unavailable of UNAVAILABLE_VERSION_TITLES) {
+    for (const unavailable of UNAVAILABLE_TITLES) {
       const normalizedUnavailable = normalizeForMatch(unavailable)
       if (source === normalizedUnavailable || source.includes(normalizedUnavailable)) return true
     }
   }
   return false
+}
+
+export async function resolveVersionSources(version: VersionMenuEntry): Promise<SourceEntry[]> {
+  if (isKnownUnavailableVersion(version)) return []
+
+  const sources: SourceEntry[] = []
+
+  if (version.id === -1) {
+    sources.push({ kind: 'localKjv' })
+    if (canUseBibleApi(version as BibleApiVersionMenuEntry)) {
+      sources.push({ kind: 'bibleApi' })
+    }
+    return sources
+  }
+
+  if (version.id === -2) {
+    sources.push({ kind: 'localNlt' })
+    return sources
+  }
+
+  const bibles = await fetchApiBibleBibles()
+  const apiBibleId = findApiBibleId(version as ApiBibleVersionMatch, bibles)
+  if (apiBibleId) {
+    sources.push({ kind: 'apiBible', bibleId: apiBibleId })
+  }
+
+  if (canUseBibleApi(version as BibleApiVersionMenuEntry)) {
+    sources.push({ kind: 'bibleApi' })
+  }
+
+  if (version.id > 0) {
+    sources.push({ kind: 'youversion' })
+  }
+
+  return sources
 }

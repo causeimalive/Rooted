@@ -8,9 +8,9 @@ import {
   type YouVersionVersion, 
 } from './youversion'
 import { fetchNltPassage, NLT_ATTRIBUTION } from './nlt'
-import { canUseBibleApi, fetchBibleApiPassage } from './bibleApiFallback'
-import { fetchApiBibleBibles, fetchApiBiblePassage, findApiBibleId } from './apiBible'
-import { isKnownUnavailableVersion } from './bibleSources'
+import { fetchBibleApiPassage } from './bibleApiFallback'
+import { fetchApiBiblePassage } from './apiBible'
+import { isKnownUnavailableVersion, resolveVersionSources } from './bibleSources'
 import { Capacitor } from '@capacitor/core'
 import { useBibleClient, useBooks, useChapters, useHighlights, useVersion, useYVAuth } from '@youversion/platform-react-hooks'
 import {
@@ -1712,31 +1712,39 @@ export default function YouVersionReaderTab({
 
   const loadPassageForVersion = useCallback(
     async (versionId: number, reference: ReaderReference): Promise<BiblePassage | null> => {
-      if (versionId === LOCAL_KJV_VERSION_ID) {
-        return buildLocalKjvPassage(reference, localFallbackBooks)
-      }
-      if (versionId === LOCAL_NLT_VERSION_ID) {
-        return fetchNltPassage(reference.bookId, reference.chapter)
-      }
-      const chapterReference = formatReference(reference.bookId, reference.chapter)
       const version = catalogVersions.find((entry) => entry.id === versionId)
-      try {
-        return await bibleClient.getPassage(versionId, chapterReference, 'html', true, true)
-      } catch (error) {
-        if (version) {
-          const bibles = await fetchApiBibleBibles()
-          const apiBibleId = findApiBibleId(version, bibles)
-          if (apiBibleId) {
-            const apiPassage = await fetchApiBiblePassage(apiBibleId, reference)
-            if (apiPassage) return apiPassage
-          }
-        }
+      if (!version) return null
 
-        if (!version || !canUseBibleApi(version)) throw error
-        const fallback = await fetchBibleApiPassage(version, reference)
-        if (!fallback) throw error
-        return fallback
+      const sources = await resolveVersionSources(version)
+      if (sources.length === 0) {
+        throw new Error('This version is not available for this passage.')
       }
+
+      let lastError: unknown = null
+      for (const source of sources) {
+        try {
+          if (source.kind === 'localKjv') {
+            const passage = buildLocalKjvPassage(reference, localFallbackBooks)
+            if (passage) return passage
+          } else if (source.kind === 'localNlt') {
+            return await fetchNltPassage(reference.bookId, reference.chapter)
+          } else if (source.kind === 'apiBible') {
+            const passage = await fetchApiBiblePassage(source.bibleId, reference)
+            if (passage) return passage
+          } else if (source.kind === 'bibleApi') {
+            const passage = await fetchBibleApiPassage(version, reference)
+            if (passage) return passage
+          } else if (source.kind === 'youversion') {
+            const chapterReference = formatReference(reference.bookId, reference.chapter)
+            return await bibleClient.getPassage(versionId, chapterReference, 'html', true, true)
+          }
+        } catch (error) {
+          if (!isAccessDeniedError(error) && !isPassageNotFoundError(error)) throw error
+          lastError = error
+        }
+      }
+
+      throw lastError ?? new Error('This version does not contain this passage.')
     },
     [bibleClient, catalogVersions, localFallbackBooks],
   )
