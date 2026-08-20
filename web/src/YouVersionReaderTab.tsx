@@ -8,6 +8,7 @@ import {
   type YouVersionVersion, 
 } from './youversion'
 import { fetchNltPassage, NLT_ATTRIBUTION } from './nlt'
+import { canUseBibleApi, fetchBibleApiPassage } from './bibleApiFallback'
 import { Capacitor } from '@capacitor/core'
 import { useBibleClient, useBooks, useChapters, useHighlights, useVersion, useYVAuth } from '@youversion/platform-react-hooks'
 import {
@@ -1714,9 +1715,17 @@ export default function YouVersionReaderTab({
         return fetchNltPassage(reference.bookId, reference.chapter)
       }
       const chapterReference = formatReference(reference.bookId, reference.chapter)
-      return bibleClient.getPassage(versionId, chapterReference, 'html', true, true)
+      const version = catalogVersions.find((entry) => entry.id === versionId)
+      try {
+        return await bibleClient.getPassage(versionId, chapterReference, 'html', true, true)
+      } catch (error) {
+        if (!version || !canUseBibleApi(version)) throw error
+        const fallback = await fetchBibleApiPassage(version, reference)
+        if (!fallback) throw error
+        return fallback
+      }
     },
-    [bibleClient, localFallbackBooks],
+    [bibleClient, catalogVersions, localFallbackBooks],
   )
 
   const loadSectionForVersion = useCallback(
