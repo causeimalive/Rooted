@@ -24,9 +24,7 @@ import {
   VERSION_BROWSE_LANGUAGE_CHANGED_EVENT,
   VERSION_PINNED_CHANGED_EVENT,
   getVersionBrowseLanguagePreference,
-  setVersionBrowseLanguagePreference as persistVersionBrowseLanguagePreference,
 } from './userProfile'
-import { buildLanguageOptions } from './languageCatalog'
 import { transformBibleHtml, getHttpStatus, type BiblePassage, type BibleVersion } from '@youversion/platform-core'
 import { getCachedData, setCachedData } from './indexedStorage'
 import { getTestamentForBook, type Testament } from './bookTaxonomy'
@@ -845,14 +843,6 @@ export default function YouVersionReaderTab({
     }
   }, [])
 
-  const handleSelectBrowseLanguage = useCallback(
-    (tag: string) => {
-      setVersionBrowseLanguagePreference(tag)
-      persistVersionBrowseLanguagePreference(userIdRef.current, tag)
-    },
-    [],
-  )
-
   useEffect(() => {
     const syncPinnedVersions = (event?: Event) => {
       if (event && event.type !== 'storage') {
@@ -1109,12 +1099,6 @@ export default function YouVersionReaderTab({
   }, [compareVersionMenuOpen])
 
   const localFallbackBooks = useMemo(() => buildLocalFallbackBooks(), [])
-  // The single app-wide language control (replaces the old separate en/es
-  // toggle): every real language present in the live catalog, plus "auto"
-  // and "all". Selecting a specific language filters every version dropdown
-  // down to that language; selecting English or Spanish also changes the
-  // app's UI text (see the sync effect in App.tsx's SettingsMenu).
-  const languageOptions = useMemo(() => buildLanguageOptions(availableVersions), [availableVersions])
   // Only versions explicitly confirmed broken (partial-Bible translations
   // missing books/chapters, verified directly against the API) are hidden.
   // Untested versions -- e.g. every non-English translation, since the probe
@@ -1403,15 +1387,6 @@ export default function YouVersionReaderTab({
         return { value: entry.id, label: label.title, subtitle: label.subtitle }
       }),
     [compareBrowseVersions],
-  )
-
-  const mobileLanguageOptions = useMemo(
-    () => [
-      { value: 'auto', label: `Auto (${language.toUpperCase()})` },
-      { value: 'all', label: 'All languages' },
-      ...languageOptions.map((option) => ({ value: option.tag, label: option.label })),
-    ],
-    [language, languageOptions],
   )
 
   const activeVerseNumber = useMemo(() => {
@@ -3371,8 +3346,6 @@ export default function YouVersionReaderTab({
                 activeVerse={activeVerseNumber}
                 activeVersionId={resolvedVersionId}
                 activeCompareVersionId={compareVersionId}
-                languageOptions={mobileLanguageOptions}
-                activeBrowseLanguage={versionBrowseLanguagePreference}
                 audioAvailable={Boolean(audioUrl)}
                 audioLoading={audioLoading}
                 audioPlaying={audioPlaying}
@@ -3382,7 +3355,6 @@ export default function YouVersionReaderTab({
                 onSelectVerse={handleSelectVerse}
                 onSelectVersion={handleSelectCurrentVersion}
                 onSelectCompareVersion={handleSelectCompareVersion}
-                onSelectBrowseLanguage={handleSelectBrowseLanguage}
                 onToggleAudio={onToggleAudio}
               />
 

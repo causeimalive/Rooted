@@ -7730,6 +7730,129 @@ dialog.header-settings-dialog::backdrop {
   cursor: pointer;
 }
 
+.header-settings-language-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.header-settings-language-buttons .secondary.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+}
+
+.language-search-dropdown-shell {
+  position: relative;
+}
+
+.language-search-dropdown-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--muted);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: none;
+}
+
+.language-search-dropdown-button span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.language-search-dropdown-button strong {
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.language-search-dropdown-button small {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-transform: none;
+}
+
+.language-search-dropdown-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: min(24rem, 60vh);
+  overflow: auto;
+  margin-top: 0.5rem;
+  padding: 0.65rem;
+  border: 1px solid var(--muted);
+  border-radius: 0.85rem;
+  background: var(--surface);
+  box-shadow: var(--shadow-lg, 0 20px 40px rgba(0, 0, 0, 0.18));
+}
+
+.language-search-dropdown-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.language-search-dropdown-search {
+  width: 100%;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--muted);
+  border-radius: 0.65rem;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.language-search-dropdown-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.language-search-dropdown-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid transparent;
+  border-radius: 0.65rem;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+
+.language-search-dropdown-option span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.language-search-dropdown-option strong {
+  font-size: 0.95rem;
+}
+
+.language-search-dropdown-option small {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+.language-search-dropdown-option.active {
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.language-search-dropdown-empty {
+  padding: 0.5rem 0.2rem 0.35rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
 .header-settings-content {
   flex: 1;
   min-width: 0;

@@ -1,41 +1,76 @@
-// Builds human-readable language options from the live Bible version
-// catalog's `language_tag` values (e.g. "en", "es", "fr", "swh"), using the
-// browser's built-in Intl.DisplayNames instead of hand-maintaining a name
-// table for every language YouVersion might return.
-export type LanguageOption = { tag: string; label: string }
+import { fetchYouVersionLanguages, type YouVersionLanguage } from './youversion'
 
-let displayNames: Intl.DisplayNames | null | undefined
-
-function getDisplayNames(): Intl.DisplayNames | null {
-  if (displayNames !== undefined) return displayNames
-  try {
-    displayNames = new Intl.DisplayNames(['en'], { type: 'language' })
-  } catch {
-    displayNames = null
-  }
-  return displayNames
+export type LanguageOption = {
+  tag: string
+  label: string
+  subtitle: string
+  searchText: string
 }
 
-export function labelForLanguageTag(tag: string): string {
+function normalizeTag(value: string): string {
+  return value.trim().toLowerCase()
+}
+
+function displayNameForLanguage(language: YouVersionLanguage, uiLanguage: string): string {
+  const preferred = language.display_names?.[uiLanguage.toLowerCase()]
+  const english = language.display_names?.en
+  return preferred || english || language.localized_name || language.script_name || language.language || language.id
+}
+
+let languageMetadataPromise: Promise<YouVersionLanguage[]> | null = null
+
+function loadLanguageMetadata(): Promise<YouVersionLanguage[]> {
+  if (!languageMetadataPromise) {
+    languageMetadataPromise = fetchYouVersionLanguages({ country: 'US', page_size: 99 }).catch((error) => {
+      languageMetadataPromise = null
+      throw error
+    })
+  }
+  return languageMetadataPromise
+}
+
+function fallbackLabel(tag: string): string {
   const normalized = tag.trim()
-  if (!normalized) return tag
-  try {
-    const name = getDisplayNames()?.of(normalized)
-    if (name && name.toLowerCase() !== normalized.toLowerCase()) return name
-  } catch {
-    // Intl.DisplayNames throws (RangeError) for codes it doesn't recognize --
-    // fall back to the raw tag below.
-  }
-  return normalized.toUpperCase()
+  return normalized ? normalized.toUpperCase() : tag
 }
 
-export function buildLanguageOptions(versions: readonly { language_tag?: string | null }[]): LanguageOption[] {
-  const tags = new Set<string>()
-  for (const version of versions) {
-    const tag = version.language_tag?.trim()
-    if (tag) tags.add(tag)
+function languageKey(language: YouVersionLanguage): string[] {
+  return Array.from(
+    new Set(
+      [language.id, language.language, ...(language.aliases ?? [])]
+        .filter(Boolean)
+        .map((value) => normalizeTag(value)),
+    ),
+  )
+}
+
+export async function buildLanguageOptions(
+  versions: readonly { language_tag?: string | null }[],
+  uiLanguage: string,
+): Promise<LanguageOption[]> {
+  const tags = Array.from(
+    new Set(
+      versions
+        .map((version) => version.language_tag?.trim())
+        .filter((tag): tag is string => Boolean(tag)),
+    ),
+  )
+
+  const metadata = await loadLanguageMetadata()
+  const metadataByTag = new Map<string, YouVersionLanguage>()
+  for (const language of metadata) {
+    for (const key of languageKey(language)) {
+      metadataByTag.set(key, language)
+    }
   }
-  return Array.from(tags)
-    .map((tag) => ({ tag, label: labelForLanguageTag(tag) }))
-    .sort((a, b) => a.label.localeCompare(b.label))
+
+  return tags
+    .map((tag) => {
+      const meta = metadataByTag.get(normalizeTag(tag))
+      const label = meta ? displayNameForLanguage(meta, uiLanguage) : fallbackLabel(tag)
+      const subtitle = meta?.script_name ? `${tag.toUpperCase()} · ${meta.script_name}` : tag.toUpperCase()
+      const searchText = `${label} ${subtitle} ${tag}`.toLowerCase()
+      return { tag, label, subtitle, searchText }
+    })
+    .sort((a, b) => a.label.localeCompare(b.label) || a.subtitle.localeCompare(b.subtitle) || a.tag.localeCompare(b.tag))
 }

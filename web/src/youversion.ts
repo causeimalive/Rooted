@@ -52,6 +52,8 @@ export interface YouVersionLanguage {
   language: string
   script?: string
   script_name?: string
+  localized_name?: string
+  aliases?: string[]
   display_names?: Record<string, string>
   countries?: string[]
   text_direction?: 'ltr' | 'rtl'
@@ -171,8 +173,22 @@ export async function fetchYouVersionIndex(versionId: number): Promise<YouVersio
 }
 
 export async function fetchYouVersionLanguages(options: YouVersionLanguageOptions): Promise<YouVersionLanguage[]> {
-  const response = await requestYouVersion<{ data?: YouVersionLanguage[] } | YouVersionLanguage[]>('/languages', options as unknown as Record<string, string | number | boolean | undefined>)
-  return Array.isArray(response) ? response : response.data ?? []
+  const all: YouVersionLanguage[] = []
+  let pageToken: string | undefined = options.page_token
+  do {
+    const response = await requestYouVersion<{ data?: YouVersionLanguage[]; next_page_token?: string | null } | YouVersionLanguage[]>('/languages', {
+      country: options.country,
+      page_size: options.page_size ?? 99,
+      page_token: pageToken,
+    } as unknown as Record<string, string | number | boolean | undefined>)
+    if (Array.isArray(response)) {
+      all.push(...response)
+      break
+    }
+    all.push(...(response.data ?? []))
+    pageToken = response.next_page_token ?? undefined
+  } while (pageToken)
+  return all
 }
 
 async function requestYouVersionLegacy<T>(

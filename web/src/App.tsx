@@ -115,11 +115,11 @@ import {
   setUserPreference,
   getVersionBrowseLanguagePreference,
   setVersionBrowseLanguagePreference,
-  resolveVersionBrowseLanguagePreference,
   VERSION_BROWSE_LANGUAGE_CHANGED_EVENT,
   type VersionBrowseLanguagePreference,
 } from './userProfile'
-import { buildLanguageOptions } from './languageCatalog'
+import { buildLanguageOptions, type LanguageOption } from './languageCatalog'
+import LanguageSearchDropdown from './LanguageSearchDropdown'
 import { getWikipediaLink, useWikiImages, useWikiSummary, type WikiImage } from './wikipedia'
 import { useYVAuth } from '@youversion/platform-react-hooks'
 import { getYouVersionRedirectUrl } from './youversionRedirect'
@@ -262,9 +262,6 @@ function SettingsMenu({ lastReadBook, userId: propsUserId }: { lastReadBook: str
     setVersionBrowseLanguagePreference(userId, next)
   }, [userId])
 
-  // Stay in sync if the language is changed elsewhere (e.g. the reader's own
-  // quick-access language picker), and vice versa -- there's only one
-  // underlying preference now, shared everywhere via this event.
   useEffect(() => {
     const sync = () => setVersionBrowseLanguage(getVersionBrowseLanguagePreference(userId))
     window.addEventListener(VERSION_BROWSE_LANGUAGE_CHANGED_EVENT, sync)
@@ -280,24 +277,27 @@ function SettingsMenu({ lastReadBook, userId: propsUserId }: { lastReadBook: str
     setVersionBrowseLanguagePreference(userId, next)
   }
 
-  // The version-browse language is now the single app-wide language control.
-  // Only English/Spanish have real UI translations, so setLanguage silently
-  // no-ops for every other language -- Bible version filtering still applies
-  // to all of them via resolveVersionBrowseLanguagePreference elsewhere.
-  useEffect(() => {
-    const resolved = resolveVersionBrowseLanguagePreference(versionBrowseLanguage, language)
-    if (resolved) setLanguage(resolved as 'en' | 'es')
-  }, [versionBrowseLanguage, language, setLanguage])
+  const handleAppLanguageChange = (next: 'en' | 'es') => setLanguage(next)
 
-  const [versionLanguageOptions, setVersionLanguageOptions] = useState<{ tag: string; label: string }[]>([])
+  const [versionLanguageOptions, setVersionLanguageOptions] = useState<LanguageOption[]>([])
   useEffect(() => {
     let cancelled = false
     const loadOptions = () => {
       void getCachedData<BibleVersion[]>(ALL_VERSIONS_CACHE_KEY)
         .then((cached) => {
-          if (!cancelled && cached?.length) setVersionLanguageOptions(buildLanguageOptions(cached))
+          if (!cancelled) {
+            void buildLanguageOptions(cached ?? [], language)
+              .then((options) => {
+                if (!cancelled) setVersionLanguageOptions(options)
+              })
+              .catch(() => {
+                if (!cancelled) setVersionLanguageOptions([])
+              })
+          }
         })
-        .catch(() => {})
+        .catch(() => {
+          if (!cancelled) setVersionLanguageOptions([])
+        })
     }
     loadOptions()
     window.addEventListener(ALL_VERSIONS_CACHE_UPDATED_EVENT, loadOptions)
@@ -305,7 +305,7 @@ function SettingsMenu({ lastReadBook, userId: propsUserId }: { lastReadBook: str
       cancelled = true
       window.removeEventListener(ALL_VERSIONS_CACHE_UPDATED_EVENT, loadOptions)
     }
-  }, [])
+  }, [language])
 
   const [catalogVersionCount, setCatalogVersionCount] = useState<number | null>(null)
   useEffect(() => {
@@ -589,22 +589,54 @@ function SettingsMenu({ lastReadBook, userId: propsUserId }: { lastReadBook: str
                       </small>
                     </div>
                   </div>
+                  <div className="header-settings-card header-settings-toggle">
+                    <div>
+                      <span>App language</span>
+                      <small>English and Spanish change the app text; the version filter is separate.</small>
+                    </div>
+                    <div className="header-settings-language-buttons" role="group" aria-label="App language">
+                      <button
+                        type="button"
+                        className={`secondary ${language === 'en' ? 'active' : ''}`}
+                        onClick={() => handleAppLanguageChange('en')}
+                      >
+                        EN
+                      </button>
+                      <button
+                        type="button"
+                        className={`secondary ${language === 'es' ? 'active' : ''}`}
+                        onClick={() => handleAppLanguageChange('es')}
+                      >
+                        ES
+                      </button>
+                    </div>
+                  </div>
                   <div className="header-settings-card">
-                    <span>App & version language</span>
-                    <small>Reader dropdowns show only this language. English and Spanish also change the app's text; other languages only affect Bible versions.</small>
-                    <select
-                      value={versionBrowseLanguage}
-                      onChange={(event) => handleVersionBrowseLanguageChange(event.target.value as VersionBrowseLanguagePreference)}
-                      aria-label="App and Bible version language"
-                    >
-                      <option value="auto">Auto ({language.toUpperCase()})</option>
-                      <option value="all">All languages</option>
-                      {versionLanguageOptions.map((option) => (
-                        <option key={option.tag} value={option.tag}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
+                    <span>Version browse language</span>
+                    <small>Search the live catalog by full language name.</small>
+                    <LanguageSearchDropdown
+                      title="Version browse language"
+                      subtitle="Search by language name or code"
+                      selectedTag={versionBrowseLanguage}
+                      selectedLabel={
+                        versionBrowseLanguage === 'auto'
+                          ? `Auto (${language.toUpperCase()})`
+                          : versionBrowseLanguage === 'all'
+                            ? 'All languages'
+                            : versionLanguageOptions.find((option) => option.tag === versionBrowseLanguage)?.label ?? versionBrowseLanguage.toUpperCase()
+                      }
+                      selectedSubtitle={
+                        versionBrowseLanguage === 'auto'
+                          ? 'Follows the app language'
+                          : versionBrowseLanguage === 'all'
+                            ? 'Shows every language'
+                            : versionLanguageOptions.find((option) => option.tag === versionBrowseLanguage)?.subtitle ?? versionBrowseLanguage.toUpperCase()
+                      }
+                      options={versionLanguageOptions}
+                      autoLabel={`Auto (${language.toUpperCase()})`}
+                      allLabel="All languages"
+                      onSelect={handleVersionBrowseLanguageChange}
+                    />
                   </div>
                   <div className="header-settings-card header-settings-toggle">
                     <div>
