@@ -80,7 +80,7 @@ function normalizeNltHtml(html: string): string {
       wrapper.appendChild(verseExport.firstChild)
     }
 
-    verseExport.replaceWith(wrapper)
+    verseExport.replaceWith(wrapper, doc.createTextNode(' '))
   })
 
   bibleText.querySelector('h2.bk_ch_vs_header')?.remove()

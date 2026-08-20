@@ -4871,6 +4871,12 @@ button.secondary {
   display: inline;
 }
 
+.yv-reader-passage-html .yv-v p,
+.yv-reader-passage-html .yv-v .p {
+  display: inline;
+  margin: 0;
+}
+
 .yv-reader-passage-html .yv-vlbl,
 .yv-reader-passage-html .vn,
 .yv-reader-verse-content .yv-vlbl,
