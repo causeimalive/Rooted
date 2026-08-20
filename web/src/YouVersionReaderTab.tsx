@@ -812,7 +812,7 @@ export default function YouVersionReaderTab({
   const [localError, setLocalError] = useState('')
   const [versionId, setVersionId] = useState<number | null>(() => {
     const saved = Number(getUserPreference(userId, READER_VERSION_KEY))
-    return Number.isFinite(saved) ? saved : null
+    return Number.isFinite(saved) && saved !== 0 ? saved : null
   })
   const [bookId, setBookId] = useState(() => getUserPreference(userId, READER_BOOK_KEY) ?? '')
   const [chapter, setChapter] = useState(() => {
@@ -1634,7 +1634,7 @@ export default function YouVersionReaderTab({
   }, [compareVersionId])
 
   useEffect(() => {
-    if (!compareOpen || compareVersionId !== null || !compareAvailableVersions.length || resolvedVersionId === null) return
+    if (!compareOpen || (compareVersionId !== null && compareVersionId > 0) || !compareAvailableVersions.length || resolvedVersionId === null) return
     const fallbackCompare = compareAvailableVersions.find((entry) => entry.id !== resolvedVersionId)
     if (fallbackCompare) {
       setCompareVersionId(fallbackCompare.id)
@@ -1642,7 +1642,7 @@ export default function YouVersionReaderTab({
   }, [availableVersions, compareAvailableVersions, compareOpen, compareVersionId, resolvedVersionId])
 
   useEffect(() => {
-    if (!compareOpen || compareVersionId === null || resolvedVersionId === null) return
+    if (!compareOpen || compareVersionId === null || compareVersionId <= 0 || resolvedVersionId === null) return
     if (compareVersionId !== resolvedVersionId) return
 
     const fallbackCompare = compareAvailableVersions.find((entry) => entry.id !== resolvedVersionId)
@@ -1812,7 +1812,7 @@ export default function YouVersionReaderTab({
 
   const loadCompareSection = useCallback(
     async (reference: ReaderReference): Promise<CompareSection | null> => {
-      if (resolvedVersionId === null || compareVersionId === null) return null
+      if (resolvedVersionId === null || compareVersionId === null || compareVersionId <= 0) return null
       return loadCompareSectionForVersion(resolvedVersionId, compareVersionId, reference)
     },
     [compareVersionId, loadCompareSectionForVersion, resolvedVersionId],
