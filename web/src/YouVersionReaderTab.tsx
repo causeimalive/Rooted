@@ -2985,10 +2985,15 @@ export default function YouVersionReaderTab({
                 className="yv-reader-section yv-reader-compare-section"
                 data-section={section.key}
               >
-                <div className="yv-reader-section-header">
-                  <div>
+                <div className="yv-reader-section-header yv-reader-compare-section-header">
+                  <div className="yv-reader-compare-section-header-main">
                     <strong>{section.reference}</strong>
                     <span>{isCurrent ? section.currentPassage.id : section.comparePassage?.id ?? ''}</span>
+                  </div>
+                  <div className="yv-reader-compare-section-version">
+                    <small>{paneVersionLabel}</small>
+                    <strong>{paneVersionTitle}</strong>
+                    <span>{paneVersionSubtitle}</span>
                   </div>
                 </div>
                 <div className={isFlow ? 'yv-reader-verse-flow yv-reader-compare-verse-flow' : 'yv-reader-compare-verse-stack'}>
