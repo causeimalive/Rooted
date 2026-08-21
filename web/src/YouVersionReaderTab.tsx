@@ -1568,7 +1568,6 @@ export default function YouVersionReaderTab({
   }, [])
   const handleTogglePinVersion = useCallback(
     (entry: VersionMenuEntry) => {
-      if (isLocalFallbackVersion(entry)) return
       const next = pinnedVersionIds.includes(entry.id)
         ? pinnedVersionIds.filter((id) => id !== entry.id)
         : [...pinnedVersionIds, entry.id]
@@ -3077,16 +3076,13 @@ export default function YouVersionReaderTab({
             return haystack.includes(trimmedQuery)
           })
         : versions
-      const featuredVersions = [LOCAL_KJV_VERSION, LOCAL_NLT_VERSION]
-      const featuredIds = new Set(featuredVersions.map((entry) => entry.id))
-      const pinnedVersions = filteredVersions.filter((entry) => pinnedVersionIdSet.has(entry.id) && !featuredIds.has(entry.id))
-      const visibleVersions = filteredVersions.filter((entry) => !featuredIds.has(entry.id) && !pinnedVersionIdSet.has(entry.id))
+      const pinnedVersions = filteredVersions.filter((entry) => pinnedVersionIdSet.has(entry.id))
+      const visibleVersions = filteredVersions.filter((entry) => !pinnedVersionIdSet.has(entry.id))
 
       const renderEntry = (entry: VersionMenuEntry, badge?: string) => {
         const entryLabel = formatVersionLabel(entry)
         const isActive = entry.id === activeVersionId
         const isPinned = pinnedVersionIdSet.has(entry.id)
-        const canTogglePin = !isLocalFallbackVersion(entry)
         const pinLabel = isPinned ? `Unpin ${entryLabel.title}` : `Pin ${entryLabel.title}`
         return (
           <div key={entry.id} className={`yv-reader-version-menu-item ${isActive ? 'active' : ''}`}>
@@ -3103,20 +3099,18 @@ export default function YouVersionReaderTab({
                 <span>{badge || entryLabel.subtitle || 'Bible translation'}</span>
               </span>
             </button>
-            {canTogglePin ? (
-              <button
-                type="button"
-                className="yv-reader-version-menu-item-action"
-                title={pinLabel}
-                aria-label={pinLabel}
-                onClick={(event) => {
-                  event.stopPropagation()
-                  handleTogglePinVersion(entry)
-                }}
-              >
-                {isPinned ? <PinOff size={14} /> : <Pin size={14} />}
-              </button>
-            ) : null}
+            <button
+              type="button"
+              className="yv-reader-version-menu-item-action"
+              title={pinLabel}
+              aria-label={pinLabel}
+              onClick={(event) => {
+                event.stopPropagation()
+                handleTogglePinVersion(entry)
+              }}
+            >
+              {isPinned ? <PinOff size={14} /> : <Pin size={14} />}
+            </button>
           </div>
         )
       }
@@ -3134,12 +3128,12 @@ export default function YouVersionReaderTab({
               autoFocus
             />
           )}
-          {featuredVersions.length > 0 && (
+          {pinnedVersions.length > 0 && (
             <>
               <div className="yv-reader-version-menu-empty" style={{ marginBottom: '0.35rem' }}>
-                Featured version
+                Pinned versions
               </div>
-              {featuredVersions.map((entry) =>
+              {pinnedVersions.map((entry) =>
                 renderEntry(
                   entry,
                   entry.id === LOCAL_KJV_VERSION_ID
@@ -3151,15 +3145,16 @@ export default function YouVersionReaderTab({
               )}
             </>
           )}
-          {pinnedVersions.length > 0 && (
-            <>
-              <div className="yv-reader-version-menu-empty" style={{ marginBottom: '0.35rem', marginTop: featuredVersions.length > 0 ? '0.5rem' : 0 }}>
-                Pinned versions
-              </div>
-              {pinnedVersions.map((entry) => renderEntry(entry))}
-            </>
+          {visibleVersions.map((entry) =>
+            renderEntry(
+              entry,
+              entry.id === LOCAL_KJV_VERSION_ID
+                ? 'Public-domain KJV fallback'
+                : entry.id === LOCAL_NLT_VERSION_ID
+                  ? 'Via Tyndale NLT.TO API'
+                  : undefined,
+            ),
           )}
-          {visibleVersions.map((entry) => renderEntry(entry))}
         </div>
       )
     },
