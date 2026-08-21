@@ -81,8 +81,17 @@ function mergeById<T extends { id: string; createdAt?: string; updatedAt?: strin
   return Array.from(map.values())
 }
 
-function recentSearchKey(search: Pick<RecentSearch, 'query' | 'versionId'>): string {
-  return `${search.query.trim().toLowerCase()}:${search.versionId?.trim().toLowerCase() ?? ''}`
+function canonicalVersionKey(versionId?: string, versionAbbreviation?: string): string {
+  const abbr = versionAbbreviation?.trim().toLowerCase()
+  if (abbr) return abbr
+  const id = versionId?.trim().toLowerCase() ?? ''
+  if (id === '-1' || id === 'kjv') return 'kjv'
+  if (id === '-2' || id === 'nlt') return 'nlt'
+  return id
+}
+
+function recentSearchKey(search: Pick<RecentSearch, 'query' | 'versionId' | 'versionAbbreviation'>): string {
+  return `${search.query.trim().toLowerCase()}:${canonicalVersionKey(search.versionId, search.versionAbbreviation)}`
 }
 
 function normalizeRecentSearches(searches: RecentSearch[]): RecentSearch[] {
@@ -98,8 +107,8 @@ function normalizeRecentSearches(searches: RecentSearch[]): RecentSearch[] {
   return unique.slice(0, MAX_RECENT_SEARCHES)
 }
 
-function bookmarkKey(bookmark: Pick<Bookmark, 'verseId' | 'versionId'>): string {
-  return `${bookmark.verseId}:${bookmark.versionId?.trim().toLowerCase() ?? ''}`
+function bookmarkKey(bookmark: Pick<Bookmark, 'verseId' | 'versionId' | 'versionAbbreviation'>): string {
+  return `${bookmark.verseId}:${canonicalVersionKey(bookmark.versionId, bookmark.versionAbbreviation)}`
 }
 
 function normalizeBookmarks(bookmarks: Bookmark[]): Bookmark[] {
@@ -415,8 +424,8 @@ export function deleteNote(id: string) {
 
 export function toggleBookmark(verseId: string, versionId?: string, versionAbbreviation?: string): boolean {
   const bookmarks = getBookmarks()
-  const normalizedVersionId = versionId?.trim().toLowerCase()
-  const exists = bookmarks.find((b) => b.verseId === verseId && bookmarkKey(b) === `${verseId}:${normalizedVersionId ?? ''}`)
+  const incomingKey = `${verseId}:${canonicalVersionKey(versionId, versionAbbreviation)}`
+  const exists = bookmarks.find((b) => bookmarkKey(b) === incomingKey)
   if (exists) {
     const next = bookmarks.filter((b) => b.id !== exists.id)
     set(BOOKMARKS_KEY, next)
@@ -440,8 +449,9 @@ export function toggleBookmark(verseId: string, versionId?: string, versionAbbre
   return true
 }
 
-export function isBookmarked(verseId: string, versionId?: string): boolean {
-  return getBookmarks().some((b) => b.verseId === verseId && (!versionId || !b.versionId || b.versionId === versionId))
+export function isBookmarked(verseId: string, versionId?: string, versionAbbreviation?: string): boolean {
+  const key = `${verseId}:${canonicalVersionKey(versionId, versionAbbreviation)}`
+  return getBookmarks().some((b) => bookmarkKey(b) === key)
 }
 
 export function getRecentSearches(): RecentSearch[] {

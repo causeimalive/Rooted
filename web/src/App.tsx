@@ -1202,7 +1202,7 @@ export default function App() {
                     <div className="detail-actions-row">
                       <span className="verse-meta-pill">{t('selectVerse')}</span>
                       <button onClick={() => handleBookmark(detailVerse!.id, readerVersion ? String(readerVersion.id) : detailVerse!.translation, readerVersion ? (readerVersion.abbreviation || readerVersion.name) : detailVerse!.translation.toUpperCase())}>
-                        {isBookmarked(detailVerse!.id, readerVersion ? String(readerVersion.id) : detailVerse!.translation) ? t('unbookmark') : t('bookmark')}
+                        {isBookmarked(detailVerse!.id, readerVersion ? String(readerVersion.id) : detailVerse!.translation, readerVersion ? (readerVersion.abbreviation || readerVersion.name) : detailVerse!.translation.toUpperCase()) ? t('unbookmark') : t('bookmark')}
                       </button>
                     </div>
                   </section>
