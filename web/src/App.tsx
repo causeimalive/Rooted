@@ -1514,14 +1514,24 @@ function SearchTab({
 
   const showingBookmarks = mode === 'bookmarks'
   const showingLexicon = mode === 'lexicon'
+  const filteredBookmarks = useMemo(() => {
+    if (!showingBookmarks || !query.trim()) return allBookmarkedVerses
+    const q = query.trim().toLowerCase()
+    return allBookmarkedVerses.filter((item) => {
+      const ref = `${item.verse.bookName} ${item.verse.chapter}:${item.verse.verse}`.toLowerCase()
+      const text = item.verse.text.toLowerCase()
+      const version = (item.versionAbbreviation || item.versionId).toLowerCase()
+      return ref.includes(q) || text.includes(q) || version.includes(q)
+    })
+  }, [showingBookmarks, query, allBookmarkedVerses])
   const bookmarked = useMemo(
-    () => (showingBookmarks ? new Set(allBookmarkedVerses.map((i) => i.verse.id)) : activeVersionBookmarked),
-    [showingBookmarks, allBookmarkedVerses, activeVersionBookmarked],
+    () => (showingBookmarks ? new Set(filteredBookmarks.map((i) => i.verse.id)) : activeVersionBookmarked),
+    [showingBookmarks, filteredBookmarks, activeVersionBookmarked],
   )
 
   const resultCount = useMemo(
-    () => (showingLexicon ? 0 : showingBookmarks ? allBookmarkedVerses.length : query.trim() ? results.length : recentSearchCount),
-    [showingLexicon, showingBookmarks, allBookmarkedVerses.length, query, results.length, recentSearchCount],
+    () => (showingLexicon ? 0 : showingBookmarks ? filteredBookmarks.length : query.trim() ? results.length : recentSearchCount),
+    [showingLexicon, showingBookmarks, filteredBookmarks.length, query, results.length, recentSearchCount],
   )
 
   return (
@@ -1583,10 +1593,10 @@ function SearchTab({
       </div>
       <div className="verse-list">
           {showingBookmarks ? (
-          allBookmarkedVerses.length === 0 ? (
-            <div className="empty">{t('noBookmarks')}</div>
+          filteredBookmarks.length === 0 ? (
+            <div className="empty">{query.trim() ? t('noResults') : t('noBookmarks')}</div>
           ) : (
-            allBookmarkedVerses.map((item) => (
+            filteredBookmarks.map((item) => (
               <div
                 key={item.id}
                 className={`verse-card ${selectedId === item.verse.id ? 'active' : ''}`}
