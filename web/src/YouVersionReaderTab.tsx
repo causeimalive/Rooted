@@ -3029,6 +3029,32 @@ export default function YouVersionReaderTab({
     [compareSections, compareSelection, handleCompareVerseClick, readerView, bookmarkedIds, handleSaveVerse, catalogVersions, compareVersionId],
   )
 
+  const currentComparePaneHeader = useMemo(
+    () => (
+      <div className="yv-reader-compare-pane-header-shell">
+        <div className="yv-reader-compare-pane-header-selectable">
+          <span className="yv-reader-compare-pane-header-label">Selected version</span>
+          <strong>{currentVersionTitle}</strong>
+          <small>{currentVersionSubtitle}</small>
+        </div>
+      </div>
+    ),
+    [currentVersionSubtitle, currentVersionTitle],
+  )
+
+  const compareComparePaneHeader = useMemo(
+    () => (
+      <div className="yv-reader-compare-pane-header-shell">
+        <div className="yv-reader-compare-pane-header-selectable">
+          <span className="yv-reader-compare-pane-header-label">Compare version</span>
+          <strong>{compareVersionTitle}</strong>
+          <small>{compareVersionSubtitle}</small>
+        </div>
+      </div>
+    ),
+    [compareVersionSubtitle, compareVersionTitle],
+  )
+
   const compareGrid = useMemo(
     () => (
       <div className="yv-reader-compare-grid" aria-label="Split-screen Bible comparison">
@@ -3037,6 +3063,7 @@ export default function YouVersionReaderTab({
           onScroll={handleCurrentPaneScroll}
           onMouseOver={handleComparePaneMouseOver}
           onMouseLeave={handleComparePaneMouseLeave}
+          header={currentComparePaneHeader}
         >
           {renderComparePaneContent('current')}
         </ComparePaneFrame>
@@ -3045,12 +3072,15 @@ export default function YouVersionReaderTab({
           onScroll={handleComparePaneScrollSide}
           onMouseOver={handleComparePaneMouseOver}
           onMouseLeave={handleComparePaneMouseLeave}
+          header={compareComparePaneHeader}
         >
           {renderComparePaneContent('compare')}
         </ComparePaneFrame>
       </div>
     ),
     [
+      compareComparePaneHeader,
+      currentComparePaneHeader,
       renderComparePaneContent,
       handleCurrentPaneScroll,
       handleComparePaneScrollSide,
