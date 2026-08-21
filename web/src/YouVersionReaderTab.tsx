@@ -2912,7 +2912,6 @@ export default function YouVersionReaderTab({
       const selectedCompareVersion = catalogVersions.find((entry) => entry.id === compareVersionId)
       const paneVersionTitle = isCurrent ? currentVersionTitle : compareVersionTitle
       const paneVersionSubtitle = isCurrent ? currentVersionSubtitle : compareVersionSubtitle
-      const paneVersionLabel = isCurrent ? 'Current version' : 'Compare version'
       const compareUnavailableNotice = (
         <div className="yv-reader-compare-fallback-notice">
           {selectedCompareVersion?.title ?? 'This version'} is not available for this passage.
@@ -2939,7 +2938,6 @@ export default function YouVersionReaderTab({
                     {!isCurrent && section.compareUnavailable && compareUnavailableNotice}
                   </div>
                   <div className="yv-reader-compare-section-version">
-                    <small>{paneVersionLabel}</small>
                     <strong>{paneVersionTitle}</strong>
                     <span>{paneVersionSubtitle}</span>
                   </div>
@@ -2970,7 +2968,6 @@ export default function YouVersionReaderTab({
                       {compareUnavailableNotice}
                     </div>
                     <div className="yv-reader-compare-section-version">
-                      <small>{paneVersionLabel}</small>
                       <strong>{paneVersionTitle}</strong>
                       <span>{paneVersionSubtitle}</span>
                     </div>
@@ -2991,7 +2988,6 @@ export default function YouVersionReaderTab({
                     <span>{isCurrent ? section.currentPassage.id : section.comparePassage?.id ?? ''}</span>
                   </div>
                   <div className="yv-reader-compare-section-version">
-                    <small>{paneVersionLabel}</small>
                     <strong>{paneVersionTitle}</strong>
                     <span>{paneVersionSubtitle}</span>
                   </div>
