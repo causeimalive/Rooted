@@ -894,7 +894,7 @@ export default function App() {
     const bookReference = selected
       ? chapterReferenceForAudio(selected)
       : lastReadBook && Number.isFinite(lastReadChapter) && lastReadChapter > 0
-        ? `${lastReadBook}.${lastReadChapter}`
+        ? `${lastReadBook.toUpperCase()}.${lastReadChapter}`
         : ''
     const bookName = selected ? selected.bookName : lastReadBookName || lastReadBook
     if (!bookReference) {
