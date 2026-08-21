@@ -1,3 +1,4 @@
+import { FALLBACK_LANGUAGE_OPTIONS } from './languageFallback'
 import { fetchYouVersionLanguages, type YouVersionLanguage } from './youversion'
 
 export type LanguageOption = {
@@ -45,10 +46,24 @@ function languageKey(language: YouVersionLanguage): string[] {
 }
 
 export async function buildLanguageOptions(
-  versions: readonly { language_tag?: string | null }[],
+  _versions: readonly { language_tag?: string | null }[],
   uiLanguage: string,
 ): Promise<LanguageOption[]> {
-  const metadata = await loadLanguageMetadata()
+  // Try the live YouVersion language metadata first. If the request fails
+  // or returns empty (e.g. CORS/preflight/timeout), use the bundled fallback
+  // snapshot so the picker is never empty and users can still search by
+  // English name, code, or native name.
+  let metadata: YouVersionLanguage[] = []
+  try {
+    metadata = await loadLanguageMetadata()
+  } catch {
+    // ignore; use fallback below
+  }
+
+  if (metadata.length === 0) {
+    return FALLBACK_LANGUAGE_OPTIONS
+  }
+
   const metadataByTag = new Map<string, YouVersionLanguage>()
   for (const language of metadata) {
     for (const key of languageKey(language)) {
@@ -56,18 +71,6 @@ export async function buildLanguageOptions(
     }
   }
 
-  // If the version catalog hasn't been loaded yet (e.g. the user opened
-  // Settings before the Bible reader), fall back to showing every language
-  // returned by YouVersion's language metadata rather than an empty list.
-  // Once the version catalog is cached, the next load will show only the
-  // languages actually represented in the catalog.
-  // The language picker is the *browse* control: users pick a Bible
-  // language they want to read in, and the version dropdowns then filter
-  // to versions actually available in that language from the live catalog.
-  // Always derive the picker list from YouVersion's language metadata
-  // (not from the version cache), so the control is usable immediately on
-  // first open of Settings before the Bible reader has loaded and cached
-  // the version catalog.
   const tags = Array.from(new Set(metadata.map((language) => (language.language ?? language.id).trim()).filter(Boolean)))
 
   return tags
