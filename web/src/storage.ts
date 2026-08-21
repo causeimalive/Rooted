@@ -81,12 +81,16 @@ function mergeById<T extends { id: string; createdAt?: string; updatedAt?: strin
   return Array.from(map.values())
 }
 
+function recentSearchKey(search: Pick<RecentSearch, 'query' | 'versionId'>): string {
+  return `${search.query.trim().toLowerCase()}:${search.versionId?.trim().toLowerCase() ?? ''}`
+}
+
 function normalizeRecentSearches(searches: RecentSearch[]): RecentSearch[] {
   const seen = new Set<string>()
   const unique: RecentSearch[] = []
   const sorted = [...searches].sort((a, b) => itemTimestamp(b) - itemTimestamp(a))
   for (const search of sorted) {
-    const key = `${search.verseId}:${search.versionId ?? ''}` || search.query
+    const key = recentSearchKey(search)
     if (seen.has(key)) continue
     seen.add(key)
     unique.push(search)
@@ -439,7 +443,6 @@ export function getRecentSearches(): RecentSearch[] {
 export function addRecentSearch(entry: { query: string; verseId: string; reference: string; versionId?: string; versionAbbreviation?: string }) {
   const query = entry.query.trim()
   if (!query || !entry.verseId) return
-  const existing = getRecentSearches().filter((r) => r.verseId !== entry.verseId || (entry.versionId ? r.versionId !== entry.versionId : false))
   const recent: RecentSearch = {
     id: crypto.randomUUID(),
     query,
@@ -449,7 +452,10 @@ export function addRecentSearch(entry: { query: string; verseId: string; referen
     versionId: entry.versionId,
     versionAbbreviation: entry.versionAbbreviation,
   }
-  set(RECENT_SEARCHES_KEY, [recent, ...existing].slice(0, MAX_RECENT_SEARCHES))
+  const existing = getRecentSearches()
+  const key = recentSearchKey(recent)
+  const next = [recent, ...existing.filter((item) => recentSearchKey(item) !== key)].slice(0, MAX_RECENT_SEARCHES)
+  set(RECENT_SEARCHES_KEY, next)
   void saveRecentSearchDB(recent).catch(() => {})
   if (currentUserId) void saveUserRecentSearch(currentUserId, recent).catch(() => {})
 }
