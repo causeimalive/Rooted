@@ -2910,6 +2910,9 @@ export default function YouVersionReaderTab({
       const isCurrent = side === 'current'
       const isFlow = readerView === 'verse'
       const selectedCompareVersion = catalogVersions.find((entry) => entry.id === compareVersionId)
+      const paneVersionTitle = isCurrent ? currentVersionTitle : compareVersionTitle
+      const paneVersionSubtitle = isCurrent ? currentVersionSubtitle : compareVersionSubtitle
+      const paneVersionLabel = isCurrent ? 'Current version' : 'Compare version'
       const compareUnavailableNotice = (
         <div className="yv-reader-compare-fallback-notice">
           {selectedCompareVersion?.title ?? 'This version'} is not available for this passage.
@@ -2929,11 +2932,16 @@ export default function YouVersionReaderTab({
                 className="yv-reader-passage yv-reader-passage-html yv-reader-section yv-reader-compare-section"
                 data-section={section.key}
               >
-                <div className="yv-reader-section-header">
-                  <div>
+                <div className="yv-reader-section-header yv-reader-compare-section-header">
+                  <div className="yv-reader-compare-section-header-main">
                     <strong>{section.reference}</strong>
                     <span>{isCurrent ? section.currentPassage.id : section.comparePassage?.id ?? ''}</span>
                     {!isCurrent && section.compareUnavailable && compareUnavailableNotice}
+                  </div>
+                  <div className="yv-reader-compare-section-version">
+                    <small>{paneVersionLabel}</small>
+                    <strong>{paneVersionTitle}</strong>
+                    <span>{paneVersionSubtitle}</span>
                   </div>
                 </div>
                 {(isCurrent || !section.compareUnavailable) && (
@@ -2956,10 +2964,15 @@ export default function YouVersionReaderTab({
                   className="yv-reader-section yv-reader-compare-section"
                   data-section={section.key}
                 >
-                  <div className="yv-reader-section-header">
-                    <div>
+                  <div className="yv-reader-section-header yv-reader-compare-section-header">
+                    <div className="yv-reader-compare-section-header-main">
                       <strong>{section.reference}</strong>
                       {compareUnavailableNotice}
+                    </div>
+                    <div className="yv-reader-compare-section-version">
+                      <small>{paneVersionLabel}</small>
+                      <strong>{paneVersionTitle}</strong>
+                      <span>{paneVersionSubtitle}</span>
                     </div>
                   </div>
                 </div>
@@ -3029,32 +3042,6 @@ export default function YouVersionReaderTab({
     [compareSections, compareSelection, handleCompareVerseClick, readerView, bookmarkedIds, handleSaveVerse, catalogVersions, compareVersionId],
   )
 
-  const currentComparePaneHeader = useMemo(
-    () => (
-      <div className="yv-reader-compare-pane-header-shell">
-        <div className="yv-reader-compare-pane-header-selectable">
-          <span className="yv-reader-compare-pane-header-label">Selected version</span>
-          <strong>{currentVersionTitle}</strong>
-          <small>{currentVersionSubtitle}</small>
-        </div>
-      </div>
-    ),
-    [currentVersionSubtitle, currentVersionTitle],
-  )
-
-  const compareComparePaneHeader = useMemo(
-    () => (
-      <div className="yv-reader-compare-pane-header-shell">
-        <div className="yv-reader-compare-pane-header-selectable">
-          <span className="yv-reader-compare-pane-header-label">Compare version</span>
-          <strong>{compareVersionTitle}</strong>
-          <small>{compareVersionSubtitle}</small>
-        </div>
-      </div>
-    ),
-    [compareVersionSubtitle, compareVersionTitle],
-  )
-
   const compareGrid = useMemo(
     () => (
       <div className="yv-reader-compare-grid" aria-label="Split-screen Bible comparison">
@@ -3063,7 +3050,6 @@ export default function YouVersionReaderTab({
           onScroll={handleCurrentPaneScroll}
           onMouseOver={handleComparePaneMouseOver}
           onMouseLeave={handleComparePaneMouseLeave}
-          header={currentComparePaneHeader}
         >
           {renderComparePaneContent('current')}
         </ComparePaneFrame>
@@ -3072,15 +3058,12 @@ export default function YouVersionReaderTab({
           onScroll={handleComparePaneScrollSide}
           onMouseOver={handleComparePaneMouseOver}
           onMouseLeave={handleComparePaneMouseLeave}
-          header={compareComparePaneHeader}
         >
           {renderComparePaneContent('compare')}
         </ComparePaneFrame>
       </div>
     ),
     [
-      compareComparePaneHeader,
-      currentComparePaneHeader,
       renderComparePaneContent,
       handleCurrentPaneScroll,
       handleComparePaneScrollSide,
