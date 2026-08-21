@@ -48,14 +48,6 @@ export async function buildLanguageOptions(
   versions: readonly { language_tag?: string | null }[],
   uiLanguage: string,
 ): Promise<LanguageOption[]> {
-  const tags = Array.from(
-    new Set(
-      versions
-        .map((version) => version.language_tag?.trim())
-        .filter((tag): tag is string => Boolean(tag)),
-    ),
-  )
-
   const metadata = await loadLanguageMetadata()
   const metadataByTag = new Map<string, YouVersionLanguage>()
   for (const language of metadata) {
@@ -63,6 +55,22 @@ export async function buildLanguageOptions(
       metadataByTag.set(key, language)
     }
   }
+
+  // If the version catalog hasn't been loaded yet (e.g. the user opened
+  // Settings before the Bible reader), fall back to showing every language
+  // returned by YouVersion's language metadata rather than an empty list.
+  // Once the version catalog is cached, the next load will show only the
+  // languages actually represented in the catalog.
+  const tags =
+    versions.length > 0
+      ? Array.from(
+          new Set(
+            versions
+              .map((version) => version.language_tag?.trim())
+              .filter((tag): tag is string => Boolean(tag)),
+          ),
+        )
+      : Array.from(new Set(metadata.map((language) => (language.language ?? language.id).trim()).filter(Boolean)))
 
   return tags
     .map((tag) => {
