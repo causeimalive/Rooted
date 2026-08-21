@@ -4209,29 +4209,29 @@ button.secondary {
 
 .yv-reader-nav-tools-split {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
-  gap: 0.45rem;
+  gap: 0.55rem;
   width: 100%;
-  padding: 0.22rem 0.45rem;
+  padding: 0.3rem 0.6rem;
   border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--muted));
-  border-radius: 0.9rem;
+  border-radius: 0.85rem;
   background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 96%, var(--bg)), color-mix(in srgb, var(--bg) 88%, var(--surface)));
   box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
 }
 
-.yv-reader-tool-group {
+.yv-reader-tool-pill {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 auto;
+  flex: 1 1 0;
   min-width: 0;
-  gap: 0.22rem;
-  flex-wrap: nowrap;
+  gap: 0.35rem;
+  flex-wrap: wrap;
   padding: 0.18rem 0.24rem;
-  border: 1px solid color-mix(in srgb, var(--muted) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--muted) 74%, transparent);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--surface) 78%, var(--bg));
+  background: color-mix(in srgb, var(--bg) 14%, var(--surface));
   box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent);
 }
 

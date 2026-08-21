@@ -192,9 +192,9 @@ function ReaderToolButtons({
   if (splitLayout && centerSpot) {
     return (
       <div className="yv-reader-nav-tools yv-reader-nav-tools-split" role="group" aria-label="Reading tools">
-        <div className="yv-reader-tool-group">{viewButtons}</div>
+        <div className="yv-reader-tool-pill">{viewButtons}</div>
         {centerSpot}
-        <div className="yv-reader-tool-group">{toolButtons}</div>
+        <div className="yv-reader-tool-pill">{toolButtons}</div>
       </div>
     )
   }
