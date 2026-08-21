@@ -3024,36 +3024,6 @@ export default function YouVersionReaderTab({
     [compareSections, compareSelection, handleCompareVerseClick, readerView, bookmarkedIds, handleSaveVerse, catalogVersions, compareVersionId],
   )
 
-  const compareGrid = useMemo(
-    () => (
-      <div className="yv-reader-compare-grid" aria-label="Split-screen Bible comparison">
-        <ComparePaneFrame
-          paneRef={compareCurrentPaneRef}
-          onScroll={handleCurrentPaneScroll}
-          onMouseOver={handleComparePaneMouseOver}
-          onMouseLeave={handleComparePaneMouseLeave}
-        >
-          {renderComparePaneContent('current')}
-        </ComparePaneFrame>
-        <ComparePaneFrame
-          paneRef={compareComparePaneRef}
-          onScroll={handleComparePaneScrollSide}
-          onMouseOver={handleComparePaneMouseOver}
-          onMouseLeave={handleComparePaneMouseLeave}
-        >
-          {renderComparePaneContent('compare')}
-        </ComparePaneFrame>
-      </div>
-    ),
-    [
-      renderComparePaneContent,
-      handleCurrentPaneScroll,
-      handleComparePaneScrollSide,
-      handleComparePaneMouseOver,
-      handleComparePaneMouseLeave,
-    ],
-  )
-
   const renderVersionMenu = useCallback(
     (
       ariaLabel: string,
@@ -3167,6 +3137,64 @@ export default function YouVersionReaderTab({
     [handleTogglePinVersion, pinnedVersionIdSet],
   )
 
+  const compareGrid = useMemo(
+    () => (
+      <div className="yv-reader-compare-grid" aria-label="Split-screen Bible comparison">
+        <ComparePaneFrame
+          paneRef={compareCurrentPaneRef}
+          onScroll={handleCurrentPaneScroll}
+          onMouseOver={handleComparePaneMouseOver}
+          onMouseLeave={handleComparePaneMouseLeave}
+        >
+          {renderComparePaneContent('current')}
+        </ComparePaneFrame>
+        <ComparePaneFrame
+          paneRef={compareComparePaneRef}
+          onScroll={handleComparePaneScrollSide}
+          onMouseOver={handleComparePaneMouseOver}
+          onMouseLeave={handleComparePaneMouseLeave}
+          header={(
+            <ReaderVersionSelector
+              wrapperClassName="yv-reader-selector-shell yv-reader-compare-pane-selector"
+              selectorClassName="yv-reader-selector yv-reader-compare-pane-selector-inner"
+              buttonClassName="yv-reader-version-button yv-reader-compare-pane-version-button"
+              menuOpen={compareVersionMenuOpen}
+              onToggleMenu={handleToggleCompareVersionMenu}
+              title={compareVersionTitle}
+              subtitle={compareVersionSubtitle}
+              chevronSize={14}
+              menuRef={compareVersionMenuRef}
+              menu={renderVersionMenu('Compare Bible version selection', compareVersionId, handleSelectCompareVersion, compareBrowseVersions, catalogVersions, '', compareVersionSearchQuery, setCompareVersionSearchQuery)}
+            />
+          )}
+        >
+          {renderComparePaneContent('compare')}
+        </ComparePaneFrame>
+      </div>
+    ),
+    [
+      renderComparePaneContent,
+      handleCurrentPaneScroll,
+      handleComparePaneScrollSide,
+      handleComparePaneMouseOver,
+      handleComparePaneMouseLeave,
+      compareVersionMenuOpen,
+      compareVersionTitle,
+      compareVersionSubtitle,
+      handleToggleCompareVersionMenu,
+      handleSelectCompareVersion,
+      compareVersionId,
+      compareBrowseVersions,
+      compareVersionSearchQuery,
+      setCompareVersionSearchQuery,
+      compareVersionMenuRef,
+      renderVersionMenu,
+      catalogVersions,
+    ],
+  )
+
+
+
   const startResize = useCallback(
     (event: ReactPointerEvent<HTMLButtonElement>) => {
       const body = readerBodyRef.current
@@ -3251,18 +3279,6 @@ export default function YouVersionReaderTab({
                   chevronSize={14}
                   menuRef={versionMenuRef}
                   menu={renderVersionMenu('Bible version selection', resolvedVersionId, handleSelectCurrentVersion, browseVersions, catalogVersions, '', versionSearchQuery, setVersionSearchQuery)}
-                />
-                <ReaderVersionSelector
-                  wrapperClassName="yv-reader-selector-shell yv-reader-nav-header-selector"
-                  selectorClassName="yv-reader-selector yv-reader-reader-selector yv-reader-nav-header-selector-inner"
-                  buttonClassName="yv-reader-version-button yv-reader-nav-header-version-button"
-                  menuOpen={compareVersionMenuOpen}
-                  onToggleMenu={handleToggleCompareVersionMenu}
-                  title={compareVersionTitle}
-                  subtitle={compareVersionSubtitle}
-                  chevronSize={14}
-                  menuRef={compareVersionMenuRef}
-                  menu={renderVersionMenu('Compare Bible version selection', compareVersionId, handleSelectCompareVersion, compareBrowseVersions, catalogVersions, '', compareVersionSearchQuery, setCompareVersionSearchQuery)}
                 />
               </div>
             ) : (

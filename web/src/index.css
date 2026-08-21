@@ -4621,17 +4621,31 @@ button.secondary {
   flex-direction: column;
   gap: 0.15rem;
   min-height: 0;
-  overflow: auto;
   padding: 0 0.9rem 0.9rem;
   border-radius: 1rem;
   background: var(--surface);
   scroll-padding-top: 2.5rem;
 }
 
+.yv-reader-compare-pane-header {
+  flex: 0 0 auto;
+  padding: 0.5rem 0;
+  position: relative;
+  z-index: 10;
+}
+
 .yv-reader-compare-pane-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
+}
+
+.yv-reader-compare-pane-header .yv-reader-compare-pane-version-button {
+  width: 100%;
+  justify-content: space-between;
 }
 
 .yv-reader-compare-pane .yv-reader-section + .yv-reader-section {
