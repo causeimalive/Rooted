@@ -4209,7 +4209,7 @@ button.secondary {
 
 .yv-reader-nav-tools-split {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   justify-content: center;
   gap: 0.55rem;
   width: 100%;
@@ -4239,6 +4239,7 @@ button.secondary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  align-self: center;
   width: auto;
   min-width: 0;
   max-width: 16rem;
