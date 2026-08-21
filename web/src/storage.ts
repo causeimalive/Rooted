@@ -90,8 +90,8 @@ function canonicalVersionKey(versionId?: string, versionAbbreviation?: string): 
   return id
 }
 
-function recentSearchKey(search: Pick<RecentSearch, 'query' | 'versionId' | 'versionAbbreviation'>): string {
-  return `${search.query.trim().toLowerCase()}:${canonicalVersionKey(search.versionId, search.versionAbbreviation)}`
+function recentSearchKey(search: Pick<RecentSearch, 'verseId' | 'versionId' | 'versionAbbreviation'>): string {
+  return `${search.verseId}:${canonicalVersionKey(search.versionId, search.versionAbbreviation)}`
 }
 
 function normalizeRecentSearches(searches: RecentSearch[]): RecentSearch[] {
