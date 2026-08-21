@@ -61,16 +61,14 @@ export async function buildLanguageOptions(
   // returned by YouVersion's language metadata rather than an empty list.
   // Once the version catalog is cached, the next load will show only the
   // languages actually represented in the catalog.
-  const tags =
-    versions.length > 0
-      ? Array.from(
-          new Set(
-            versions
-              .map((version) => version.language_tag?.trim())
-              .filter((tag): tag is string => Boolean(tag)),
-          ),
-        )
-      : Array.from(new Set(metadata.map((language) => (language.language ?? language.id).trim()).filter(Boolean)))
+  // The language picker is the *browse* control: users pick a Bible
+  // language they want to read in, and the version dropdowns then filter
+  // to versions actually available in that language from the live catalog.
+  // Always derive the picker list from YouVersion's language metadata
+  // (not from the version cache), so the control is usable immediately on
+  // first open of Settings before the Bible reader has loaded and cached
+  // the version catalog.
+  const tags = Array.from(new Set(metadata.map((language) => (language.language ?? language.id).trim()).filter(Boolean)))
 
   return tags
     .map((tag) => {
