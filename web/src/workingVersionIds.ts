@@ -4,4 +4,4 @@
 // non-English) versions are NOT excluded by the catalog filter; only
 // ids explicitly confirmed broken in EXCLUDED_VERSION_IDS are hidden.
 export const WORKING_VERSION_IDS: number[] = [-1, -2, 12, 42, 100, 110, 111, 113, 130, 206, 1207, 1209, 1588, 1932, 2079, 2163, 2660, 2692, 3034]
-export const EXCLUDED_VERSION_IDS: number[] = [1849, 2530, 3427]
+export const EXCLUDED_VERSION_IDS: number[] = [1849, 2530, 3427, 1789]
