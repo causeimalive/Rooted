@@ -265,13 +265,14 @@ export function getAllVerses(): Verse[] {
   return verses
 }
 
-export function searchBible(q: string): { verse: Verse; score: number }[] {
+export function searchBible(q: string, translation?: string): { verse: Verse; score: number }[] {
   const trimmed = q.trim()
   if (!trimmed) return []
 
   const referenceMatches = parseVerseReference(trimmed)
   if (referenceMatches) {
-    return referenceMatches.map((verse) => ({ verse, score: 0 }))
+    const matches = referenceMatches.map((verse) => ({ verse, score: 0 }))
+    return translation ? matches.filter((m) => m.verse.translation === translation) : matches
   }
 
   const question = isQuestionQuery(trimmed)
@@ -287,6 +288,7 @@ export function searchBible(q: string): { verse: Verse; score: number }[] {
   if (question) {
     for (const verse of questionAnswerVerses(core)) {
       if (seen.has(verse.id)) continue
+      if (translation && verse.translation !== translation) continue
       seen.add(verse.id)
       results.push({ verse, score: -1 })
     }
@@ -296,6 +298,7 @@ export function searchBible(q: string): { verse: Verse; score: number }[] {
   // matching, so surface them first.
   for (const verse of getVersesWithWord(core)) {
     if (seen.has(verse.id)) continue
+    if (translation && verse.translation !== translation) continue
     seen.add(verse.id)
     results.push({ verse, score: 0 })
   }
@@ -303,6 +306,7 @@ export function searchBible(q: string): { verse: Verse; score: number }[] {
   if (fuse) {
     for (const r of fuse.search(core)) {
       if (seen.has(r.item.id)) continue
+      if (translation && r.item.translation !== translation) continue
       seen.add(r.item.id)
       results.push({ verse: r.item, score: r.score ?? 1 })
     }

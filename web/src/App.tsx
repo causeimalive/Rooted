@@ -759,6 +759,7 @@ export default function App() {
     typeof window !== 'undefined' ? localStorage.getItem('bible-study-yv-book-name') ?? '' : ''
   )
   const [readerVersion, setReaderVersion] = useState<{ id: number; name: string; abbreviation: string } | null>(null)
+  const [searchTranslation, setSearchTranslation] = useState<string>('')
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>(getRecentSearches())
   const [bookmarks, setBookmarks] = useState<BookmarkType[]>(getBookmarks())
@@ -886,9 +887,9 @@ export default function App() {
       setResults([])
       return
     }
-    const found = searchBible(trimmed)
+    const found = searchBible(trimmed, searchTranslation || undefined)
     setResults(found.slice(0, 100))
-  }, [query])
+  }, [query, searchTranslation])
 
   useEffect(() => {
     const bookReference = selected
@@ -1127,6 +1128,8 @@ export default function App() {
               selectedId={selectedId}
               onSelect={setSelectedId}
               readerVersion={readerVersion}
+              searchTranslation={searchTranslation}
+              onSearchTranslationChange={setSearchTranslation}
               onHoverVerse={setHoveredId}
               onSelectResult={recordSearchSelection}
               bookmarks={bookmarks}
@@ -1458,6 +1461,8 @@ function SearchTab({
   selectedId,
   onSelect,
   readerVersion,
+  searchTranslation,
+  onSearchTranslationChange,
   onHoverVerse,
   onSelectResult,
   bookmarks,
@@ -1471,6 +1476,8 @@ function SearchTab({
   selectedId: string | null
   onSelect: (id: string) => void
   readerVersion: { id: number; name: string; abbreviation: string } | null
+  searchTranslation: string
+  onSearchTranslationChange: (translation: string) => void
   onHoverVerse: (id: string | null) => void
   onSelectResult: (id: string, query: string) => void
   bookmarks: BookmarkType[]
@@ -1480,6 +1487,11 @@ function SearchTab({
   const { t } = useI18n()
   const [mode, setMode] = useState<'search' | 'bookmarks' | 'lexicon'>('search')
   const all = getAllVerses()
+  const availableTranslations = useMemo(() => {
+    const set = new Set<string>()
+    for (const v of all) set.add(v.translation)
+    return ['', ...Array.from(set).sort()]
+  }, [all])
   const currentVersionId = readerVersion ? String(readerVersion.id) : ''
   const allBookmarkedVerses = useMemo(
     () => bookmarks
@@ -1551,6 +1563,20 @@ function SearchTab({
             </button>
           )}
         </div>
+        {availableTranslations.length > 1 && (
+          <select
+            className="search-translation-select"
+            aria-label="Search translation"
+            value={searchTranslation}
+            onChange={(e) => onSearchTranslationChange(e.target.value)}
+          >
+            {availableTranslations.map((translation) => (
+              <option key={translation} value={translation}>
+                {translation ? translation.toUpperCase() : 'All versions'}
+              </option>
+            ))}
+          </select>
+        )}
         {!showingLexicon && (query.trim() || showingBookmarks) && resultCount > 0 && (
           <div className="result-count">{t('resultCount', { count: String(resultCount) })}</div>
         )}
