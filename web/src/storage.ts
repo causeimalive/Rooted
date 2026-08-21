@@ -98,12 +98,16 @@ function normalizeRecentSearches(searches: RecentSearch[]): RecentSearch[] {
   return unique.slice(0, MAX_RECENT_SEARCHES)
 }
 
+function bookmarkKey(bookmark: Pick<Bookmark, 'verseId' | 'versionId'>): string {
+  return `${bookmark.verseId}:${bookmark.versionId?.trim().toLowerCase() ?? ''}`
+}
+
 function normalizeBookmarks(bookmarks: Bookmark[]): Bookmark[] {
   const seen = new Set<string>()
   const unique: Bookmark[] = []
   const sorted = [...bookmarks].sort((a, b) => itemTimestamp(b) - itemTimestamp(a))
   for (const bm of sorted) {
-    const key = `${bm.verseId}:${bm.versionId ?? ''}`
+    const key = bookmarkKey(bm)
     if (seen.has(key)) continue
     seen.add(key)
     unique.push(bm)
@@ -411,9 +415,11 @@ export function deleteNote(id: string) {
 
 export function toggleBookmark(verseId: string, versionId?: string, versionAbbreviation?: string): boolean {
   const bookmarks = getBookmarks()
-  const exists = bookmarks.find((b) => b.verseId === verseId && (!versionId || !b.versionId || b.versionId === versionId))
+  const normalizedVersionId = versionId?.trim().toLowerCase()
+  const exists = bookmarks.find((b) => b.verseId === verseId && bookmarkKey(b) === `${verseId}:${normalizedVersionId ?? ''}`)
   if (exists) {
-    set(BOOKMARKS_KEY, bookmarks.filter((b) => b.id !== exists.id))
+    const next = bookmarks.filter((b) => b.id !== exists.id)
+    set(BOOKMARKS_KEY, next)
     void deleteBookmarkDB(exists.id).catch(() => {})
     if (currentUserId) void deleteUserBookmark(currentUserId, exists.id).catch(() => {})
     return false
@@ -426,7 +432,9 @@ export function toggleBookmark(verseId: string, versionId?: string, versionAbbre
     versionId,
     versionAbbreviation,
   }
-  set(BOOKMARKS_KEY, [bm, ...bookmarks])
+  const key = bookmarkKey(bm)
+  const next = [bm, ...bookmarks.filter((b) => bookmarkKey(b) !== key)]
+  set(BOOKMARKS_KEY, normalizeBookmarks(next))
   void saveBookmarkDB(bm).catch(() => {})
   if (currentUserId) void saveUserBookmark(currentUserId, bm).catch(() => {})
   return true
