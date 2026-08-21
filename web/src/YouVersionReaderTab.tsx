@@ -1103,14 +1103,19 @@ export default function YouVersionReaderTab({
   // the reader's per-passage/per-pane error handling at read time.
   const excludedVersionIdSet = useMemo(() => new Set(EXCLUDED_VERSION_IDS), [])
   const catalogVersions = useMemo(() => {
-    const next = [
+    const all = [
       LOCAL_KJV_VERSION,
       LOCAL_NLT_VERSION,
       ...availableVersions.filter(
         (entry) => !isLocalFallbackVersion(entry) && !excludedVersionIdSet.has(entry.id),
       ),
     ] as VersionMenuEntry[]
-    return next.filter((entry, index, all) => all.findIndex((candidate) => candidate.id === entry.id) === index)
+    const deduped = all.filter((entry, index, arr) => arr.findIndex((candidate) => candidate.id === entry.id) === index)
+    return deduped.sort((a, b) => {
+      const aLabel = (a.localized_title || a.title || a.abbreviation || '').toLowerCase()
+      const bLabel = (b.localized_title || b.title || b.abbreviation || '').toLowerCase()
+      return aLabel.localeCompare(bLabel)
+    })
   }, [availableVersions, excludedVersionIdSet])
   const pinnedVersionIdSet = useMemo(() => new Set(pinnedVersionIds), [pinnedVersionIds])
 
@@ -3143,6 +3148,7 @@ export default function YouVersionReaderTab({
                       : undefined,
                 ),
               )}
+              {visibleVersions.length > 0 && <div className="yv-reader-version-menu-divider" />}
             </>
           )}
           {visibleVersions.map((entry) =>

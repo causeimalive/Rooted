@@ -2013,6 +2013,12 @@ button.secondary {
   text-align: center;
 }
 
+.yv-reader-version-menu-divider {
+  height: 1px;
+  margin: 0.5rem 0.75rem;
+  background-color: var(--border);
+}
+
 .yv-reader-selector-menu .yv-reader-version-menu-item-primary {
   width: 100%;
 }
