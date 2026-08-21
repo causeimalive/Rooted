@@ -1,5 +1,4 @@
 import { canUseBibleApi, fetchBibleApiPassage, type VersionMenuEntry as BibleApiVersionMenuEntry } from './bibleApiFallback'
-import { fetchApiBibleBibles, fetchApiBiblePassage, findApiBibleId, type ApiBibleVersionMatch } from './apiBible'
 
 export type VersionMenuEntry = {
   id: number
@@ -15,7 +14,6 @@ export type VersionMenuEntry = {
 export type SourceEntry =
   | { kind: 'localKjv' }
   | { kind: 'localNlt' }
-  | { kind: 'apiBible'; bibleId: string }
   | { kind: 'bibleApi' }
   | { kind: 'youversion' }
 
@@ -35,12 +33,6 @@ export async function resolveVersionSources(version: VersionMenuEntry): Promise<
     return sources
   }
 
-  const bibles = await fetchApiBibleBibles()
-  const apiBibleId = findApiBibleId(version as ApiBibleVersionMatch, bibles)
-  if (apiBibleId) {
-    sources.push({ kind: 'apiBible', bibleId: apiBibleId })
-  }
-
   if (canUseBibleApi(version as BibleApiVersionMenuEntry)) {
     sources.push({ kind: 'bibleApi' })
   }
@@ -51,3 +43,5 @@ export async function resolveVersionSources(version: VersionMenuEntry): Promise<
 
   return sources
 }
+
+export { fetchBibleApiPassage }

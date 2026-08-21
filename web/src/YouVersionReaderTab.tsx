@@ -9,7 +9,7 @@ import {
 } from './youversion'
 import { fetchNltPassage, NLT_ATTRIBUTION } from './nlt'
 import { fetchBibleApiPassage } from './bibleApiFallback'
-import { fetchApiBiblePassage } from './apiBible'
+
 import { resolveVersionSources } from './bibleSources'
 import { EXCLUDED_VERSION_IDS } from './workingVersionIds'
 import { Capacitor } from '@capacitor/core'
@@ -550,32 +550,6 @@ const LOCAL_NLT_VERSION: VersionMenuEntry = {
   localized_abbreviation: 'NLT',
   language_tag: 'en',
   copyright: NLT_ATTRIBUTION,
-}
-
-// CSB and NKJV aren't in YouVersion's catalog for this app key at all, but
-// both are licensed and available through API.Bible, so they get their own
-// synthetic negative ids (like KJV/NLT above) routed entirely through
-// resolveVersionSources' generic API.Bible matching.
-const CSB_VERSION_ID = -3
-const CSB_VERSION: VersionMenuEntry = {
-  id: CSB_VERSION_ID,
-  title: 'Christian Standard Bible',
-  localized_title: 'Christian Standard Bible',
-  abbreviation: 'CSB',
-  localized_abbreviation: 'CSB',
-  language_tag: 'en',
-  copyright: '© 2017 Holman Bible Publishers. Used by permission. Christian Standard Bible®, and CSB® are federally registered trademarks of Holman Bible Publishers.',
-}
-
-const NKJV_VERSION_ID = -4
-const NKJV_VERSION: VersionMenuEntry = {
-  id: NKJV_VERSION_ID,
-  title: 'New King James Version',
-  localized_title: 'New King James Version',
-  abbreviation: 'NKJV',
-  localized_abbreviation: 'NKJV',
-  language_tag: 'en',
-  copyright: '© 1982 Thomas Nelson. Used by permission. All rights reserved.',
 }
 
 type VersionLike = {
@@ -1132,8 +1106,6 @@ export default function YouVersionReaderTab({
     const next = [
       LOCAL_KJV_VERSION,
       LOCAL_NLT_VERSION,
-      CSB_VERSION,
-      NKJV_VERSION,
       ...availableVersions.filter(
         (entry) => !isLocalFallbackVersion(entry) && !excludedVersionIdSet.has(entry.id),
       ),
@@ -1805,9 +1777,6 @@ export default function YouVersionReaderTab({
             if (passage) return passage
           } else if (source.kind === 'localNlt') {
             return await fetchNltPassage(reference.bookId, reference.chapter)
-          } else if (source.kind === 'apiBible') {
-            const passage = await fetchApiBiblePassage(source.bibleId, reference)
-            if (passage) return passage
           } else if (source.kind === 'bibleApi') {
             const passage = await fetchBibleApiPassage(version, reference)
             if (passage) return passage
