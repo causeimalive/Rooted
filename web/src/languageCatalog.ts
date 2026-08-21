@@ -69,7 +69,19 @@ export async function buildLanguageOptions(
       const meta = metadataByTag.get(normalizeTag(tag))
       const label = meta ? displayNameForLanguage(meta, uiLanguage) : fallbackLabel(tag)
       const subtitle = meta?.script_name ? `${tag.toUpperCase()} · ${meta.script_name}` : tag.toUpperCase()
-      const searchText = `${label} ${subtitle} ${tag}`.toLowerCase()
+      const allSearchTerms = [
+        label,
+        tag,
+        meta?.language,
+        meta?.localized_name,
+        meta?.script_name,
+        ...(meta?.aliases ?? []),
+        ...(Object.values(meta?.display_names ?? {})),
+        ...(meta?.countries ?? []),
+      ]
+        .filter(Boolean)
+        .map((value) => value!.toLowerCase())
+      const searchText = Array.from(new Set([...allSearchTerms, subtitle.toLowerCase()])).join(' ')
       return { tag, label, subtitle, searchText }
     })
     .sort((a, b) => a.label.localeCompare(b.label) || a.subtitle.localeCompare(b.subtitle) || a.tag.localeCompare(b.tag))
