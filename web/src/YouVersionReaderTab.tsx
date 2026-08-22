@@ -1751,22 +1751,15 @@ export default function YouVersionReaderTab({
     [bibleClient, resolvedVersionId, tagPositionsByVerseId, hasEntityData, bookNumberById, entityHighlightsEnabled],
   )
 
-  const versionProbeOrder = useCallback(
-    (preferredVersionId: number | null) => {
-      const ids: number[] = []
-      const push = (value: number | null | undefined) => {
-        if (!value || ids.includes(value)) return
-        ids.push(value)
-      }
-
-      push(preferredVersionId)
-      for (const entry of catalogVersions) {
-        push(entry.id)
-      }
-      return ids
-    },
-    [catalogVersions],
-  )
+  // Only ever retries the version the reader is already showing (e.g. to
+  // fall back between a version's own sources). It must NOT silently swap
+  // in a different translation -- besides being confusing (the user picked
+  // a specific version), looping through the full catalog (which can be
+  // hundreds of versions) here was making the reader appear to freeze while
+  // it tried every one of them in sequence.
+  const versionProbeOrder = useCallback((preferredVersionId: number | null) => {
+    return preferredVersionId ? [preferredVersionId] : []
+  }, [])
 
   const loadPassageForVersion = useCallback(
     async (versionId: number, reference: ReaderReference): Promise<BiblePassage | null> => {
