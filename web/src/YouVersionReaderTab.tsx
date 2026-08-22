@@ -1743,22 +1743,22 @@ export default function YouVersionReaderTab({
   }, [compareVersionId])
 
   useEffect(() => {
-    if (!compareOpen || (compareVersionId !== null && compareVersionId !== 0) || !compareAvailableVersions.length || resolvedVersionId === null) return
-    const fallbackCompare = compareAvailableVersions.find((entry) => entry.id !== resolvedVersionId)
+    if (!compareOpen || (compareVersionId !== null && compareVersionId !== 0) || !catalogVersions.length || resolvedVersionId === null) return
+    const fallbackCompare = browseVersions.find((entry) => entry.id !== resolvedVersionId) ?? catalogVersions.find((entry) => entry.id !== resolvedVersionId)
     if (fallbackCompare) {
       setCompareVersionId(fallbackCompare.id)
     }
-  }, [availableVersions, compareAvailableVersions, compareOpen, compareVersionId, resolvedVersionId])
+  }, [browseVersions, catalogVersions, compareOpen, compareVersionId, resolvedVersionId])
 
   useEffect(() => {
     if (!compareOpen || compareVersionId === null || compareVersionId === 0 || resolvedVersionId === null) return
     if (compareVersionId !== resolvedVersionId) return
 
-    const fallbackCompare = compareAvailableVersions.find((entry) => entry.id !== resolvedVersionId)
+    const fallbackCompare = browseVersions.find((entry) => entry.id !== resolvedVersionId) ?? catalogVersions.find((entry) => entry.id !== resolvedVersionId)
     if (fallbackCompare) {
       setCompareVersionId(fallbackCompare.id)
     }
-  }, [compareAvailableVersions, compareOpen, compareVersionId, resolvedVersionId])
+  }, [browseVersions, catalogVersions, compareOpen, compareVersionId, resolvedVersionId])
 
   const resolveChapterNumbers = useCallback(
     async (book: YouVersionBook): Promise<number[]> => {
