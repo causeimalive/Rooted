@@ -2182,20 +2182,7 @@ export default function YouVersionReaderTab({
           if (recovered) return
         }
         if (!cancelled) {
-          const fallbackBook = localFallbackBooks[0]
-          if (fallbackBook) {
-            const fallbackChapter = Number(fallbackBook.chapters?.[0]?.id ?? fallbackBook.chapters?.[0]?.title ?? 1)
-            if (
-              Number.isFinite(fallbackChapter) &&
-              fallbackChapter > 0 &&
-              (firstReference.bookId !== fallbackBook.id || firstReference.chapter !== fallbackChapter)
-            ) {
-              setVersionId(LOCAL_KJV_VERSION_ID)
-              setBookId(fallbackBook.id)
-              setChapter(fallbackChapter)
-              return
-            }
-          }
+          setLocalError(formatPassageError(loadError))
         }
         throw loadError
       } finally {
