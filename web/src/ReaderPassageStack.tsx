@@ -1,5 +1,5 @@
 import { Fragment, memo, useLayoutEffect, type RefObject } from 'react'
-import { Highlighter } from 'lucide-react'
+import { Bookmark, Highlighter } from 'lucide-react'
 import { useI18n } from './i18n'
 
 type ReaderSection = {
@@ -143,7 +143,7 @@ function ReaderPassageStack({
                                   onToggleBookmark?.(verseId, yvPassageId)
                                 }}
                               >
-                                <Highlighter size={14} fill={isBookmarked ? 'currentColor' : 'none'} />
+                                <Bookmark size={14} fill={isBookmarked ? 'currentColor' : 'none'} />
                               </button>
                               <button
                                 type="button"
@@ -200,7 +200,7 @@ function ReaderPassageStack({
                                   onToggleBookmark?.(verseId, yvPassageId)
                                 }}
                               >
-                                <Highlighter size={14} fill={isBookmarked ? 'currentColor' : 'none'} />
+                                <Bookmark size={14} fill={isBookmarked ? 'currentColor' : 'none'} />
                               </button>
                               <button
                                 type="button"

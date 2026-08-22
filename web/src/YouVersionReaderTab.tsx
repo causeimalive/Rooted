@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
-import { ChevronLeft, ChevronRight, GripVertical, Highlighter, Loader2, Pin, PinOff } from 'lucide-react'
+import { Bookmark as BookmarkIcon, ChevronLeft, ChevronRight, GripVertical, Highlighter, Loader2, Pin, PinOff } from 'lucide-react'
 import { findVerse, getAllVerses } from './bible'
 import { 
   fetchYouVersionPassage, 
@@ -3011,7 +3011,7 @@ export default function YouVersionReaderTab({
                               void handleToggleBookmark(verseId, yvPassageId)
                             }}
                           >
-                            <Highlighter size={14} fill={isSaved ? 'currentColor' : 'none'} />
+                            <BookmarkIcon size={14} fill={isSaved ? 'currentColor' : 'none'} />
                           </button>
                         )}
                       </article>
