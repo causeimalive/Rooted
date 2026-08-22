@@ -127,6 +127,20 @@ function normalizeNltHtml(html: string): string {
   return blocks.join(' ')
 }
 
+function fetchWithTimeout(url: string, init: RequestInit & { timeoutMs?: number } = {}): Promise<Response> {
+  const { timeoutMs = 15000, ...rest } = init
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+  return fetch(url, { ...rest, signal: controller.signal })
+    .finally(() => clearTimeout(timeout))
+    .catch((error) => {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        throw new Error(`Request timed out after ${timeoutMs}ms`)
+      }
+      throw error
+    })
+}
+
 export async function probeNltPassage(bookId: string, chapter: number): Promise<boolean> {
   try {
     const key = getNltApiKey()
@@ -136,7 +150,7 @@ export async function probeNltPassage(bookId: string, chapter: number): Promise<
     url.searchParams.set('version', 'NLT')
     url.searchParams.set('key', key)
 
-    const response = await fetch(url.toString())
+    const response = await fetchWithTimeout(url.toString())
     if (!response.ok) return false
 
     const document = await response.text()
@@ -156,7 +170,7 @@ export async function fetchNltPassage(bookId: string, chapter: number): Promise<
   url.searchParams.set('version', 'NLT')
   url.searchParams.set('key', key)
 
-  const response = await fetch(url.toString())
+  const response = await fetchWithTimeout(url.toString())
   if (!response.ok) {
     const message = await response.text().catch(() => '')
     throw new Error(`NLT API request failed (${response.status}): ${message || response.statusText}`)

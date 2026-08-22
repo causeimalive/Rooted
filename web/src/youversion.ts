@@ -97,8 +97,22 @@ function buildUrl(path: string, query?: Record<string, string | number | boolean
   return url.toString()
 }
 
+function fetchWithTimeout(url: string, init: RequestInit & { timeoutMs?: number } = {}): Promise<Response> {
+  const { timeoutMs = 15000, ...rest } = init
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+  return fetch(url, { ...rest, signal: controller.signal })
+    .finally(() => clearTimeout(timeout))
+    .catch((error) => {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        throw new Error(`Request timed out after ${timeoutMs}ms`)
+      }
+      throw error
+    })
+}
+
 async function requestYouVersion<T>(path: string, query?: Record<string, string | number | boolean | undefined>): Promise<T> {
-  const response = await fetch(buildUrl(path, query), {
+  const response = await fetchWithTimeout(buildUrl(path, query), {
     headers: {
       'X-YVP-App-Key': getAppKey(),
     },
@@ -205,7 +219,8 @@ async function requestYouVersionLegacy<T>(
     }
   }
   url.searchParams.set('host', host)
-  const response = await fetch(url.toString(), {
+  const response = await fetchWithTimeout(url.toString(), {
+    timeoutMs: 10000,
     headers: { 'X-YVP-App-Key': getAppKey() },
   })
   if (!response.ok) {
