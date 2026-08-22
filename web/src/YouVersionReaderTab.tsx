@@ -2299,11 +2299,14 @@ export default function YouVersionReaderTab({
 
       const nearTop = shell.scrollTop <= SCROLL_LOAD_THRESHOLD
       const nearBottom = shell.scrollTop + shell.clientHeight >= shell.scrollHeight - SCROLL_LOAD_THRESHOLD
+      const hasOverflow = shell.scrollHeight > shell.clientHeight + SCROLL_LOAD_THRESHOLD
 
       if (!hasPrimedScrollRef.current) {
         hasPrimedScrollRef.current = true
         return
       }
+
+      if (!hasOverflow) return
 
       if (nearTop) {
         void prependPreviousSection()
