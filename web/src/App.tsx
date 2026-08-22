@@ -749,6 +749,8 @@ export default function App() {
   const [audioError, setAudioError] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(() => parseHash().verseId ?? null)
   const [readerSelectedId, setReaderSelectedId] = useState<string | null>(null)
+  const [readerTargetReference, setReaderTargetReference] = useState<{ bookId: string; chapter: number; verse: number } | null>(null)
+  const [readerTargetVersionId, setReaderTargetVersionId] = useState<number | null>(null)
   const [readerOpenSeq, setReaderOpenSeq] = useState(0)
   const [lastReadBook, setLastReadBook] = useState<string>(() =>
     typeof window !== 'undefined' ? localStorage.getItem('bible-study-yv-book') ?? '' : ''
@@ -949,26 +951,46 @@ export default function App() {
     setTab('search')
   }
 
-  const openVerseInReader = useCallback((id: string) => {
+  const resolveReaderVersionId = useCallback((versionId?: string, versionAbbreviation?: string) => {
+    const raw = versionId?.trim().toLowerCase()
+    if (raw) {
+      const numeric = Number(raw)
+      if (Number.isFinite(numeric) && numeric !== 0) return numeric
+      if (raw === 'kjv') return -1
+      if (raw === 'nlt') return -2
+    }
+    const abbr = versionAbbreviation?.trim().toLowerCase()
+    if (abbr === 'kjv') return -1
+    if (abbr === 'nlt') return -2
+    return null
+  }, [])
+
+  const openVerseInReader = useCallback((id: string, versionId?: string, versionAbbreviation?: string) => {
+    const verse = findVerse(id)
+    if (!verse) return
     setSelectedId(id)
     setReaderSelectedId(id)
+    setReaderTargetReference({ bookId: verse.book, chapter: verse.chapter, verse: verse.verse })
+    setReaderTargetVersionId(resolveReaderVersionId(versionId, versionAbbreviation))
     setReaderOpenSeq((n) => n + 1)
     setTab('reader')
-  }, [])
+  }, [resolveReaderVersionId])
 
   // Log a recent search only once the user actually picks a verse from the
   // results, so the list shows what they were looking for, not every keystroke.
-  const recordSearchSelection = useCallback((verseId: string, searchQuery: string) => {
+  const recordSearchSelection = useCallback((verseId: string, searchQuery: string, versionId?: string, versionAbbreviation?: string) => {
     const verse = findVerse(verseId)
     if (!verse || !searchQuery?.trim()) return
+    const resolvedVersionId = versionId ?? (readerVersion ? String(readerVersion.id) : verse.translation)
+    const resolvedVersionAbbreviation = versionAbbreviation ?? (readerVersion ? (readerVersion.abbreviation || readerVersion.name) : verse.translation.toUpperCase())
     addRecentSearch({
       query: searchQuery,
       verseId,
       reference: `${verse.bookName} ${verse.chapter}:${verse.verse}`,
-      versionId: readerVersion ? String(readerVersion.id) : verse.translation,
-      versionAbbreviation: readerVersion ? (readerVersion.abbreviation || readerVersion.name) : verse.translation.toUpperCase(),
+      versionId: resolvedVersionId,
+      versionAbbreviation: resolvedVersionAbbreviation,
     })
-    openVerseInReader(verseId)
+    openVerseInReader(verseId, resolvedVersionId, resolvedVersionAbbreviation)
   }, [openVerseInReader, readerVersion])
 
   const handleBookmark = (verseId: string, versionId?: string, versionAbbreviation?: string) => {
@@ -1156,6 +1178,8 @@ export default function App() {
                   key={readerOpenSeq}
                   selectedId={readerSelectedId}
                   readerOpenSeq={readerOpenSeq}
+                  readerTargetReference={readerTargetReference}
+                  readerTargetVersionId={readerTargetVersionId}
                   onSelect={setReaderSelectedId}
                   bookmarks={bookmarks}
                   onToggleBookmark={handleBookmark}
@@ -1488,7 +1512,7 @@ function SearchTab({
   searchTranslation: string
   onSearchTranslationChange: (translation: string) => void
   onHoverVerse: (id: string | null) => void
-  onSelectResult: (id: string, query: string) => void
+  onSelectResult: (id: string, query: string, versionId?: string, versionAbbreviation?: string) => void
   bookmarks: BookmarkType[]
   onToggleBookmark: (id: string, versionId?: string, versionAbbreviation?: string) => void
   recentSearches: RecentSearch[]
@@ -1610,7 +1634,7 @@ function SearchTab({
                 key={item.id}
                 className={`verse-card ${selectedId === item.verse.id ? 'active' : ''}`}
                 onClick={() => onSelect(item.verse.id)}
-                onDoubleClick={() => onSelectResult(item.verse.id, `${item.verse.bookName} ${item.verse.chapter}:${item.verse.verse}`)}
+                onDoubleClick={() => onSelectResult(item.verse.id, `${item.verse.bookName} ${item.verse.chapter}:${item.verse.verse}`, item.versionId, item.versionAbbreviation)}
                 onPointerEnter={() => onHoverVerse(item.verse.id)}
                 onFocus={() => onHoverVerse(item.verse.id)}
               >
@@ -1660,7 +1684,7 @@ function SearchTab({
                       key={recent.id}
                       className={`verse-card ${selectedId === verse.id ? 'active' : ''}`}
                       onClick={() => onSelect(recent.verseId)}
-                      onDoubleClick={() => onSelectResult(recent.verseId, recent.query)}
+                      onDoubleClick={() => onSelectResult(recent.verseId, recent.query, recent.versionId, recent.versionAbbreviation)}
                       onPointerEnter={() => onHoverVerse(verse.id)}
                       onFocus={() => onHoverVerse(verse.id)}
                     >
@@ -1699,7 +1723,7 @@ function SearchTab({
               key={verse.id}
               className={`verse-card ${selectedId === verse.id ? 'active' : ''}`}
               onClick={() => onSelect(verse.id)}
-              onDoubleClick={() => onSelectResult(verse.id, query)}
+              onDoubleClick={() => onSelectResult(verse.id, query, readerVersion ? String(readerVersion.id) : verse.translation, readerVersion ? (readerVersion.abbreviation || readerVersion.name) : verse.translation.toUpperCase())}
               onPointerEnter={() => onHoverVerse(verse.id)}
               onFocus={() => onHoverVerse(verse.id)}
             >

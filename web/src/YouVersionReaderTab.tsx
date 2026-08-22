@@ -770,6 +770,8 @@ function nextOrPreviousChapter(
 export default function YouVersionReaderTab({
   selectedId,
   readerOpenSeq,
+  readerTargetReference,
+  readerTargetVersionId,
   onSelect,
   bookmarks,
   onToggleBookmark,
@@ -783,6 +785,8 @@ export default function YouVersionReaderTab({
 }: {
   selectedId: string | null
   readerOpenSeq: number
+  readerTargetReference: { bookId: string; chapter: number; verse: number } | null
+  readerTargetVersionId: number | null
   onSelect: (id: string) => void
   bookmarks: Bookmark[]
   onToggleBookmark: (verseId: string, versionId?: string, versionAbbreviation?: string) => void
@@ -849,6 +853,7 @@ export default function YouVersionReaderTab({
   const initialSelectedVerse = useMemo(() => (selectedId ? findVerse(selectedId) : undefined), [selectedId])
   const [localError, setLocalError] = useState('')
   const [versionId, setVersionId] = useState<number | null>(() => {
+    if (readerTargetVersionId !== null && readerTargetVersionId !== 0) return readerTargetVersionId
     const saved = Number(getUserPreference(userId, READER_VERSION_KEY))
     return Number.isFinite(saved) && saved !== 0 ? saved : null
   })
@@ -1236,6 +1241,11 @@ export default function YouVersionReaderTab({
     { enabled: highlightsEnabled },
   )
   const selectedVerse = useMemo(() => (selectedId ? findVerse(selectedId) : undefined), [selectedId])
+  const targetReference = readerTargetReference ?? (selectedVerse ? { bookId: selectedVerse.book, chapter: selectedVerse.chapter, verse: selectedVerse.verse } : null)
+  const targetVerseId = useMemo(() => {
+    if (!targetReference) return null
+    return `${targetReference.bookId}.${targetReference.chapter}.${targetReference.verse}`
+  }, [targetReference])
   const activeSection = useMemo(
     () => sections.find((section) => section.key === focusedSectionKey) ?? sections[0] ?? null,
     [focusedSectionKey, sections],
@@ -2142,9 +2152,9 @@ export default function YouVersionReaderTab({
       }
 
       const numbers = await resolveChapterNumbers(book)
-      const preferredChapter = selectedVerse?.chapter ?? chapter
+      const preferredChapter = targetReference?.chapter ?? selectedVerse?.chapter ?? chapter
       const clampedChapter = numbers.includes(preferredChapter) ? preferredChapter : numbers[0] ?? preferredChapter
-      const firstReference: ReaderReference = { bookId: book.id, chapter: clampedChapter }
+      const firstReference: ReaderReference = { bookId: book.id, chapter: clampedChapter, verse: targetReference?.verse ?? selectedVerse?.verse }
 
       try {
         const firstSection = await loadSection(firstReference)
@@ -2164,6 +2174,9 @@ export default function YouVersionReaderTab({
         setFocusedSectionKey(firstSection.key)
         setFocusedVerseLabel(formatChapterMarker(book, firstSection.chapter))
         setUserPreference(userIdRef.current, READER_COMMITTED_KEY, firstSection.reference)
+        if (firstReference.verse !== undefined) {
+          setTargetVerse({ bookId: firstReference.bookId, chapter: firstReference.chapter, verse: firstReference.verse })
+        }
 
         const builtSections: ReaderSection[] = [firstSection]
         let nextReference = await nextOrPreviousChapter(books, firstSection.bookId, firstSection.chapter, 'next', resolveChapterNumbers)
