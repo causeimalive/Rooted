@@ -1129,25 +1129,30 @@ export default function YouVersionReaderTab({
     })
   }, [availableVersions, excludedVersionIdSet])
   const pinnedVersionIdSet = useMemo(() => new Set(pinnedVersionIds), [pinnedVersionIds])
+  const resolvedBrowseLanguage = resolveVersionBrowseLanguagePreference(versionBrowseLanguagePreference, language)
+  const browseVersions = useMemo(
+    () => orderVersionsForBrowse(catalogVersions, resolvedBrowseLanguage, versionId, pinnedVersionIds),
+    [catalogVersions, pinnedVersionIds, resolvedBrowseLanguage, versionId],
+  )
 
   useEffect(() => {
-    if (!catalogVersions.length) return
+    if (!browseVersions.length) return
     setVersionId((current) => {
-      if (current && catalogVersions.some((entry) => entry.id === current)) return current
-      return catalogVersions[0].id
+      if (current && browseVersions.some((entry) => entry.id === current)) return current
+      return browseVersions[0].id
     })
-  }, [catalogVersions])
+  }, [browseVersions])
 
   const resolvedVersionId = useMemo(
     () => {
-      const preferred = versionId ?? 111
-      return catalogVersions.find((v) => v.id === preferred)?.id ?? catalogVersions[0]?.id ?? preferred
+      const preferred = versionId ?? browseVersions[0]?.id ?? catalogVersions[0]?.id ?? 111
+      return catalogVersions.find((v) => v.id === preferred)?.id ?? browseVersions[0]?.id ?? catalogVersions[0]?.id ?? preferred
     },
-    [catalogVersions, versionId],
+    [browseVersions, catalogVersions, versionId],
   )
   const selectedVersion = useMemo(
-    () => catalogVersions.find((entry) => entry.id === resolvedVersionId) ?? catalogVersions[0],
-    [catalogVersions, resolvedVersionId],
+    () => catalogVersions.find((entry) => entry.id === resolvedVersionId) ?? browseVersions[0] ?? catalogVersions[0],
+    [browseVersions, catalogVersions, resolvedVersionId],
   )
   const isLocalFallbackSelected = isLocalFallbackVersion(selectedVersion)
   const { version, loading: versionLoading, error: versionError } = useVersion(resolvedVersionId ?? 1, {
@@ -1162,11 +1167,6 @@ export default function YouVersionReaderTab({
       onVersionChange({ id: selectedVersion.id, name: selectedVersion.localized_title || selectedVersion.title, abbreviation: selectedVersionLabel })
     }
   }, [selectedVersion, onVersionChange, selectedVersionLabel])
-  const resolvedBrowseLanguage = resolveVersionBrowseLanguagePreference(versionBrowseLanguagePreference, language)
-  const browseVersions = useMemo(
-    () => orderVersionsForBrowse(catalogVersions, resolvedBrowseLanguage, resolvedVersionId, pinnedVersionIds),
-    [catalogVersions, pinnedVersionIds, resolvedBrowseLanguage, resolvedVersionId],
-  )
   const compareBrowseVersions = useMemo(
     () => orderVersionsForBrowse(catalogVersions, resolvedBrowseLanguage, compareVersionId, pinnedVersionIds),
     [catalogVersions, pinnedVersionIds, resolvedBrowseLanguage, compareVersionId],
