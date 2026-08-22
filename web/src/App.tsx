@@ -748,6 +748,7 @@ export default function App() {
   const [audioLoading, setAudioLoading] = useState(false)
   const [audioError, setAudioError] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(() => parseHash().verseId ?? null)
+  const [readerSelectedId, setReaderSelectedId] = useState<string | null>(null)
   const [lastReadBook, setLastReadBook] = useState<string>(() =>
     typeof window !== 'undefined' ? localStorage.getItem('bible-study-yv-book') ?? '' : ''
   )
@@ -817,6 +818,11 @@ export default function App() {
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [selectedId])
+
+  useEffect(() => {
+    if (tab !== 'reader' || readerSelectedId || !selectedId) return
+    setReaderSelectedId(selectedId)
+  }, [readerSelectedId, selectedId, tab])
 
   useEffect(() => {
     setBookmarks(getBookmarks())
@@ -942,11 +948,14 @@ export default function App() {
     setTab('search')
   }
 
+  const openVerseInReader = useCallback((id: string) => {
+    setReaderSelectedId(id)
+    setTab('reader')
+  }, [])
+
   // Log a recent search only once the user actually picks a verse from the
   // results, so the list shows what they were looking for, not every keystroke.
   const recordSearchSelection = useCallback((verseId: string, searchQuery: string) => {
-    setSelectedId(verseId)
-    setTab('reader')
     const verse = findVerse(verseId)
     if (!verse || !searchQuery?.trim()) return
     addRecentSearch({
@@ -956,18 +965,14 @@ export default function App() {
       versionId: readerVersion ? String(readerVersion.id) : verse.translation,
       versionAbbreviation: readerVersion ? (readerVersion.abbreviation || readerVersion.name) : verse.translation.toUpperCase(),
     })
-  }, [readerVersion])
+    openVerseInReader(verseId)
+  }, [openVerseInReader, readerVersion])
 
   const handleBookmark = (verseId: string, versionId?: string, versionAbbreviation?: string) => {
     const v = versionId ?? (readerVersion ? String(readerVersion.id) : '')
     const a = versionAbbreviation ?? (readerVersion ? (readerVersion.abbreviation || readerVersion.name) : '')
     toggleBookmark(verseId, v, a)
     setBookmarks(getBookmarks())
-  }
-
-  const openVerseInReader = (id: string) => {
-    setSelectedId(id)
-    setTab('reader')
   }
 
   const detailRelatedMatches = useMemo(
@@ -1145,8 +1150,8 @@ export default function App() {
                 authRedirectUrl={getYouVersionRedirectUrl()}
               >
                 <YouVersionReaderTab
-                  selectedId={selectedId}
-                  onSelect={setSelectedId}
+                  selectedId={readerSelectedId}
+                  onSelect={setReaderSelectedId}
                   bookmarks={bookmarks}
                   onToggleBookmark={handleBookmark}
                   audioUrl={audioUrl}
