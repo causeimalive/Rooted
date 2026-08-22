@@ -158,10 +158,11 @@ export async function syncUserData(userId: string) {
   set(RECENT_SEARCHES_KEY, mergedRecent)
 
   const localPinnedVersionIds = getPinnedVersionIds(userId)
-  if (cloudPinnedVersionIds !== null) {
-    setPinnedVersionIds(userId, cloudPinnedVersionIds)
-  } else if (localPinnedVersionIds.length) {
-    setPinnedVersionIds(userId, localPinnedVersionIds)
+  const mergedPinnedVersionIds = Array.from(
+    new Set([...localPinnedVersionIds, ...(cloudPinnedVersionIds ?? [])]),
+  )
+  if (mergedPinnedVersionIds.length || cloudPinnedVersionIds !== null || localPinnedVersionIds.length) {
+    setPinnedVersionIds(userId, mergedPinnedVersionIds)
   }
 
   try {
