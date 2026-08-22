@@ -749,6 +749,7 @@ export default function App() {
   const [audioError, setAudioError] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(() => parseHash().verseId ?? null)
   const [readerSelectedId, setReaderSelectedId] = useState<string | null>(null)
+  const [readerOpenSeq, setReaderOpenSeq] = useState(0)
   const [lastReadBook, setLastReadBook] = useState<string>(() =>
     typeof window !== 'undefined' ? localStorage.getItem('bible-study-yv-book') ?? '' : ''
   )
@@ -950,6 +951,7 @@ export default function App() {
 
   const openVerseInReader = useCallback((id: string) => {
     setReaderSelectedId(id)
+    setReaderOpenSeq((n) => n + 1)
     setTab('reader')
   }, [])
 
@@ -1151,6 +1153,7 @@ export default function App() {
               >
                 <YouVersionReaderTab
                   selectedId={readerSelectedId}
+                  readerOpenSeq={readerOpenSeq}
                   onSelect={setReaderSelectedId}
                   bookmarks={bookmarks}
                   onToggleBookmark={handleBookmark}

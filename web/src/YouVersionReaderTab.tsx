@@ -769,6 +769,7 @@ function nextOrPreviousChapter(
 
 export default function YouVersionReaderTab({
   selectedId,
+  readerOpenSeq,
   onSelect,
   bookmarks,
   onToggleBookmark,
@@ -781,6 +782,7 @@ export default function YouVersionReaderTab({
   onLastReadChange,
 }: {
   selectedId: string | null
+  readerOpenSeq: number
   onSelect: (id: string) => void
   bookmarks: Bookmark[]
   onToggleBookmark: (verseId: string, versionId?: string, versionAbbreviation?: string) => void
@@ -2379,6 +2381,11 @@ export default function YouVersionReaderTab({
   }, [hoverHighlightEnabled])
 
   useEffect(() => {
+    lastSelectedVerseIdRef.current = null
+    pendingReaderSelectionIdRef.current = null
+  }, [readerOpenSeq])
+
+  useEffect(() => {
     if (!selectedVerse || !books.length) return
 
     const selectedVerseId = selectedVerse.id
@@ -2413,7 +2420,7 @@ export default function YouVersionReaderTab({
 
     setReferenceInput(`${selectedVerse.bookName} ${selectedVerse.chapter}:${selectedVerse.verse}`)
     setTargetVerse({ bookId: nextBook.id, chapter: selectedVerse.chapter, verse: selectedVerse.verse })
-  }, [bookId, books, chapter, compareOpen, readerView, selectedVerse, setBookAndChapter, setReaderView, setTargetVerse])
+  }, [bookId, books, chapter, compareOpen, readerOpenSeq, readerView, selectedVerse, setBookAndChapter, setReaderView, setTargetVerse])
 
   const handleReaderVerseSelect = useCallback(
     (verseId: string) => {
