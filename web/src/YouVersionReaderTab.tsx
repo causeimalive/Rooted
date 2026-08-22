@@ -2380,7 +2380,7 @@ export default function YouVersionReaderTab({
     setUserPreference(userIdRef.current, READER_HOVER_HIGHLIGHT_KEY, String(hoverHighlightEnabled))
   }, [hoverHighlightEnabled])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     lastSelectedVerseIdRef.current = null
     pendingReaderSelectionIdRef.current = null
   }, [readerOpenSeq])
