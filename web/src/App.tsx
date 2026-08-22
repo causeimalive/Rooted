@@ -1153,6 +1153,7 @@ export default function App() {
                 authRedirectUrl={getYouVersionRedirectUrl()}
               >
                 <YouVersionReaderTab
+                  key={readerOpenSeq}
                   selectedId={readerSelectedId}
                   readerOpenSeq={readerOpenSeq}
                   onSelect={setReaderSelectedId}

@@ -920,9 +920,6 @@ export default function YouVersionReaderTab({
 
     const savedVersion = Number(getUserPreference(userId, READER_VERSION_KEY))
     setVersionId(Number.isFinite(savedVersion) && savedVersion !== 0 ? savedVersion : null)
-    setBookId(getUserPreference(userId, READER_BOOK_KEY) ?? '')
-    const savedChapter = Number(getUserPreference(userId, READER_CHAPTER_KEY))
-    setChapter(Number.isFinite(savedChapter) && savedChapter > 0 ? savedChapter : 1)
     const savedView = getUserPreference(userId, READER_VIEW_KEY) ?? getUserPreference(userId, 'bible-study-yv-mode')
     setReaderView(
       savedView === 'html' || savedView === 'chapter' || savedView === 'verse'
@@ -933,7 +930,6 @@ export default function YouVersionReaderTab({
             ? 'chapter'
             : 'html',
     )
-    setReferenceInput(getUserPreference(userId, READER_INPUT_KEY) ?? '')
     const savedNavWidth = Number(getUserPreference(userId, READER_NAV_WIDTH_KEY))
     setNavWidth(Number.isFinite(savedNavWidth) && savedNavWidth >= MIN_NAV_WIDTH ? savedNavWidth : DEFAULT_NAV_WIDTH)
     const savedCompareOpen = getUserPreference(userId, READER_COMPARE_OPEN_KEY) === 'true'
@@ -2146,7 +2142,8 @@ export default function YouVersionReaderTab({
       }
 
       const numbers = await resolveChapterNumbers(book)
-      const clampedChapter = numbers.includes(chapter) ? chapter : numbers[0] ?? chapter
+      const preferredChapter = selectedVerse?.chapter ?? chapter
+      const clampedChapter = numbers.includes(preferredChapter) ? preferredChapter : numbers[0] ?? preferredChapter
       const firstReference: ReaderReference = { bookId: book.id, chapter: clampedChapter }
 
       try {
@@ -2206,7 +2203,7 @@ export default function YouVersionReaderTab({
     return () => {
       cancelled = true
     }
-  }, [bookId, chapter, books, loadSection, resolvedVersionId, resolveChapterNumbers, localFallbackBooks])
+  }, [bookId, chapter, books, loadSection, resolvedVersionId, resolveChapterNumbers, localFallbackBooks, selectedVerse])
 
   useEffect(() => {
     if (!compareOpen || !resolvedVersionId || !currentIndexBook || compareVersionId === null) {
