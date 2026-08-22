@@ -8088,3 +8088,47 @@ dialog.header-settings-dialog::backdrop {
     margin-bottom: 0.75rem;
   }
 }
+
+.highlighted {
+  border-radius: 0.35rem;
+}
+
+.highlight-swatch {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 0.2rem;
+  border: 1px solid color-mix(in srgb, var(--text-muted) 30%, transparent);
+  display: inline-block;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+
+.yv-reader-verse-actions {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  display: none;
+  align-items: center;
+  gap: 0.25rem;
+  z-index: 1;
+}
+
+.yv-reader-verse-card.selected .yv-reader-verse-actions,
+.yv-reader-verse-flow-item.selected .yv-reader-verse-actions {
+  display: flex;
+}
+
+.yv-reader-verse-bookmark,
+.yv-reader-verse-highlight {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--muted));
+  border-radius: 0.45rem;
+  background: var(--surface);
+  color: var(--accent);
+  cursor: pointer;
+}

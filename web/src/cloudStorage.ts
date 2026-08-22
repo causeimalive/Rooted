@@ -1,6 +1,6 @@
 import { collection, deleteDoc, doc, getDoc, getDocs, setDoc } from 'firebase/firestore'
 import { db } from './firebase'
-import { Bookmark, Note, RecentSearch } from './types'
+import { Bookmark, Highlight, Note, RecentSearch } from './types'
 
 async function getCollection<T>(userId: string, name: string): Promise<T[]> {
   const snap = await getDocs(collection(db, 'users', userId, name))
@@ -58,6 +58,18 @@ export function saveUserBookmark(userId: string, bookmark: Bookmark): Promise<vo
 
 export function deleteUserBookmark(userId: string, id: string): Promise<void> {
   return deleteItem(userId, 'bookmarks', id)
+}
+
+export function getUserHighlights(userId: string): Promise<Highlight[]> {
+  return getCollection<Highlight>(userId, 'highlights')
+}
+
+export function saveUserHighlight(userId: string, highlight: Highlight): Promise<void> {
+  return saveDoc(userId, 'highlights', highlight)
+}
+
+export function deleteUserHighlight(userId: string, id: string): Promise<void> {
+  return deleteItem(userId, 'highlights', id)
 }
 
 export function getUserNotes(userId: string): Promise<Note[]> {

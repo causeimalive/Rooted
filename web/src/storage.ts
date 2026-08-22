@@ -1,4 +1,4 @@
-import { Bookmark, Memory, Note, RecentSearch, Verse } from './types'
+import { Bookmark, Highlight, Memory, Note, RecentSearch, Verse } from './types'
 import { findVerse, getAllVerses } from './bible'
 import {
   ApiClient,
@@ -9,24 +9,30 @@ import {
 import {
   clearRecentSearchesDB,
   deleteBookmarkDB,
+  deleteHighlightDB,
   deleteNoteDB,
   getBookmarksDB,
+  getHighlightsDB,
   getNotesDB,
   getRecentSearchesDB,
   saveBookmarkDB,
+  saveHighlightDB,
   saveNoteDB,
   saveRecentSearchDB,
 } from './indexedStorage'
 import {
   clearUserRecentSearches,
   deleteUserBookmark,
+  deleteUserHighlight,
   deleteUserNote,
   deleteUserRecentSearch,
   getUserBookmarks,
+  getUserHighlights,
   getUserNotes,
   getUserPinnedVersionIds,
   getUserRecentSearches,
   saveUserBookmark,
+  saveUserHighlight,
   saveUserNote,
   saveUserRecentSearch,
 } from './cloudStorage'
@@ -43,6 +49,7 @@ function normalizePassageId(passageId: string): string {
 
 const NOTES_KEY = 'bible.notes'
 const BOOKMARKS_KEY = 'bible.bookmarks'
+const HIGHLIGHTS_KEY = 'bible.highlights'
 const MEMORIES_KEY = 'bible.memories'
 const USER_KEY = 'bible.user'
 const RECENT_SEARCHES_KEY = 'bible.recentSearches'
@@ -126,15 +133,34 @@ function normalizeBookmarks(bookmarks: Bookmark[]): Bookmark[] {
   return unique
 }
 
+function highlightKey(highlight: Pick<Highlight, 'verseId' | 'versionId' | 'versionAbbreviation'>): string {
+  return `${highlight.verseId}:${canonicalVersionKey(highlight.versionId, highlight.versionAbbreviation)}`
+}
+
+export function normalizeHighlights(highlights: Highlight[]): Highlight[] {
+  const seen = new Set<string>()
+  const unique: Highlight[] = []
+  const sorted = [...highlights].sort((a, b) => itemTimestamp(b) - itemTimestamp(a))
+  for (const h of sorted) {
+    const key = highlightKey(h)
+    if (seen.has(key)) continue
+    seen.add(key)
+    unique.push(h)
+  }
+  return unique
+}
+
 export async function syncUserData(userId: string) {
   currentUserId = userId
   let cloudBookmarks: Bookmark[] = []
+  let cloudHighlights: Highlight[] = []
   let cloudNotes: Note[] = []
   let cloudRecent: RecentSearch[] = []
   let cloudPinnedVersionIds: number[] | null = null
   try {
-    ;[cloudBookmarks, cloudNotes, cloudRecent, cloudPinnedVersionIds] = await Promise.all([
+    ;[cloudBookmarks, cloudHighlights, cloudNotes, cloudRecent, cloudPinnedVersionIds] = await Promise.all([
       getUserBookmarks(userId),
+      getUserHighlights(userId),
       getUserNotes(userId),
       getUserRecentSearches(userId),
       getUserPinnedVersionIds(userId),
@@ -146,6 +172,9 @@ export async function syncUserData(userId: string) {
   const mergedBookmarks = normalizeBookmarks(
     mergeById(get<Bookmark>(BOOKMARKS_KEY), cloudBookmarks),
   )
+  const mergedHighlights = normalizeHighlights(
+    mergeById(get<Highlight>(HIGHLIGHTS_KEY), cloudHighlights),
+  )
   const mergedNotes = mergeById(getNotes(), cloudNotes).sort(
     (a, b) => itemTimestamp(b) - itemTimestamp(a),
   )
@@ -154,6 +183,7 @@ export async function syncUserData(userId: string) {
   )
 
   set(BOOKMARKS_KEY, mergedBookmarks)
+  set(HIGHLIGHTS_KEY, mergedHighlights)
   set(NOTES_KEY, mergedNotes)
   set(RECENT_SEARCHES_KEY, mergedRecent)
 
@@ -168,6 +198,7 @@ export async function syncUserData(userId: string) {
   try {
     await Promise.all([
       Promise.all(mergedBookmarks.map((b) => saveUserBookmark(userId, b))),
+      Promise.all(mergedHighlights.map((h) => saveUserHighlight(userId, h))),
       Promise.all(mergedNotes.map((n) => saveUserNote(userId, n))),
       Promise.all(mergedRecent.map((r) => saveUserRecentSearch(userId, r))),
     ])
@@ -185,27 +216,27 @@ export function importYouVersionHighlights(
   versionId: string,
   versionAbbreviation: string,
 ) {
-  const existing = getBookmarks()
-  const additions: Bookmark[] = []
+  const existing = getHighlights()
+  const additions: Highlight[] = []
   for (const item of items) {
-    if (existing.some((b) => b.verseId === item.verseId && b.versionId === versionId)) continue
-    const bookmark: Bookmark = {
+    if (existing.some((h) => h.verseId === item.verseId && h.versionId === versionId)) continue
+    const color = item.color ? (item.color.startsWith('#') ? item.color : `#${item.color}`) : '#F5E98A'
+    const highlight: Highlight = {
       id: crypto.randomUUID(),
       verseId: item.verseId,
-      label: item.color ? `#${item.color}` : versionAbbreviation || 'Bookmarked',
       createdAt: new Date().toISOString(),
       versionId,
       versionAbbreviation,
-      color: item.color,
+      color,
     }
-    additions.push(bookmark)
+    additions.push(highlight)
   }
   if (!additions.length) return
-  const next = normalizeBookmarks([...additions, ...existing])
-  set(BOOKMARKS_KEY, next)
-  for (const bookmark of additions) {
-    void saveBookmarkDB(bookmark).catch(() => {})
-    if (currentUserId) void saveUserBookmark(currentUserId, bookmark).catch(() => {})
+  const next = normalizeHighlights([...additions, ...existing])
+  set(HIGHLIGHTS_KEY, next)
+  for (const highlight of additions) {
+    void saveHighlightDB(highlight).catch(() => {})
+    if (currentUserId) void saveUserHighlight(currentUserId, highlight).catch(() => {})
   }
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('bible-study-storage-hydrated'))
@@ -358,14 +389,17 @@ async function hydrateFromIndexedDB() {
   try {
     const needsNotes = localStorage.getItem(NOTES_KEY) === null
     const needsBookmarks = localStorage.getItem(BOOKMARKS_KEY) === null
+    const needsHighlights = localStorage.getItem(HIGHLIGHTS_KEY) === null
     const needsRecentSearches = localStorage.getItem(RECENT_SEARCHES_KEY) === null
-    const [notes, bookmarks, recent] = await Promise.all([
+    const [notes, bookmarks, highlights, recent] = await Promise.all([
       getNotesDB(),
       getBookmarksDB(),
+      getHighlightsDB(),
       getRecentSearchesDB(),
     ])
     if (needsNotes && notes.length) localStorage.setItem(NOTES_KEY, JSON.stringify(notes))
     if (needsBookmarks && bookmarks.length) localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(normalizeBookmarks(bookmarks)))
+    if (needsHighlights && highlights.length) localStorage.setItem(HIGHLIGHTS_KEY, JSON.stringify(normalizeHighlights(highlights)))
     if (needsRecentSearches && recent.length) localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(normalizeRecentSearches(recent)))
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('bible-study-storage-hydrated'))
@@ -414,6 +448,59 @@ export function getNotes(): Note[] {
 
 export function getBookmarks(): Bookmark[] {
   return normalizeBookmarks(get<Bookmark>(BOOKMARKS_KEY))
+}
+
+export function setHighlights(value: Highlight[]) {
+  set(HIGHLIGHTS_KEY, normalizeHighlights(value))
+}
+
+export function getHighlights(): Highlight[] {
+  return normalizeHighlights(get<Highlight>(HIGHLIGHTS_KEY))
+}
+
+export function saveHighlight(highlight: Highlight): Highlight {
+  const highlights = getHighlights()
+  const next = [highlight, ...highlights.filter((h) => h.id !== highlight.id)]
+  setHighlights(next)
+  void saveHighlightDB(highlight).catch(() => {})
+  if (currentUserId) void saveUserHighlight(currentUserId, highlight).catch(() => {})
+  return highlight
+}
+
+export function deleteHighlight(id: string) {
+  setHighlights(getHighlights().filter((h) => h.id !== id))
+  void deleteHighlightDB(id).catch(() => {})
+  if (currentUserId) void deleteUserHighlight(currentUserId, id).catch(() => {})
+}
+
+export function isHighlighted(verseId: string, versionId?: string, versionAbbreviation?: string): { id: string; color: string } | undefined {
+  const key = `${verseId}:${canonicalVersionKey(versionId, versionAbbreviation)}`
+  return getHighlights().find((h) => highlightKey(h) === key)
+}
+
+export function toggleHighlight(
+  verseId: string,
+  versionId?: string,
+  versionAbbreviation?: string,
+  color?: string,
+): boolean {
+  const highlights = getHighlights()
+  const incomingKey = `${verseId}:${canonicalVersionKey(versionId, versionAbbreviation)}`
+  const exists = highlights.find((h) => highlightKey(h) === incomingKey)
+  if (exists) {
+    deleteHighlight(exists.id)
+    return false
+  }
+  const h: Highlight = {
+    id: crypto.randomUUID(),
+    verseId,
+    createdAt: new Date().toISOString(),
+    versionId,
+    versionAbbreviation,
+    color: color || '#F5E98A',
+  }
+  saveHighlight(h)
+  return true
 }
 
 export function saveNote(verseId: string, body: string): Note {

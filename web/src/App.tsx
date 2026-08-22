@@ -21,6 +21,7 @@ import {
   Cog,
   Palette,
   Globe,
+  Highlighter,
   Play,
   Pause,
   Users,
@@ -96,6 +97,7 @@ import {
   deleteMemory,
   getBookmarks,
   getCurrentUserId,
+  getHighlights,
   getMemories,
   getRecentSearches,
   getYouVersionAccessToken,
@@ -104,10 +106,11 @@ import {
   saveMemory,
   syncUserData,
   toggleBookmark,
+  toggleHighlight,
 } from './storage'
 import { linkYouVersionToFirebase } from './youversionFirebaseBridge'
 import { auth } from './firebase'
-import { Bookmark as BookmarkType, Memory, Verse, type LexiconEntry, type Place, type RecentSearch } from './types'
+import { Bookmark as BookmarkType, type Highlight as HighlightType, Memory, Verse, type LexiconEntry, type Place, type RecentSearch } from './types'
 import type { Character } from './types'
 import { useI18n } from './i18n'
 import {
@@ -767,6 +770,7 @@ export default function App() {
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>(getRecentSearches())
   const [bookmarks, setBookmarks] = useState<BookmarkType[]>(getBookmarks())
+  const [highlights, setHighlightsState] = useState<HighlightType[]>(getHighlights())
   const [memories, setMemories] = useState<Memory[]>(getMemories())
   const handleSaveMemory = useCallback((m: Memory) => setMemories(saveMemory(m)), [])
   const handleDeleteMemory = useCallback((id: string) => setMemories(deleteMemory(id)), [])
@@ -829,12 +833,14 @@ export default function App() {
 
   useEffect(() => {
     setBookmarks(getBookmarks())
+    setHighlightsState(getHighlights())
     setRecentSearches(getRecentSearches())
   }, [tab])
 
   useEffect(() => {
     const refreshSavedContent = () => {
       setBookmarks(getBookmarks())
+      setHighlightsState(getHighlights())
       setRecentSearches(getRecentSearches())
     }
 
@@ -1000,6 +1006,13 @@ export default function App() {
     setBookmarks(getBookmarks())
   }
 
+  const handleToggleHighlight = (verseId: string, versionId?: string, versionAbbreviation?: string, color?: string) => {
+    const v = versionId ?? (readerVersion ? String(readerVersion.id) : '')
+    const a = versionAbbreviation ?? (readerVersion ? (readerVersion.abbreviation || readerVersion.name) : '')
+    toggleHighlight(verseId, v, a, color)
+    setHighlightsState(getHighlights())
+  }
+
   const detailRelatedMatches = useMemo(
     () => (detailVerse ? getCrossReferenceMatches(detailVerse) : []),
     [detailVerse],
@@ -1163,6 +1176,7 @@ export default function App() {
               onSelectResult={recordSearchSelection}
               bookmarks={bookmarks}
               onToggleBookmark={handleBookmark}
+              highlights={highlights}
               recentSearches={recentSearches}
             />
           )}
@@ -1183,6 +1197,8 @@ export default function App() {
                   onSelect={setReaderSelectedId}
                   bookmarks={bookmarks}
                   onToggleBookmark={handleBookmark}
+                  highlights={highlights}
+                  onToggleHighlight={handleToggleHighlight}
                   audioUrl={audioUrl}
                   audioPlaying={audioPlaying}
                   audioLoading={audioLoading}
@@ -1500,6 +1516,7 @@ function SearchTab({
   onSelectResult,
   bookmarks,
   onToggleBookmark,
+  highlights,
   recentSearches,
 }: {
   query: string
@@ -1515,10 +1532,11 @@ function SearchTab({
   onSelectResult: (id: string, query: string, versionId?: string, versionAbbreviation?: string) => void
   bookmarks: BookmarkType[]
   onToggleBookmark: (id: string, versionId?: string, versionAbbreviation?: string) => void
+  highlights: HighlightType[]
   recentSearches: RecentSearch[]
 }) {
   const { t } = useI18n()
-  const [mode, setMode] = useState<'search' | 'bookmarks' | 'lexicon'>('search')
+  const [mode, setMode] = useState<'search' | 'bookmarks' | 'highlights' | 'lexicon'>('search')
   const all = getAllVerses()
   const availableTranslations = useMemo(() => {
     const set = new Set<string>()
@@ -1539,6 +1557,15 @@ function SearchTab({
     () => new Set(bookmarks.filter((b) => b.versionId === currentVersionId).map((b) => b.verseId)),
     [bookmarks, currentVersionId],
   )
+  const allHighlightedVerses = useMemo(
+    () => highlights
+      .map((h) => {
+        const verse = all.find((v) => v.id === h.verseId)
+        return verse ? { id: h.id, verse, label: h.label, color: h.color, versionId: h.versionId ?? '', versionAbbreviation: h.versionAbbreviation ?? '' } : null
+      })
+      .filter((i): i is { id: string; verse: Verse; label: string | undefined; color: string; versionId: string; versionAbbreviation: string } => Boolean(i)),
+    [all, highlights],
+  )
 
   const recentSearchCount = useMemo(
     () => recentSearches.filter((r) => findVerse(r.verseId)).length,
@@ -1546,6 +1573,7 @@ function SearchTab({
   )
 
   const showingBookmarks = mode === 'bookmarks'
+  const showingHighlights = mode === 'highlights'
   const showingLexicon = mode === 'lexicon'
   const filteredBookmarks = useMemo(() => {
     if (!showingBookmarks || !query.trim()) return allBookmarkedVerses
@@ -1557,14 +1585,25 @@ function SearchTab({
       return ref.includes(q) || text.includes(q) || version.includes(q)
     })
   }, [showingBookmarks, query, allBookmarkedVerses])
+  const filteredHighlights = useMemo(() => {
+    if (!showingHighlights || !query.trim()) return allHighlightedVerses
+    const q = query.trim().toLowerCase()
+    return allHighlightedVerses.filter((item) => {
+      const ref = `${item.verse.bookName} ${item.verse.chapter}:${item.verse.verse}`.toLowerCase()
+      const text = item.verse.text.toLowerCase()
+      const version = (item.versionAbbreviation || item.versionId).toLowerCase()
+      const label = (item.label || '').toLowerCase()
+      return ref.includes(q) || text.includes(q) || version.includes(q) || label.includes(q)
+    })
+  }, [showingHighlights, query, allHighlightedVerses])
   const bookmarked = useMemo(
     () => (showingBookmarks ? new Set(filteredBookmarks.map((i) => i.verse.id)) : activeVersionBookmarked),
     [showingBookmarks, filteredBookmarks, activeVersionBookmarked],
   )
 
   const resultCount = useMemo(
-    () => (showingLexicon ? 0 : showingBookmarks ? filteredBookmarks.length : query.trim() ? results.length : recentSearchCount),
-    [showingLexicon, showingBookmarks, filteredBookmarks.length, query, results.length, recentSearchCount],
+    () => (showingLexicon ? 0 : showingBookmarks ? filteredBookmarks.length : showingHighlights ? filteredHighlights.length : query.trim() ? results.length : recentSearchCount),
+    [showingLexicon, showingBookmarks, filteredBookmarks.length, showingHighlights, filteredHighlights.length, query, results.length, recentSearchCount],
   )
 
   return (
@@ -1584,6 +1623,12 @@ function SearchTab({
             <Bookmark size={14} /> {t('bookmarks')}
           </button>
           <button
+            className={`search-mode-btn ${mode === 'highlights' ? 'active' : ''}`}
+            onClick={() => setMode('highlights')}
+          >
+            <Highlighter size={14} /> {t('highlights')}
+          </button>
+          <button
             className={`search-mode-btn ${mode === 'lexicon' ? 'active' : ''}`}
             onClick={() => setMode('lexicon')}
           >
@@ -1598,7 +1643,7 @@ function SearchTab({
             value={query}
             autoFocus
             onChange={(e) => onQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && !showingBookmarks && !showingLexicon && onSearch(query)}
+            onKeyDown={(e) => e.key === 'Enter' && !showingBookmarks && !showingHighlights && !showingLexicon && onSearch(query)}
           />
           {query && (
             <button className="search-clear" onClick={() => { onQuery(''); setMode('search') }}>
@@ -1620,7 +1665,7 @@ function SearchTab({
             ))}
           </select>
         )}
-        {!showingLexicon && (query.trim() || showingBookmarks) && resultCount > 0 && (
+        {!showingLexicon && (query.trim() || showingBookmarks || showingHighlights) && resultCount > 0 && (
           <div className="result-count">{t('resultCount', { count: String(resultCount) })}</div>
         )}
       </div>
@@ -1652,6 +1697,42 @@ function SearchTab({
                   >
                     <Bookmark size={14} fill="currentColor" />
                   </button>
+                </div>
+                <div
+                  className="verse-text"
+                  dangerouslySetInnerHTML={{
+                    __html: redLetterVerseHtml(item.verse.text, item.verse.book, item.verse.chapter, item.verse.verse),
+                  }}
+                />
+              </div>
+            ))
+          )
+        ) : showingHighlights ? (
+          filteredHighlights.length === 0 ? (
+            <div className="empty">{query.trim() ? t('noResults') : t('noHighlights')}</div>
+          ) : (
+            filteredHighlights.map((item) => (
+              <div
+                key={item.id}
+                className={`verse-card ${selectedId === item.verse.id ? 'active' : ''}`}
+                onClick={() => onSelect(item.verse.id)}
+                onDoubleClick={() => onSelectResult(item.verse.id, `${item.verse.bookName} ${item.verse.chapter}:${item.verse.verse}`, item.versionId, item.versionAbbreviation)}
+                onPointerEnter={() => onHoverVerse(item.verse.id)}
+                onFocus={() => onHoverVerse(item.verse.id)}
+              >
+                <div className="verse-ref">
+                  <span>{item.verse.bookName} {item.verse.chapter}:{item.verse.verse}</span>
+                  <span
+                    className="highlight-swatch"
+                    style={{ backgroundColor: item.color }}
+                    aria-label={item.label || item.color}
+                    title={item.label || item.color}
+                  />
+                  {item.versionAbbreviation ? (
+                    <span className="verse-meta-pill" style={{ marginLeft: 'auto' }}>{item.versionAbbreviation}</span>
+                  ) : item.versionId ? (
+                    <span className="verse-meta-pill" style={{ marginLeft: 'auto' }}>{item.versionId.toUpperCase()}</span>
+                  ) : null}
                 </div>
                 <div
                   className="verse-text"

@@ -32,7 +32,10 @@ type ReaderPassageStackProps = {
   selectedId?: string | null
   onSelectVerse?: (verseId: string) => void
   onToggleBookmark?: (verseId: string, yvPassageId?: string) => void
+  onToggleHighlight?: (verseId: string, yvPassageId?: string) => void
   bookmarkedVerseIds?: Set<string>
+  highlightedVerseIds?: Set<string>
+  highlightColors?: Record<string, string>
   bookCodeById?: Record<string, string>
 }
 
@@ -46,7 +49,10 @@ function ReaderPassageStack({
   selectedId,
   onSelectVerse,
   onToggleBookmark,
+  onToggleHighlight,
   bookmarkedVerseIds,
+  highlightedVerseIds,
+  highlightColors,
   bookCodeById,
 }: ReaderPassageStackProps) {
   const { t } = useI18n()
@@ -108,12 +114,16 @@ function ReaderPassageStack({
                       const yvPassageId = `${section.bookId}.${section.chapter}.${verse.verse}`
                       const selected = selectedId === verseId
                       const isBookmarked = bookmarkedVerseIds?.has(verseId) ?? false
-                      const label = isBookmarked ? t('unbookmark') : t('bookmark')
+                      const isHighlighted = highlightedVerseIds?.has(verseId) ?? false
+                      const highlightColor = isHighlighted ? (highlightColors?.[verseId] ?? '#F5E98A') : undefined
+                      const bookmarkLabel = isBookmarked ? t('unbookmark') : t('bookmark')
+                      const highlightLabel = isHighlighted ? t('unhighlight') : t('highlight')
                       return (
                         <article
                           key={`${section.key}-${verse.verse}`}
-                          className={`yv-reader-verse-card ${selected ? 'selected' : ''} ${isBookmarked ? 'bookmarked' : ''}`}
+                          className={`yv-reader-verse-card ${selected ? 'selected' : ''} ${isBookmarked ? 'bookmarked' : ''} ${isHighlighted ? 'highlighted' : ''}`}
                           data-verse={verse.verse}
+                          style={{ backgroundColor: highlightColor }}
                           onClick={() => onSelectVerse?.(verseId)}
                         >
                           <div className="yv-reader-verse-number">{verse.verse}</div>
@@ -122,18 +132,32 @@ function ReaderPassageStack({
                             dangerouslySetInnerHTML={{ __html: verse.strippedHtml }}
                           />
                           {selected && (
-                            <button
-                              type="button"
-                              className="yv-reader-verse-bookmark"
-                              title={label}
-                              aria-label={label}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                onToggleBookmark?.(verseId, yvPassageId)
-                              }}
-                            >
-                              <Highlighter size={14} fill={isBookmarked ? 'currentColor' : 'none'} />
-                            </button>
+                            <div className="yv-reader-verse-actions">
+                              <button
+                                type="button"
+                                className="yv-reader-verse-bookmark"
+                                title={bookmarkLabel}
+                                aria-label={bookmarkLabel}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  onToggleBookmark?.(verseId, yvPassageId)
+                                }}
+                              >
+                                <Highlighter size={14} fill={isBookmarked ? 'currentColor' : 'none'} />
+                              </button>
+                              <button
+                                type="button"
+                                className="yv-reader-verse-highlight"
+                                title={highlightLabel}
+                                aria-label={highlightLabel}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  onToggleHighlight?.(verseId, yvPassageId)
+                                }}
+                              >
+                                <Highlighter size={14} fill={highlightColor ?? 'none'} />
+                              </button>
+                            </div>
                           )}
                         </article>
                       )
@@ -151,28 +175,46 @@ function ReaderPassageStack({
                       const yvPassageId = `${section.bookId}.${section.chapter}.${verse.verse}`
                       const selected = selectedId === verseId
                       const isBookmarked = bookmarkedVerseIds?.has(verseId) ?? false
-                      const label = isBookmarked ? t('unbookmark') : t('bookmark')
+                      const isHighlighted = highlightedVerseIds?.has(verseId) ?? false
+                      const highlightColor = isHighlighted ? (highlightColors?.[verseId] ?? '#F5E98A') : undefined
+                      const bookmarkLabel = isBookmarked ? t('unbookmark') : t('bookmark')
+                      const highlightLabel = isHighlighted ? t('unhighlight') : t('highlight')
                       return (
                         <article
                           key={`${section.key}-${verse.verse}`}
-                          className={`yv-reader-verse-flow-item ${selected ? 'selected' : ''} ${isBookmarked ? 'bookmarked' : ''}`}
+                          className={`yv-reader-verse-flow-item ${selected ? 'selected' : ''} ${isBookmarked ? 'bookmarked' : ''} ${isHighlighted ? 'highlighted' : ''}`}
                           data-verse={verse.verse}
+                          style={{ backgroundColor: highlightColor }}
                           onClick={() => onSelectVerse?.(verseId)}
                         >
                           <div className="yv-reader-verse-flow-content" dangerouslySetInnerHTML={{ __html: verse.html }} />
                           {selected && (
-                            <button
-                              type="button"
-                              className="yv-reader-verse-bookmark"
-                              title={label}
-                              aria-label={label}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                onToggleBookmark?.(verseId, yvPassageId)
-                              }}
-                            >
-                              <Highlighter size={14} fill={isBookmarked ? 'currentColor' : 'none'} />
-                            </button>
+                            <div className="yv-reader-verse-actions">
+                              <button
+                                type="button"
+                                className="yv-reader-verse-bookmark"
+                                title={bookmarkLabel}
+                                aria-label={bookmarkLabel}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  onToggleBookmark?.(verseId, yvPassageId)
+                                }}
+                              >
+                                <Highlighter size={14} fill={isBookmarked ? 'currentColor' : 'none'} />
+                              </button>
+                              <button
+                                type="button"
+                                className="yv-reader-verse-highlight"
+                                title={highlightLabel}
+                                aria-label={highlightLabel}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  onToggleHighlight?.(verseId, yvPassageId)
+                                }}
+                              >
+                                <Highlighter size={14} fill={highlightColor ?? 'none'} />
+                              </button>
+                            </div>
                           )}
                         </article>
                       )

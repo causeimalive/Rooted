@@ -42,7 +42,7 @@ import MobileReaderNav from './MobileReaderNav'
 import { useI18n } from './i18n'
 import { importYouVersionHighlights } from './storage'
 import { osisToUsfm } from './usfm'
-import type { Bookmark, ReaderView } from './types'
+import type { Bookmark, Highlight, ReaderView } from './types'
 
 const READER_VERSION_KEY = 'bible-study-yv-version'
 const READER_COMPARE_KEY = 'bible-study-yv-compare'
@@ -775,6 +775,8 @@ export default function YouVersionReaderTab({
   onSelect,
   bookmarks,
   onToggleBookmark,
+  highlights,
+  onToggleHighlight,
   audioUrl,
   audioPlaying,
   audioLoading,
@@ -790,6 +792,8 @@ export default function YouVersionReaderTab({
   onSelect: (id: string) => void
   bookmarks: Bookmark[]
   onToggleBookmark: (verseId: string, versionId?: string, versionAbbreviation?: string) => void
+  highlights: Highlight[]
+  onToggleHighlight: (verseId: string, versionId?: string, versionAbbreviation?: string, color?: string) => void
   audioUrl?: string
   audioPlaying?: boolean
   audioLoading?: boolean
@@ -1227,7 +1231,7 @@ export default function YouVersionReaderTab({
   const compareVersionLabel = formatVersionLabel(compareVersion)
   const highlightsEnabled = auth.isAuthenticated && resolvedVersionId !== null && highlightsPassageId !== '' && !isLocalFallbackSelected
   const {
-    highlights,
+    highlights: remoteHighlights,
     loading: highlightsLoading,
     error: highlightsError,
     refetch: refetchHighlights,
@@ -1295,14 +1299,26 @@ export default function YouVersionReaderTab({
     () => new Set(bookmarks.filter((b) => b.versionId === readerVersionId).map((b) => b.verseId)),
     [bookmarks, readerVersionId],
   )
+  const highlightedVerseIds = useMemo(
+    () => new Set(highlights.filter((h) => h.versionId === readerVersionId).map((h) => h.verseId)),
+    [highlights, readerVersionId],
+  )
+  const highlightColors = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const h of highlights) {
+      if (h.versionId !== readerVersionId) continue
+      map[h.verseId] = h.color
+    }
+    return map
+  }, [highlights, readerVersionId])
 
   useEffect(() => {
-    if (!highlights?.data?.length || !resolvedVersionId) return
+    if (!remoteHighlights?.data?.length || !resolvedVersionId) return
     const all = getAllVerses()
     if (!all.length) return
     const versionId = String(resolvedVersionId)
     const unseen: { verseId: string; color?: string }[] = []
-    for (const h of highlights.data) {
+    for (const h of remoteHighlights.data) {
       const parts = h.passage_id.split('.')
       const bookId = parts[0]
       const chapter = Number(parts[1])
@@ -1310,7 +1326,7 @@ export default function YouVersionReaderTab({
       if (!bookId || !Number.isFinite(chapter) || !Number.isFinite(verse)) continue
       const localBookCode = bookCodeById[bookId.toUpperCase()] ?? bookId.toUpperCase()
       const match = all.find((v) => v.book === localBookCode && v.chapter === chapter && v.verse === verse)
-      if (!match || bookmarkedIds.has(match.id)) continue
+      if (!match || highlightedVerseIds.has(match.id)) continue
       unseen.push({ verseId: match.id, color: h.color })
     }
     if (!unseen.length) return
@@ -1319,7 +1335,7 @@ export default function YouVersionReaderTab({
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : String(err))
     }
-  }, [highlights, resolvedVersionId, selectedVersionLabel, bookmarkedIds, getAllVerses().length])
+  }, [remoteHighlights, resolvedVersionId, selectedVersionLabel, highlightedVerseIds, getAllVerses().length])
 
   const activeBookId = anchorReference?.bookId ?? currentIndexBook?.id ?? ''
   const activeChapter = anchorReference?.chapter ?? currentChapter
@@ -1647,9 +1663,20 @@ export default function YouVersionReaderTab({
       handleOpenBookSource()
     }
   }, [bookIntroHtml, bookIntroOpen, bookIntroReference, bookNumberById, currentBookInfoUrl, currentBookMetadata, entityHighlightsEnabled, handleOpenBookSource, resolvedVersionId, tagPositionsByVerseId])
-  const handleSaveVerse = useCallback(async (verseId: string, yvPassageId?: string) => {
-    const isSaved = bookmarkedIds.has(verseId)
+  const handleToggleBookmark = useCallback(async (verseId: string, yvPassageId?: string) => {
     onToggleBookmark(verseId, selectedVersion ? String(selectedVersion.id) : '', selectedVersionLabel || versionTitle)
+    if (!auth.isAuthenticated || resolvedVersionId === null || isLocalFallbackSelected) return
+    const highlightPassageId = yvPassageId ?? verseId
+    try {
+      await deleteHighlight(highlightPassageId, { version_id: resolvedVersionId })
+    } catch {
+      // Remote highlight removal is best-effort.
+    }
+  }, [auth.isAuthenticated, deleteHighlight, onToggleBookmark, resolvedVersionId, selectedVersion, selectedVersionLabel])
+
+  const handleToggleHighlight = useCallback(async (verseId: string, yvPassageId?: string) => {
+    const isSaved = highlightedVerseIds.has(verseId)
+    onToggleHighlight(verseId, selectedVersion ? String(selectedVersion.id) : '', selectedVersionLabel || versionTitle, '#F5E98A')
     if (!auth.isAuthenticated || resolvedVersionId === null || isLocalFallbackSelected) return
     const highlightPassageId = yvPassageId ?? verseId
     setLocalError('')
@@ -1660,14 +1687,14 @@ export default function YouVersionReaderTab({
         await createHighlight({
           version_id: resolvedVersionId,
           passage_id: highlightPassageId,
-          color: 'f4b400',
+          color: 'F5E98A',
         })
       }
       refetchHighlights()
     } catch (error) {
       setLocalError(error instanceof Error ? error.message : String(error))
     }
-  }, [auth.isAuthenticated, bookmarkedIds, createHighlight, deleteHighlight, onToggleBookmark, refetchHighlights, resolvedVersionId, selectedVersion, selectedVersionLabel])
+  }, [auth.isAuthenticated, createHighlight, deleteHighlight, highlightedVerseIds, onToggleHighlight, refetchHighlights, resolvedVersionId, selectedVersion, selectedVersionLabel])
 
   const handleYouVersionSignIn = useCallback(async () => {
     const redirectUrl = getYouVersionRedirectUrl()
@@ -2399,8 +2426,6 @@ export default function YouVersionReaderTab({
     [onSelect],
   )
 
-  const handleToggleBookmark = handleSaveVerse
-
   useLayoutEffect(() => {
     if (!targetVerse) return
 
@@ -2983,7 +3008,7 @@ export default function YouVersionReaderTab({
                             aria-label={isSaved ? 'Unsave verse' : 'Save verse'}
                             onClick={(e) => {
                               e.stopPropagation()
-                              void handleSaveVerse(verseId, yvPassageId)
+                              void handleToggleBookmark(verseId, yvPassageId)
                             }}
                           >
                             <Highlighter size={14} fill={isSaved ? 'currentColor' : 'none'} />
@@ -2999,7 +3024,7 @@ export default function YouVersionReaderTab({
         </>
       )
     },
-    [compareSections, compareSelection, handleCompareVerseClick, readerView, bookmarkedIds, handleSaveVerse, catalogVersions, compareVersionId],
+    [compareSections, compareSelection, handleCompareVerseClick, readerView, bookmarkedIds, handleToggleBookmark, catalogVersions, compareVersionId],
   )
 
   const compareGrid = useMemo(
@@ -3402,7 +3427,10 @@ export default function YouVersionReaderTab({
                 selectedId={selectedId}
                 onSelectVerse={handleReaderVerseSelect}
                 onToggleBookmark={handleToggleBookmark}
+                onToggleHighlight={handleToggleHighlight}
                 bookmarkedVerseIds={bookmarkedIds}
+                highlightedVerseIds={highlightedVerseIds}
+                highlightColors={highlightColors}
                 bookCodeById={bookCodeById}
               />
             )}

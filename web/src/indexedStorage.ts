@@ -1,4 +1,4 @@
-import { Bookmark, Note } from './types'
+import { Bookmark, Highlight, Note } from './types'
 
 interface RecentSearch {
   id: string
@@ -9,10 +9,11 @@ interface RecentSearch {
 }
 
 const DB_NAME = 'rooted-bible-study'
-const DB_VERSION = 1
+const DB_VERSION = 2
 
 const STORE_NOTES = 'notes'
 const STORE_BOOKMARKS = 'bookmarks'
+const STORE_HIGHLIGHTS = 'highlights'
 const STORE_RECENT = 'recentSearches'
 const STORE_DATA_CACHE = 'dataCache'
 const DATA_CACHE_VERSION = '20260819b'
@@ -29,6 +30,7 @@ function openDB(): Promise<IDBDatabase> {
       const db = (event.target as IDBOpenDBRequest).result
       if (!db.objectStoreNames.contains(STORE_NOTES)) db.createObjectStore(STORE_NOTES, { keyPath: 'id' })
       if (!db.objectStoreNames.contains(STORE_BOOKMARKS)) db.createObjectStore(STORE_BOOKMARKS, { keyPath: 'id' })
+      if (!db.objectStoreNames.contains(STORE_HIGHLIGHTS)) db.createObjectStore(STORE_HIGHLIGHTS, { keyPath: 'id' })
       if (!db.objectStoreNames.contains(STORE_RECENT)) db.createObjectStore(STORE_RECENT, { keyPath: 'id' })
       if (!db.objectStoreNames.contains(STORE_DATA_CACHE)) db.createObjectStore(STORE_DATA_CACHE, { keyPath: 'key' })
     }
@@ -116,6 +118,19 @@ export async function saveBookmarkDB(bookmark: Bookmark): Promise<Bookmark> {
 
 export async function deleteBookmarkDB(id: string): Promise<void> {
   return remove(STORE_BOOKMARKS, id)
+}
+
+export async function getHighlightsDB(): Promise<Highlight[]> {
+  const highlights = await getAll<Highlight>(STORE_HIGHLIGHTS)
+  return highlights.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+}
+
+export async function saveHighlightDB(highlight: Highlight): Promise<Highlight> {
+  return put(STORE_HIGHLIGHTS, highlight)
+}
+
+export async function deleteHighlightDB(id: string): Promise<void> {
+  return remove(STORE_HIGHLIGHTS, id)
 }
 
 export async function getRecentSearchesDB(): Promise<RecentSearch[]> {

@@ -44,6 +44,17 @@ export interface Bookmark {
   color?: string
 }
 
+export interface Highlight {
+  id: string
+  verseId: string
+  label?: string
+  createdAt: string
+  updatedAt?: string
+  versionId?: string
+  versionAbbreviation?: string
+  color: string
+}
+
 export type MemoryType = 'note' | 'prayer' | 'highlight' | 'photo' | 'bookmark'
 export type ShareLevel = 'private' | 'friends' | 'public'
 
