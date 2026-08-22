@@ -1,3 +1,5 @@
+import { saveUserPinnedVersionIds as saveCloudPinnedVersionIds } from './cloudStorage'
+
 const ANONYMOUS_USER_ID = 'anonymous'
 
 // 'auto' follows the app's UI language; 'all' shows every language; any
@@ -51,6 +53,9 @@ export function getPinnedVersionIds(userId: string | null | undefined): number[]
 export function setPinnedVersionIds(userId: string | null | undefined, value: number[]): void {
   const ids = Array.from(new Set(value.map((item) => Number(item)).filter((item) => Number.isFinite(item))))
   setUserPreference(userId, VERSION_PINNED_KEY, JSON.stringify(ids))
+  if (userId) {
+    void saveCloudPinnedVersionIds(userId, ids).catch(() => {})
+  }
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent(VERSION_PINNED_CHANGED_EVENT, { detail: ids }))
   }

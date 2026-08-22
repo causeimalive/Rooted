@@ -1,4 +1,4 @@
-import { collection, deleteDoc, doc, getDocs, setDoc } from 'firebase/firestore'
+import { collection, deleteDoc, doc, getDoc, getDocs, setDoc } from 'firebase/firestore'
 import { db } from './firebase'
 import { Bookmark, Note, RecentSearch } from './types'
 
@@ -22,6 +22,30 @@ async function deleteItem(userId: string, name: string, id: string): Promise<voi
 async function clearCollection(userId: string, name: string): Promise<void> {
   const snap = await getDocs(collection(db, 'users', userId, name))
   await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)))
+}
+
+type UserProfileDoc = {
+  id: string
+  pinnedVersionIds: number[]
+}
+
+const USER_PROFILE_COLLECTION = 'profile'
+const USER_PROFILE_DOC_ID = 'settings'
+
+export async function getUserPinnedVersionIds(userId: string): Promise<number[] | null> {
+  const snap = await getDoc(doc(db, 'users', userId, USER_PROFILE_COLLECTION, USER_PROFILE_DOC_ID))
+  if (!snap.exists()) return null
+  const data = snap.data() as Partial<UserProfileDoc> | undefined
+  const ids = Array.from(new Set((data?.pinnedVersionIds ?? []).map((item) => Number(item)).filter((item) => Number.isFinite(item))))
+  return ids
+}
+
+export async function saveUserPinnedVersionIds(userId: string, ids: number[]): Promise<void> {
+  const pinnedVersionIds = Array.from(new Set(ids.map((item) => Number(item)).filter((item) => Number.isFinite(item))))
+  await setDoc(doc(db, 'users', userId, USER_PROFILE_COLLECTION, USER_PROFILE_DOC_ID), {
+    id: USER_PROFILE_DOC_ID,
+    pinnedVersionIds,
+  } satisfies UserProfileDoc)
 }
 
 export function getUserBookmarks(userId: string): Promise<Bookmark[]> {

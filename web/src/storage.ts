@@ -24,12 +24,14 @@ import {
   deleteUserRecentSearch,
   getUserBookmarks,
   getUserNotes,
+  getUserPinnedVersionIds,
   getUserRecentSearches,
   saveUserBookmark,
   saveUserNote,
   saveUserRecentSearch,
 } from './cloudStorage'
 
+import { getPinnedVersionIds, setPinnedVersionIds } from './userProfile'
 import { osisToUsfm } from './usfm'
 
 function normalizePassageId(passageId: string): string {
@@ -129,11 +131,13 @@ export async function syncUserData(userId: string) {
   let cloudBookmarks: Bookmark[] = []
   let cloudNotes: Note[] = []
   let cloudRecent: RecentSearch[] = []
+  let cloudPinnedVersionIds: number[] | null = null
   try {
-    ;[cloudBookmarks, cloudNotes, cloudRecent] = await Promise.all([
+    ;[cloudBookmarks, cloudNotes, cloudRecent, cloudPinnedVersionIds] = await Promise.all([
       getUserBookmarks(userId),
       getUserNotes(userId),
       getUserRecentSearches(userId),
+      getUserPinnedVersionIds(userId),
     ])
   } catch {
     // If cloud access is not permitted, fall back to local-only sync.
@@ -152,6 +156,13 @@ export async function syncUserData(userId: string) {
   set(BOOKMARKS_KEY, mergedBookmarks)
   set(NOTES_KEY, mergedNotes)
   set(RECENT_SEARCHES_KEY, mergedRecent)
+
+  const localPinnedVersionIds = getPinnedVersionIds(userId)
+  if (cloudPinnedVersionIds !== null) {
+    setPinnedVersionIds(userId, cloudPinnedVersionIds)
+  } else if (localPinnedVersionIds.length) {
+    setPinnedVersionIds(userId, localPinnedVersionIds)
+  }
 
   try {
     await Promise.all([
