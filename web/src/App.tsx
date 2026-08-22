@@ -950,6 +950,7 @@ export default function App() {
   }
 
   const openVerseInReader = useCallback((id: string) => {
+    setSelectedId(id)
     setReaderSelectedId(id)
     setReaderOpenSeq((n) => n + 1)
     setTab('reader')

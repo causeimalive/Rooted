@@ -846,14 +846,15 @@ export default function YouVersionReaderTab({
 
   const readerBodyRef = useRef<HTMLDivElement | null>(null)
   const versionMenuRef = useRef<HTMLDivElement | null>(null)
+  const initialSelectedVerse = useMemo(() => (selectedId ? findVerse(selectedId) : undefined), [selectedId])
   const [localError, setLocalError] = useState('')
   const [versionId, setVersionId] = useState<number | null>(() => {
     const saved = Number(getUserPreference(userId, READER_VERSION_KEY))
     return Number.isFinite(saved) && saved !== 0 ? saved : null
   })
-  const [bookId, setBookId] = useState(() => getUserPreference(userId, READER_BOOK_KEY) ?? '')
+  const [bookId, setBookId] = useState(() => initialSelectedVerse?.book ?? getUserPreference(userId, READER_BOOK_KEY) ?? '')
   const [chapter, setChapter] = useState(() => {
-    const saved = Number(getUserPreference(userId, READER_CHAPTER_KEY))
+    const saved = initialSelectedVerse?.chapter ?? Number(getUserPreference(userId, READER_CHAPTER_KEY))
     return Number.isFinite(saved) && saved > 0 ? saved : 1
   })
   const [readerView, setReaderView] = useState<ReaderView>(() => {
@@ -864,7 +865,9 @@ export default function YouVersionReaderTab({
     return 'html'
   })
   const [testamentFilter, setTestamentFilter] = useState<TestamentFilter>('all')
-  const [referenceInput, setReferenceInput] = useState(() => getUserPreference(userId, READER_INPUT_KEY) ?? '')
+  const [referenceInput, setReferenceInput] = useState(() =>
+    initialSelectedVerse ? `${initialSelectedVerse.bookName} ${initialSelectedVerse.chapter}:${initialSelectedVerse.verse}` : getUserPreference(userId, READER_INPUT_KEY) ?? '',
+  )
   const [navWidth, setNavWidth] = useState<number>(() => {
     const saved = Number(getUserPreference(userId, READER_NAV_WIDTH_KEY))
     return Number.isFinite(saved) && saved >= MIN_NAV_WIDTH ? saved : DEFAULT_NAV_WIDTH
