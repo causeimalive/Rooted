@@ -2385,7 +2385,7 @@ export default function YouVersionReaderTab({
     pendingReaderSelectionIdRef.current = null
   }, [readerOpenSeq])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!selectedVerse || !books.length) return
 
     const selectedVerseId = selectedVerse.id
