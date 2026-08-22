@@ -487,8 +487,11 @@ export function toggleHighlight(
   const highlights = getHighlights()
   const incomingKey = `${verseId}:${canonicalVersionKey(versionId, versionAbbreviation)}`
   const exists = highlights.find((h) => highlightKey(h) === incomingKey)
+  const existingColor = exists?.color
   if (exists) {
     deleteHighlight(exists.id)
+  }
+  if (!color || (existingColor && color === existingColor)) {
     return false
   }
   const h: Highlight = {
@@ -497,7 +500,7 @@ export function toggleHighlight(
     createdAt: new Date().toISOString(),
     versionId,
     versionAbbreviation,
-    color: color || '#F5E98A',
+    color,
   }
   saveHighlight(h)
   return true

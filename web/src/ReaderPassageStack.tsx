@@ -1,4 +1,4 @@
-import { Fragment, memo, useLayoutEffect, type RefObject } from 'react'
+import { Fragment, memo, useEffect, useLayoutEffect, useState, type RefObject } from 'react'
 import { Bookmark, Highlighter } from 'lucide-react'
 import { useI18n } from './i18n'
 
@@ -32,12 +32,14 @@ type ReaderPassageStackProps = {
   selectedId?: string | null
   onSelectVerse?: (verseId: string) => void
   onToggleBookmark?: (verseId: string, yvPassageId?: string) => void
-  onToggleHighlight?: (verseId: string, yvPassageId?: string) => void
+  onToggleHighlight?: (verseId: string, yvPassageId?: string, color?: string) => void
   bookmarkedVerseIds?: Set<string>
   highlightedVerseIds?: Set<string>
   highlightColors?: Record<string, string>
   bookCodeById?: Record<string, string>
 }
+
+const SWATCHES = ['#F5E98A', '#C7F5C8', '#C7D7F5', '#F5C7F5', '#F5E0C7']
 
 function ReaderPassageStack({
   passageShellRef,
@@ -56,6 +58,24 @@ function ReaderPassageStack({
   bookCodeById,
 }: ReaderPassageStackProps) {
   const { t } = useI18n()
+  const [openMenuVerseId, setOpenMenuVerseId] = useState<string | null>(null)
+
+  useEffect(() => {
+    setOpenMenuVerseId(null)
+  }, [selectedId])
+
+  useEffect(() => {
+    if (!openMenuVerseId) return
+    const handler = (e: MouseEvent) => {
+      const menu = document.querySelector('.yv-reader-verse-mark-menu')
+      if (menu && !menu.contains(e.target as Node)) {
+        setOpenMenuVerseId(null)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [openMenuVerseId])
+
   useLayoutEffect(() => {
     const shell = passageShellRef.current
     if (!shell) return
@@ -77,17 +97,105 @@ function ReaderPassageStack({
     if (target) target.classList.add('selected')
   }, [selectedId, sections, bookCodeById, passageShellRef])
 
+  function VerseMarkButton({
+    verseId,
+    yvPassageId,
+    isBookmarked,
+    isHighlighted,
+    highlightColor,
+  }: {
+    verseId: string
+    yvPassageId: string
+    isBookmarked: boolean
+    isHighlighted: boolean
+    highlightColor?: string
+  }) {
+    const isOpen = openMenuVerseId === verseId
+    const markIcon =
+      isBookmarked && isHighlighted ? (
+        <Bookmark size={14} fill={highlightColor} />
+      ) : isBookmarked ? (
+        <Bookmark size={14} fill='currentColor' />
+      ) : isHighlighted ? (
+        <Highlighter size={14} fill={highlightColor} />
+      ) : (
+        <Highlighter size={14} fill='none' />
+      )
+
+    return (
+      <div className='yv-reader-verse-mark'>
+        <button
+          type='button'
+          className='yv-reader-verse-mark-button'
+          title={t('mark')}
+          aria-label={t('mark')}
+          onClick={(e) => {
+            e.stopPropagation()
+            setOpenMenuVerseId(isOpen ? null : verseId)
+          }}
+        >
+          {markIcon}
+        </button>
+        {isOpen && (
+          <div
+            className='yv-reader-verse-mark-menu'
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type='button'
+              onClick={(e) => {
+                e.stopPropagation()
+                onToggleBookmark?.(verseId, yvPassageId)
+                setOpenMenuVerseId(null)
+              }}
+            >
+              {isBookmarked ? t('removeBookmark') : t('bookmark')}
+            </button>
+            <div className='yv-reader-verse-mark-swatches'>
+              {SWATCHES.map((color) => (
+                <button
+                  key={color}
+                  type='button'
+                  className='yv-reader-verse-color-swatch'
+                  style={{ backgroundColor: color }}
+                  aria-label={color}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onToggleHighlight?.(verseId, yvPassageId, color)
+                    setOpenMenuVerseId(null)
+                  }}
+                />
+              ))}
+            </div>
+            {isHighlighted && (
+              <button
+                type='button'
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onToggleHighlight?.(verseId, yvPassageId)
+                  setOpenMenuVerseId(null)
+                }}
+              >
+                {t('removeHighlight')}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   if (!sections.length) {
     return (
-      <div className="yv-reader-passage-shell" ref={passageShellRef}>
-        <div className="empty">Select a passage to begin reading.</div>
+      <div className='yv-reader-passage-shell' ref={passageShellRef}>
+        <div className='empty'>Select a passage to begin reading.</div>
       </div>
     )
   }
 
   return (
-    <div className="yv-reader-passage-shell" ref={passageShellRef}>
-      <div className="yv-reader-passage-stack">
+    <div className='yv-reader-passage-shell' ref={passageShellRef}>
+      <div className='yv-reader-passage-stack'>
         {sections.map((section) => (
           <Fragment key={section.key}>
             <article
@@ -98,7 +206,7 @@ function ReaderPassageStack({
               data-book-id={section.bookId}
               data-chapter={section.chapter}
             >
-              <div className="yv-reader-section-header">
+              <div className='yv-reader-section-header'>
                 <div>
                   <strong>{section.reference}</strong>
                   <span>{section.passageId}</span>
@@ -107,7 +215,7 @@ function ReaderPassageStack({
 
               {readerView === 'chapter' ? (
                 section.verses.length ? (
-                  <div className="yv-reader-verse-stack">
+                  <div className='yv-reader-verse-stack'>
                     {section.verses.map((verse) => {
                       const bookCode = bookCodeById?.[section.bookId] ?? section.bookId
                       const verseId = `${bookCode}.${section.chapter}.${verse.verse}`
@@ -116,8 +224,6 @@ function ReaderPassageStack({
                       const isBookmarked = bookmarkedVerseIds?.has(verseId) ?? false
                       const isHighlighted = highlightedVerseIds?.has(verseId) ?? false
                       const highlightColor = isHighlighted ? (highlightColors?.[verseId] ?? '#F5E98A') : undefined
-                      const bookmarkLabel = isBookmarked ? t('unbookmark') : t('bookmark')
-                      const highlightLabel = isHighlighted ? t('unhighlight') : t('highlight')
                       return (
                         <article
                           key={`${section.key}-${verse.verse}`}
@@ -126,37 +232,20 @@ function ReaderPassageStack({
                           style={{ backgroundColor: highlightColor }}
                           onClick={() => onSelectVerse?.(verseId)}
                         >
-                          <div className="yv-reader-verse-number">{verse.verse}</div>
+                          <div className='yv-reader-verse-number'>{verse.verse}</div>
                           <div
-                            className="yv-reader-verse-content"
+                            className='yv-reader-verse-content'
                             dangerouslySetInnerHTML={{ __html: verse.strippedHtml }}
                           />
                           {selected && (
-                            <div className="yv-reader-verse-actions">
-                              <button
-                                type="button"
-                                className="yv-reader-verse-bookmark"
-                                title={bookmarkLabel}
-                                aria-label={bookmarkLabel}
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  onToggleBookmark?.(verseId, yvPassageId)
-                                }}
-                              >
-                                <Bookmark size={14} fill={isBookmarked ? 'currentColor' : 'none'} />
-                              </button>
-                              <button
-                                type="button"
-                                className="yv-reader-verse-highlight"
-                                title={highlightLabel}
-                                aria-label={highlightLabel}
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  onToggleHighlight?.(verseId, yvPassageId)
-                                }}
-                              >
-                                <Highlighter size={14} fill={highlightColor ?? 'none'} />
-                              </button>
+                            <div className='yv-reader-verse-actions'>
+                              <VerseMarkButton
+                                verseId={verseId}
+                                yvPassageId={yvPassageId}
+                                isBookmarked={isBookmarked}
+                                isHighlighted={isHighlighted}
+                                highlightColor={highlightColor}
+                              />
                             </div>
                           )}
                         </article>
@@ -164,11 +253,11 @@ function ReaderPassageStack({
                     })}
                   </div>
                 ) : (
-                  <div className="empty">No verse markers found.</div>
+                  <div className='empty'>No verse markers found.</div>
                 )
               ) : readerView === 'verse' ? (
                 section.verses.length ? (
-                  <div className="yv-reader-verse-flow">
+                  <div className='yv-reader-verse-flow'>
                     {section.verses.map((verse) => {
                       const bookCode = bookCodeById?.[section.bookId] ?? section.bookId
                       const verseId = `${bookCode}.${section.chapter}.${verse.verse}`
@@ -177,8 +266,6 @@ function ReaderPassageStack({
                       const isBookmarked = bookmarkedVerseIds?.has(verseId) ?? false
                       const isHighlighted = highlightedVerseIds?.has(verseId) ?? false
                       const highlightColor = isHighlighted ? (highlightColors?.[verseId] ?? '#F5E98A') : undefined
-                      const bookmarkLabel = isBookmarked ? t('unbookmark') : t('bookmark')
-                      const highlightLabel = isHighlighted ? t('unhighlight') : t('highlight')
                       return (
                         <article
                           key={`${section.key}-${verse.verse}`}
@@ -187,33 +274,16 @@ function ReaderPassageStack({
                           style={{ backgroundColor: highlightColor }}
                           onClick={() => onSelectVerse?.(verseId)}
                         >
-                          <div className="yv-reader-verse-flow-content" dangerouslySetInnerHTML={{ __html: verse.html }} />
+                          <div className='yv-reader-verse-flow-content' dangerouslySetInnerHTML={{ __html: verse.html }} />
                           {selected && (
-                            <div className="yv-reader-verse-actions">
-                              <button
-                                type="button"
-                                className="yv-reader-verse-bookmark"
-                                title={bookmarkLabel}
-                                aria-label={bookmarkLabel}
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  onToggleBookmark?.(verseId, yvPassageId)
-                                }}
-                              >
-                                <Bookmark size={14} fill={isBookmarked ? 'currentColor' : 'none'} />
-                              </button>
-                              <button
-                                type="button"
-                                className="yv-reader-verse-highlight"
-                                title={highlightLabel}
-                                aria-label={highlightLabel}
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  onToggleHighlight?.(verseId, yvPassageId)
-                                }}
-                              >
-                                <Highlighter size={14} fill={highlightColor ?? 'none'} />
-                              </button>
+                            <div className='yv-reader-verse-actions'>
+                              <VerseMarkButton
+                                verseId={verseId}
+                                yvPassageId={yvPassageId}
+                                isBookmarked={isBookmarked}
+                                isHighlighted={isHighlighted}
+                                highlightColor={highlightColor}
+                              />
                             </div>
                           )}
                         </article>
@@ -221,11 +291,11 @@ function ReaderPassageStack({
                     })}
                   </div>
                 ) : (
-                  <div className="empty">No verse markers found.</div>
+                  <div className='empty'>No verse markers found.</div>
                 )
               ) : (
                 <article
-                  className="yv-reader-passage yv-reader-passage-html"
+                  className='yv-reader-passage yv-reader-passage-html'
                   data-book-id={section.bookId}
                   data-chapter={section.chapter}
                   dangerouslySetInnerHTML={{ __html: section.content }}
@@ -236,7 +306,7 @@ function ReaderPassageStack({
         ))}
 
         {isLoadingSections ? (
-          <div className="empty yv-reader-loading-more" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div className='empty yv-reader-loading-more' style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             Loading more chapters...
           </div>
         ) : null}

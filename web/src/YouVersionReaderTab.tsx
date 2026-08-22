@@ -767,6 +767,116 @@ function nextOrPreviousChapter(
   })
 }
 
+const SWATCHES = ['#F5E98A', '#C7F5C8', '#C7D7F5', '#F5C7F5', '#F5E0C7']
+
+type MarkButtonProps = {
+  verseId: string
+  yvPassageId: string
+  isBookmarked: boolean
+  isHighlighted: boolean
+  highlightColor?: string
+  onToggleBookmark: (verseId: string, yvPassageId?: string) => void
+  onToggleHighlight: (verseId: string, yvPassageId?: string, color?: string) => void
+}
+
+function MarkButton({ verseId, yvPassageId, isBookmarked, isHighlighted, highlightColor, onToggleBookmark, onToggleHighlight }: MarkButtonProps) {
+  const { t } = useI18n()
+  const [isOpen, setIsOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+
+  const markIcon =
+    isBookmarked && isHighlighted ? (
+      <BookmarkIcon size={14} fill={highlightColor} />
+    ) : isBookmarked ? (
+      <BookmarkIcon size={14} fill='currentColor' />
+    ) : isHighlighted ? (
+      <Highlighter size={14} fill={highlightColor} />
+    ) : (
+      <Highlighter size={14} fill='none' />
+    )
+
+  useEffect(() => {
+    if (!isOpen) return
+    const handler = (e: MouseEvent) => {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(e.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(e.target as Node)
+      ) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [isOpen])
+
+  return (
+    <div className='yv-reader-verse-mark'>
+      <button
+        ref={buttonRef}
+        type='button'
+        className='yv-reader-verse-mark-button'
+        title={t('mark')}
+        aria-label={t('mark')}
+        onClick={(e) => {
+          e.stopPropagation()
+          setIsOpen((v) => !v)
+        }}
+      >
+        {markIcon}
+      </button>
+      {isOpen && (
+        <div
+          ref={menuRef}
+          className='yv-reader-verse-mark-menu'
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type='button'
+            onClick={(e) => {
+              e.stopPropagation()
+              onToggleBookmark(verseId, yvPassageId)
+              setIsOpen(false)
+            }}
+          >
+            {isBookmarked ? t('removeBookmark') : t('bookmark')}
+          </button>
+          <div className='yv-reader-verse-mark-swatches'>
+            {SWATCHES.map((color) => (
+              <button
+                key={color}
+                type='button'
+                className='yv-reader-verse-color-swatch'
+                style={{ backgroundColor: color }}
+                aria-label={color}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onToggleHighlight(verseId, yvPassageId, color)
+                  setIsOpen(false)
+                }}
+              />
+            ))}
+          </div>
+          {isHighlighted && (
+            <button
+              type='button'
+              onClick={(e) => {
+                e.stopPropagation()
+                onToggleHighlight(verseId, yvPassageId)
+                setIsOpen(false)
+              }}
+            >
+              {t('removeHighlight')}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function YouVersionReaderTab({
   selectedId,
   readerOpenSeq,
@@ -1674,20 +1784,21 @@ export default function YouVersionReaderTab({
     }
   }, [auth.isAuthenticated, deleteHighlight, onToggleBookmark, resolvedVersionId, selectedVersion, selectedVersionLabel])
 
-  const handleToggleHighlight = useCallback(async (verseId: string, yvPassageId?: string) => {
+  const handleToggleHighlight = useCallback(async (verseId: string, yvPassageId?: string, color?: string) => {
     const isSaved = highlightedVerseIds.has(verseId)
-    onToggleHighlight(verseId, selectedVersion ? String(selectedVersion.id) : '', selectedVersionLabel || versionTitle, '#F5E98A')
+    onToggleHighlight(verseId, selectedVersion ? String(selectedVersion.id) : '', selectedVersionLabel || versionTitle, color)
     if (!auth.isAuthenticated || resolvedVersionId === null || isLocalFallbackSelected) return
     const highlightPassageId = yvPassageId ?? verseId
     setLocalError('')
     try {
       if (isSaved) {
         await deleteHighlight(highlightPassageId, { version_id: resolvedVersionId })
-      } else {
+      }
+      if (color) {
         await createHighlight({
           version_id: resolvedVersionId,
           passage_id: highlightPassageId,
-          color: 'F5E98A',
+          color: color.replace(/^#/, ''),
         })
       }
       refetchHighlights()
@@ -2986,6 +3097,8 @@ export default function YouVersionReaderTab({
                     const verseId = `${bookCodeById[section.bookId] ?? section.bookId}.${section.chapter}.${verse.verse}`
                     const yvPassageId = `${section.bookId}.${section.chapter}.${verse.verse}`
                     const isSaved = bookmarkedIds.has(verseId)
+                    const isHighlighted = highlightedVerseIds.has(verseId)
+                    const highlightColor = isHighlighted ? (highlightColors[verseId] ?? '#F5E98A') : undefined
 
                     return (
                       <article
@@ -3001,18 +3114,15 @@ export default function YouVersionReaderTab({
                           dangerouslySetInnerHTML={{ __html: verse.strippedHtml }}
                         />
                         {isSelected && (
-                          <button
-                            type="button"
-                            className="yv-reader-verse-bookmark"
-                            title={isSaved ? 'Unsave' : 'Save'}
-                            aria-label={isSaved ? 'Unsave verse' : 'Save verse'}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              void handleToggleBookmark(verseId, yvPassageId)
-                            }}
-                          >
-                            <BookmarkIcon size={14} fill={isSaved ? 'currentColor' : 'none'} />
-                          </button>
+                          <MarkButton
+                            verseId={verseId}
+                            yvPassageId={yvPassageId}
+                            isBookmarked={isSaved}
+                            isHighlighted={isHighlighted}
+                            highlightColor={highlightColor}
+                            onToggleBookmark={handleToggleBookmark}
+                            onToggleHighlight={handleToggleHighlight}
+                          />
                         )}
                       </article>
                     )
@@ -3024,7 +3134,7 @@ export default function YouVersionReaderTab({
         </>
       )
     },
-    [compareSections, compareSelection, handleCompareVerseClick, readerView, bookmarkedIds, handleToggleBookmark, catalogVersions, compareVersionId],
+    [compareSections, compareSelection, handleCompareVerseClick, readerView, bookmarkedIds, highlightedVerseIds, highlightColors, handleToggleBookmark, handleToggleHighlight, catalogVersions, compareVersionId],
   )
 
   const compareGrid = useMemo(
