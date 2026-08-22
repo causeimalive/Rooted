@@ -1762,16 +1762,6 @@ export default function YouVersionReaderTab({
     [bibleClient, resolvedVersionId, tagPositionsByVerseId, hasEntityData, bookNumberById, entityHighlightsEnabled],
   )
 
-  // Only ever retries the version the reader is already showing (e.g. to
-  // fall back between a version's own sources). It must NOT silently swap
-  // in a different translation -- besides being confusing (the user picked
-  // a specific version), looping through the full catalog (which can be
-  // hundreds of versions) here was making the reader appear to freeze while
-  // it tried every one of them in sequence.
-  const versionProbeOrder = useCallback((preferredVersionId: number | null) => {
-    return preferredVersionId ? [preferredVersionId] : []
-  }, [])
-
   const loadPassageForVersion = useCallback(
     async (versionId: number, reference: ReaderReference): Promise<BiblePassage | null> => {
       const version = catalogVersions.find((entry) => entry.id === versionId)
@@ -1919,27 +1909,6 @@ export default function YouVersionReaderTab({
     [compareVersionId, loadCompareSectionForVersion, resolvedVersionId],
   )
 
-  const recoverAccessibleSection = useCallback(
-    async (reference: ReaderReference, preferredVersionId: number | null): Promise<ReaderSection | null> => {
-      for (const candidateVersionId of versionProbeOrder(preferredVersionId)) {
-        try {
-          const section = await loadSectionForVersion(candidateVersionId, reference)
-          if (section) {
-            if (candidateVersionId !== preferredVersionId) {
-              setVersionId(candidateVersionId)
-            }
-            setLocalError('')
-            return section
-          }
-        } catch (error) {
-          if (!isAccessDeniedError(error) && !isPassageNotFoundError(error)) throw error
-        }
-      }
-      return null
-    },
-    [loadSectionForVersion, versionProbeOrder],
-  )
-
   useEffect(() => {
     for (const book of books) {
       const numbers = chapterNumbers(book)
@@ -2017,10 +1986,6 @@ export default function YouVersionReaderTab({
       if (!section) return
       setSections((current) => (current.some((entry) => entry.key === section.key) ? current : [...current, section]))
     } catch (loadError) {
-      if (isAccessDeniedError(loadError) || isPassageNotFoundError(loadError)) {
-        const recovered = await recoverAccessibleSection(next, resolvedVersionId)
-        if (recovered) return
-      }
       setLocalError(formatPassageError(loadError))
     } finally {
       loadingMoreRef.current = false
@@ -2051,10 +2016,6 @@ export default function YouVersionReaderTab({
         shell.scrollTop = previousScrollTop + (nextScrollHeight - previousScrollHeight)
       })
     } catch (loadError) {
-      if (isAccessDeniedError(loadError) || isPassageNotFoundError(loadError)) {
-        const recovered = await recoverAccessibleSection(previous, resolvedVersionId)
-        if (recovered) return
-      }
       setLocalError(formatPassageError(loadError))
     } finally {
       loadingMoreRef.current = false
@@ -2192,14 +2153,9 @@ export default function YouVersionReaderTab({
 
         setSections(builtSections)
       } catch (loadError) {
-        if (!cancelled && (isAccessDeniedError(loadError) || isPassageNotFoundError(loadError))) {
-          const recovered = await recoverAccessibleSection(firstReference, resolvedVersionId)
-          if (recovered) return
-        }
         if (!cancelled) {
           setLocalError(formatPassageError(loadError))
         }
-        throw loadError
       } finally {
         loadingMoreRef.current = false
         setIsLoadingSections(false)
