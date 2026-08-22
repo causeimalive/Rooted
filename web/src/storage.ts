@@ -459,7 +459,7 @@ export function getRecentSearches(): RecentSearch[] {
 }
 
 export function addRecentSearch(entry: { query: string; verseId: string; reference: string; versionId?: string; versionAbbreviation?: string }) {
-  const query = entry.query.trim()
+  const query = entry.query?.trim()
   if (!query || !entry.verseId) return
   const recent: RecentSearch = {
     id: crypto.randomUUID(),

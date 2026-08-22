@@ -821,7 +821,7 @@ export default function App() {
   useEffect(() => {
     setBookmarks(getBookmarks())
     setRecentSearches(getRecentSearches())
-  }, [selectedId, tab])
+  }, [tab])
 
   useEffect(() => {
     const refreshSavedContent = () => {
@@ -944,11 +944,11 @@ export default function App() {
 
   // Log a recent search only once the user actually picks a verse from the
   // results, so the list shows what they were looking for, not every keystroke.
-  const recordSearchSelection = (verseId: string, searchQuery: string) => {
+  const recordSearchSelection = useCallback((verseId: string, searchQuery: string) => {
     setSelectedId(verseId)
     setTab('reader')
     const verse = findVerse(verseId)
-    if (!verse || !searchQuery.trim()) return
+    if (!verse || !searchQuery?.trim()) return
     addRecentSearch({
       query: searchQuery,
       verseId,
@@ -956,8 +956,7 @@ export default function App() {
       versionId: readerVersion ? String(readerVersion.id) : verse.translation,
       versionAbbreviation: readerVersion ? (readerVersion.abbreviation || readerVersion.name) : verse.translation.toUpperCase(),
     })
-    setRecentSearches(getRecentSearches())
-  }
+  }, [readerVersion])
 
   const handleBookmark = (verseId: string, versionId?: string, versionAbbreviation?: string) => {
     const v = versionId ?? (readerVersion ? String(readerVersion.id) : '')
