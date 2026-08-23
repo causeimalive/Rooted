@@ -78,6 +78,7 @@ function ReaderPassageStack({
 
   const [htmlMarkInfo, setHtmlMarkInfo] = useState<{ verseId: string; yvPassageId: string } | null>(null)
   const [htmlMarkTop, setHtmlMarkTop] = useState<number | null>(null)
+  const [htmlMarkLeft, setHtmlMarkLeft] = useState<number | null>(null)
 
   useLayoutEffect(() => {
     const shell = passageShellRef.current
@@ -85,6 +86,7 @@ function ReaderPassageStack({
     shell.querySelectorAll('.yv-reader-passage-html .yv-v.selected').forEach((el) => el.classList.remove('selected'))
     setHtmlMarkInfo(null)
     setHtmlMarkTop(null)
+    setHtmlMarkLeft(null)
     if (!selectedId) return
     const parts = selectedId.split('.')
     const verse = parts.pop()
@@ -103,8 +105,11 @@ function ReaderPassageStack({
     if (readerView === 'html') {
       const stack = shell.querySelector('.yv-reader-passage-stack') as HTMLElement | null
       if (stack) {
-        const top = target.getBoundingClientRect().top - stack.getBoundingClientRect().top
-        setHtmlMarkTop(top)
+        const targetRects = target.getClientRects()
+        const lastRect = targetRects[targetRects.length - 1] ?? target.getBoundingClientRect()
+        const stackRect = stack.getBoundingClientRect()
+        setHtmlMarkTop(lastRect.top - stackRect.top)
+        setHtmlMarkLeft(lastRect.right - stackRect.left)
         setHtmlMarkInfo({ verseId: selectedId, yvPassageId: `${section.bookId}.${section.chapter}.${verse}` })
       }
     }
@@ -366,8 +371,8 @@ function ReaderPassageStack({
           </div>
         ) : null}
 
-        {readerView === 'html' && htmlMarkInfo && htmlMarkTop !== null ? (
-          <div className='yv-reader-verse-mark-float' style={{ top: htmlMarkTop }}>
+        {readerView === 'html' && htmlMarkInfo && htmlMarkTop !== null && htmlMarkLeft !== null ? (
+          <div className='yv-reader-verse-mark-float' style={{ top: htmlMarkTop, left: htmlMarkLeft }}>
             <VerseMarkButton
               verseId={htmlMarkInfo.verseId}
               yvPassageId={htmlMarkInfo.yvPassageId}

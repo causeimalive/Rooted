@@ -8124,7 +8124,8 @@ dialog.header-settings-dialog::backdrop {
 
 .yv-reader-verse-mark-float {
   position: absolute;
-  right: 0.4rem;
+  margin-left: 0.35rem;
+  white-space: nowrap;
   z-index: 8;
 }
 
