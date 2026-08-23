@@ -101,7 +101,6 @@ function ReaderPassageStack({
       `.yv-reader-passage-html[data-book-id="${CSS.escape(section.bookId)}"][data-chapter="${section.chapter}"] .yv-v[v="${CSS.escape(verse)}"]`,
     ) as HTMLElement | null
     if (!target) return
-    target.classList.add('selected')
     if (readerView === 'html') {
       const stack = shell.querySelector('.yv-reader-passage-stack') as HTMLElement | null
       if (stack) {
@@ -110,8 +109,11 @@ function ReaderPassageStack({
         const stackRect = stack.getBoundingClientRect()
         setHtmlMarkTop(lastRect.top - stackRect.top)
         setHtmlMarkLeft(lastRect.right - stackRect.left)
-        setHtmlMarkInfo({ verseId: selectedId, yvPassageId: `${section.bookId}.${section.chapter}.${verse}` })
       }
+    }
+    target.classList.add('selected')
+    if (readerView === 'html') {
+      setHtmlMarkInfo({ verseId: selectedId, yvPassageId: `${section.bookId}.${section.chapter}.${verse}` })
     }
   }, [selectedId, sections, bookCodeById, passageShellRef, readerView])
 
