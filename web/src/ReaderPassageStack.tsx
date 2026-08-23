@@ -94,7 +94,7 @@ function ReaderPassageStack({
     const bookCode = parts.join('.')
     if (!verse || Number.isNaN(chapter)) return
     const section = sections.find(
-      (s) => (bookCodeById?.[s.bookId] ?? s.bookId) === bookCode && s.chapter === chapter,
+      (s) => (s.bookId === bookCode || (bookCodeById?.[s.bookId] ?? s.bookId) === bookCode) && s.chapter === chapter,
     )
     if (!section) return
     const target = shell.querySelector(

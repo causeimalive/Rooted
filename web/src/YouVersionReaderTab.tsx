@@ -1354,7 +1354,6 @@ export default function YouVersionReaderTab({
     },
     { enabled: highlightsEnabled },
   )
-  const selectedVerse = useMemo(() => (selectedId ? findVerse(selectedId) : undefined), [selectedId])
   const targetReference = readerTargetReference
   const targetVerseId = useMemo(() => {
     if (!targetReference) return null
@@ -1388,6 +1387,13 @@ export default function YouVersionReaderTab({
       }),
     )
   }, [books, getAllVerses])
+  const yvBookByCode = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const [yv, code] of Object.entries(bookCodeById)) {
+      if (!map[code]) map[code] = yv
+    }
+    return map
+  }, [bookCodeById])
   const bookNumberById = useMemo(() => {
     const all = getAllVerses()
     const canonicalByCode = new Map<string, number>()
@@ -1404,23 +1410,52 @@ export default function YouVersionReaderTab({
     }
     return map
   }, [bookCodeById])
+  const selectedVerse = useMemo(() => {
+    if (!selectedId) return undefined
+    const direct = findVerse(selectedId)
+    if (direct) return direct
+    const [book, ...rest] = selectedId.split('.')
+    const alt = bookCodeById?.[book] || yvBookByCode?.[book]
+    if (alt && alt !== book) return findVerse(`${alt}.${rest.join('.')}`)
+    return undefined
+  }, [selectedId, bookCodeById, yvBookByCode])
   const readerVersionId = versionId ? String(versionId) : ''
-  const bookmarkedIds = useMemo(
-    () => new Set(bookmarks.filter((b) => b.versionId === readerVersionId).map((b) => b.verseId)),
-    [bookmarks, readerVersionId],
-  )
-  const highlightedVerseIds = useMemo(
-    () => new Set(highlights.filter((h) => h.versionId === readerVersionId).map((h) => h.verseId)),
-    [highlights, readerVersionId],
-  )
+  const bookmarkedIds = useMemo(() => {
+    const set = new Set<string>()
+    for (const b of bookmarks) {
+      if (b.versionId !== readerVersionId) continue
+      const [book, ...rest] = b.verseId.split('.')
+      const chapterVerse = rest.join('.')
+      set.add(b.verseId)
+      const alt = bookCodeById?.[book] || yvBookByCode?.[book]
+      if (alt && alt !== book) set.add(`${alt}.${chapterVerse}`)
+    }
+    return set
+  }, [bookmarks, readerVersionId, bookCodeById, yvBookByCode])
+  const highlightedVerseIds = useMemo(() => {
+    const set = new Set<string>()
+    for (const h of highlights) {
+      if (h.versionId !== readerVersionId) continue
+      const [book, ...rest] = h.verseId.split('.')
+      const chapterVerse = rest.join('.')
+      set.add(h.verseId)
+      const alt = bookCodeById?.[book] || yvBookByCode?.[book]
+      if (alt && alt !== book) set.add(`${alt}.${chapterVerse}`)
+    }
+    return set
+  }, [highlights, readerVersionId, bookCodeById, yvBookByCode])
   const highlightColors = useMemo(() => {
     const map: Record<string, string> = {}
     for (const h of highlights) {
       if (h.versionId !== readerVersionId) continue
+      const [book, ...rest] = h.verseId.split('.')
+      const chapterVerse = rest.join('.')
       map[h.verseId] = h.color
+      const alt = bookCodeById?.[book] || yvBookByCode?.[book]
+      if (alt && alt !== book) map[`${alt}.${chapterVerse}`] = h.color
     }
     return map
-  }, [highlights, readerVersionId])
+  }, [highlights, readerVersionId, bookCodeById, yvBookByCode])
 
   useEffect(() => {
     if (!remoteHighlights?.data?.length || !resolvedVersionId) return
