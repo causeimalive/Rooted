@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { Bookmark as BookmarkIcon, ChevronLeft, ChevronRight, GripVertical, Highlighter, Loader2, Pin, PinOff } from 'lucide-react'
 import { findVerse, getAllVerses } from './bible'
 import { 
@@ -2606,21 +2607,53 @@ export default function YouVersionReaderTab({
     }
   }, [bookCodeById, compareOpen, compareSections, selectedId])
 
+  const compareHtmlMarkInfo = useMemo(() => {
+    if (!compareOpen || !compareSelection || readerView !== 'html') return null
+    const section = compareSections.find((entry) => entry.key === compareSelection.sectionKey)
+    if (!section) return null
+    const bookCode = bookCodeById[section.bookId] ?? section.bookId
+    return {
+      verseId: `${bookCode}.${section.chapter}.${compareSelection.verse}`,
+      yvPassageId: `${section.bookId}.${section.chapter}.${compareSelection.verse}`,
+    }
+  }, [bookCodeById, compareOpen, compareSelection, compareSections, readerView])
+
+  const [compareHtmlMarkHosts, setCompareHtmlMarkHosts] = useState<{ current: HTMLElement | null; compare: HTMLElement | null }>({
+    current: null,
+    compare: null,
+  })
+
   useLayoutEffect(() => {
-    const panes = [compareCurrentPaneRef.current, compareComparePaneRef.current]
-    for (const pane of panes) {
+    const panes: [ComparePaneSide, HTMLElement | null][] = [
+      ['current', compareCurrentPaneRef.current],
+      ['compare', compareComparePaneRef.current],
+    ]
+    for (const [, pane] of panes) {
+      pane?.querySelectorAll('.yv-reader-verse-mark-host').forEach((el) => el.remove())
       pane?.querySelectorAll('.yv-reader-passage-html .yv-v.selected').forEach((el) => el.classList.remove('selected'))
     }
-    if (!compareOpen || !compareSelection) return
+    if (!compareOpen || !compareSelection) {
+      setCompareHtmlMarkHosts({ current: null, compare: null })
+      return
+    }
 
-    for (const pane of panes) {
+    const hosts: { current: HTMLElement | null; compare: HTMLElement | null } = { current: null, compare: null }
+    for (const [side, pane] of panes) {
       if (!pane) continue
       const htmlVerse = pane.querySelector(
         `article[data-section="${CSS.escape(compareSelection.sectionKey)}"] .yv-v[v="${CSS.escape(compareSelection.verse)}"]`,
-      )
-      if (htmlVerse) htmlVerse.classList.add('selected')
+      ) as HTMLElement | null
+      if (!htmlVerse) continue
+      htmlVerse.classList.add('selected')
+      if (readerView === 'html') {
+        const host = document.createElement('span')
+        host.className = 'yv-reader-verse-mark-host'
+        htmlVerse.appendChild(host)
+        hosts[side] = host
+      }
     }
-  }, [compareOpen, compareSelection, compareCurrentPaneRef, compareComparePaneRef])
+    setCompareHtmlMarkHosts(hosts)
+  }, [compareOpen, compareSelection, compareCurrentPaneRef, compareComparePaneRef, readerView])
 
   useLayoutEffect(() => {
     const panes = [compareCurrentPaneRef.current, compareComparePaneRef.current]
@@ -3000,6 +3033,17 @@ export default function YouVersionReaderTab({
     [bookCodeById, onSelect],
   )
 
+  const handleCompareHtmlVerseClick = useCallback(
+    (e: ReactMouseEvent<HTMLElement>, section: CompareSection) => {
+      const targetEl = (e.target as HTMLElement).closest('.yv-v[v]') as HTMLElement | null
+      if (!targetEl) return
+      const verseAttr = targetEl.getAttribute('v')
+      if (!verseAttr) return
+      handleCompareVerseClick(`${section.key}:${verseAttr}`)
+    },
+    [handleCompareVerseClick],
+  )
+
   const renderComparePaneContent = useCallback(
     (side: ComparePaneSide): ReactNode => {
       const isCurrent = side === 'current'
@@ -3018,6 +3062,7 @@ export default function YouVersionReaderTab({
           return <div className="empty yv-reader-compare-empty">Select a comparison version to see the passage side-by-side.</div>
         }
 
+        const host = side === 'current' ? compareHtmlMarkHosts.current : compareHtmlMarkHosts.compare
         return (
           <>
             {compareSections.map((section) => (
@@ -3025,6 +3070,7 @@ export default function YouVersionReaderTab({
                 key={`${side}-${section.key}`}
                 className="yv-reader-passage yv-reader-passage-html yv-reader-section yv-reader-compare-section"
                 data-section={section.key}
+                onClick={(e) => handleCompareHtmlVerseClick(e, section)}
               >
                 <div className="yv-reader-section-header yv-reader-compare-section-header">
                   <div className="yv-reader-compare-section-header-main">
@@ -3042,6 +3088,18 @@ export default function YouVersionReaderTab({
                 )}
               </article>
             ))}
+            {host && compareHtmlMarkInfo && createPortal(
+              <MarkButton
+                verseId={compareHtmlMarkInfo.verseId}
+                yvPassageId={compareHtmlMarkInfo.yvPassageId}
+                isBookmarked={bookmarkedIds.has(compareHtmlMarkInfo.verseId)}
+                isHighlighted={highlightedVerseIds.has(compareHtmlMarkInfo.verseId)}
+                highlightColor={highlightedVerseIds.has(compareHtmlMarkInfo.verseId) ? (highlightColors[compareHtmlMarkInfo.verseId] ?? '#F5E98A') : undefined}
+                onToggleBookmark={handleToggleBookmark}
+                onToggleHighlight={handleToggleHighlight}
+              />,
+              host,
+            )}
           </>
         )
       }
@@ -3134,7 +3192,7 @@ export default function YouVersionReaderTab({
         </>
       )
     },
-    [compareSections, compareSelection, handleCompareVerseClick, readerView, bookmarkedIds, highlightedVerseIds, highlightColors, handleToggleBookmark, handleToggleHighlight, catalogVersions, compareVersionId],
+    [compareSections, compareSelection, handleCompareVerseClick, handleCompareHtmlVerseClick, compareHtmlMarkHosts, compareHtmlMarkInfo, readerView, bookmarkedIds, highlightedVerseIds, highlightColors, handleToggleBookmark, handleToggleHighlight, catalogVersions, compareVersionId],
   )
 
   const compareGrid = useMemo(

@@ -1,4 +1,5 @@
-import { Fragment, memo, useEffect, useLayoutEffect, useState, type RefObject } from 'react'
+import { Fragment, memo, useEffect, useLayoutEffect, useState, type MouseEvent as ReactMouseEvent, type RefObject } from 'react'
+import { createPortal } from 'react-dom'
 import { Bookmark, Highlighter } from 'lucide-react'
 import { useI18n } from './i18n'
 
@@ -76,11 +77,16 @@ function ReaderPassageStack({
     return () => document.removeEventListener('mousedown', handler)
   }, [openMenuVerseId])
 
+  const [htmlMarkHost, setHtmlMarkHost] = useState<HTMLElement | null>(null)
+  const [htmlMarkInfo, setHtmlMarkInfo] = useState<{ verseId: string; yvPassageId: string } | null>(null)
+
   useLayoutEffect(() => {
     const shell = passageShellRef.current
     if (!shell) return
-    const previous = shell.querySelectorAll('.yv-reader-passage-html .yv-v.selected')
-    previous.forEach((el) => el.classList.remove('selected'))
+    shell.querySelectorAll('.yv-reader-verse-mark-host').forEach((el) => el.remove())
+    shell.querySelectorAll('.yv-reader-passage-html .yv-v.selected').forEach((el) => el.classList.remove('selected'))
+    setHtmlMarkHost(null)
+    setHtmlMarkInfo(null)
     if (!selectedId) return
     const parts = selectedId.split('.')
     const verse = parts.pop()
@@ -94,8 +100,25 @@ function ReaderPassageStack({
     const target = shell.querySelector(
       `.yv-reader-passage-html[data-book-id="${CSS.escape(section.bookId)}"][data-chapter="${section.chapter}"] .yv-v[v="${CSS.escape(verse)}"]`,
     ) as HTMLElement | null
-    if (target) target.classList.add('selected')
-  }, [selectedId, sections, bookCodeById, passageShellRef])
+    if (!target) return
+    target.classList.add('selected')
+    if (readerView === 'html') {
+      const host = document.createElement('span')
+      host.className = 'yv-reader-verse-mark-host'
+      target.appendChild(host)
+      setHtmlMarkHost(host)
+      setHtmlMarkInfo({ verseId: selectedId, yvPassageId: `${section.bookId}.${section.chapter}.${verse}` })
+    }
+  }, [selectedId, sections, bookCodeById, passageShellRef, readerView])
+
+  function handleHtmlVerseClick(e: ReactMouseEvent<HTMLElement>, section: ReaderSection) {
+    const targetEl = (e.target as HTMLElement).closest('.yv-v[v]') as HTMLElement | null
+    if (!targetEl) return
+    const verseAttr = targetEl.getAttribute('v')
+    if (!verseAttr) return
+    const bookCode = bookCodeById?.[section.bookId] ?? section.bookId
+    onSelectVerse?.(`${bookCode}.${section.chapter}.${verseAttr}`)
+  }
 
   function VerseMarkButton({
     verseId,
@@ -298,6 +321,7 @@ function ReaderPassageStack({
                   className='yv-reader-passage yv-reader-passage-html'
                   data-book-id={section.bookId}
                   data-chapter={section.chapter}
+                  onClick={(e) => handleHtmlVerseClick(e, section)}
                   dangerouslySetInnerHTML={{ __html: section.content }}
                 />
               )}
@@ -311,6 +335,18 @@ function ReaderPassageStack({
           </div>
         ) : null}
       </div>
+      {readerView === 'html' && htmlMarkHost && htmlMarkInfo
+        ? createPortal(
+            <VerseMarkButton
+              verseId={htmlMarkInfo.verseId}
+              yvPassageId={htmlMarkInfo.yvPassageId}
+              isBookmarked={bookmarkedVerseIds?.has(htmlMarkInfo.verseId) ?? false}
+              isHighlighted={highlightedVerseIds?.has(htmlMarkInfo.verseId) ?? false}
+              highlightColor={highlightColors?.[htmlMarkInfo.verseId]}
+            />,
+            htmlMarkHost,
+          )
+        : null}
     </div>
   )
 }

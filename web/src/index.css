@@ -8098,6 +8098,12 @@ dialog.header-settings-dialog::backdrop {
   display: inline-flex;
 }
 
+.yv-reader-verse-mark-host {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 0.4rem;
+}
+
 .yv-reader-verse-card.selected > .yv-reader-verse-mark,
 .yv-reader-verse-flow-item.selected > .yv-reader-verse-mark,
 .yv-reader-compare-verse-card.selected > .yv-reader-verse-mark,
