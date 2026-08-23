@@ -104,7 +104,9 @@ function ReaderPassageStack({
     if (readerView === 'html') {
       const stack = shell.querySelector('.yv-reader-passage-stack') as HTMLElement | null
       if (stack) {
-        const targetRects = target.getClientRects()
+        const range = document.createRange()
+        range.selectNodeContents(target)
+        const targetRects = range.getClientRects()
         const lastRect = targetRects[targetRects.length - 1] ?? target.getBoundingClientRect()
         const stackRect = stack.getBoundingClientRect()
         setHtmlMarkTop(lastRect.top - stackRect.top)
