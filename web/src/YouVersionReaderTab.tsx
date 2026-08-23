@@ -1355,7 +1355,7 @@ export default function YouVersionReaderTab({
     { enabled: highlightsEnabled },
   )
   const selectedVerse = useMemo(() => (selectedId ? findVerse(selectedId) : undefined), [selectedId])
-  const targetReference = readerTargetReference ?? (selectedVerse ? { bookId: selectedVerse.book, chapter: selectedVerse.chapter, verse: selectedVerse.verse } : null)
+  const targetReference = readerTargetReference
   const targetVerseId = useMemo(() => {
     if (!targetReference) return null
     return `${targetReference.bookId}.${targetReference.chapter}.${targetReference.verse}`
@@ -2251,9 +2251,9 @@ export default function YouVersionReaderTab({
       }
 
       const numbers = await resolveChapterNumbers(book)
-      const preferredChapter = targetReference?.chapter ?? selectedVerse?.chapter ?? chapter
+      const preferredChapter = targetReference?.chapter ?? chapter
       const clampedChapter = numbers.includes(preferredChapter) ? preferredChapter : numbers[0] ?? preferredChapter
-      const firstReference: ReaderReference = { bookId: book.id, chapter: clampedChapter, verse: targetReference?.verse ?? selectedVerse?.verse }
+      const firstReference: ReaderReference = { bookId: book.id, chapter: clampedChapter, verse: targetReference?.verse }
 
       try {
         const firstSection = await loadSection(firstReference)
@@ -2310,7 +2310,7 @@ export default function YouVersionReaderTab({
     return () => {
       cancelled = true
     }
-  }, [bookId, chapter, books, loadSection, resolvedVersionId, resolveChapterNumbers, localFallbackBooks, selectedVerse])
+  }, [bookId, chapter, books, loadSection, resolvedVersionId, resolveChapterNumbers, localFallbackBooks, readerTargetReference])
 
   useEffect(() => {
     if (!compareOpen || !resolvedVersionId || !currentIndexBook || compareVersionId === null) {
@@ -3056,6 +3056,7 @@ export default function YouVersionReaderTab({
         const bookCode = bookCodeById[rawBookId] ?? rawBookId
         const selectedVerseId = `${bookCode}.${chapter}.${verse}`
         pendingReaderSelectionIdRef.current = selectedVerseId
+        compareSelectionScrollKeyRef.current = activeKey
         onSelect(selectedVerseId)
         setReferenceInput(`${bookCode} ${chapter}:${verse}`)
       }
