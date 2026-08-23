@@ -1,5 +1,6 @@
-import { Fragment, useEffect, useLayoutEffect, useState, type MouseEvent as ReactMouseEvent, type RefObject } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type RefObject, type TouchEvent as ReactTouchEvent } from 'react'
 import { applyHighlightsToHtml } from './htmlHighlights'
+import { MarkMenu } from './MarkMenu'
 import { Bookmark, Highlighter } from 'lucide-react'
 import { useI18n } from './i18n'
 
@@ -126,6 +127,66 @@ function ReaderPassageStack({
   const [htmlMarkInfo, setHtmlMarkInfo] = useState<{ verseId: string; yvPassageId: string } | null>(null)
   const [htmlMarkTop, setHtmlMarkTop] = useState<number | null>(null)
   const [htmlMarkLeft, setHtmlMarkLeft] = useState<number | null>(null)
+
+  const [contextMenu, setContextMenu] = useState<{ verseId: string; yvPassageId: string; x: number; y: number } | null>(null)
+  const touchTimerRef = useRef<number | null>(null)
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null)
+  const touchTargetRef = useRef<{ bookId: string; chapter: number; verse: string } | null>(null)
+
+  const resolveVerseFromNode = (node: EventTarget | HTMLElement | null) => {
+    const el = (node as HTMLElement | null)?.closest?.('.yv-v[v]') as HTMLElement | null
+    if (!el) return null
+    const verse = el.getAttribute('v')
+    const article = el.closest('article[data-book-id]') as HTMLElement | null
+    const bookId = article?.getAttribute('data-book-id')
+    const chapter = Number(article?.getAttribute('data-chapter'))
+    if (!verse || !bookId || Number.isNaN(chapter)) return null
+    return { bookId, chapter, verse, yvPassageId: `${bookId}.${chapter}.${verse}` }
+  }
+
+  const handleContextMenu = (e: ReactMouseEvent<HTMLDivElement>) => {
+    const info = resolveVerseFromNode(e.target)
+    if (!info) return
+    e.preventDefault()
+    setContextMenu({ verseId: info.yvPassageId, yvPassageId: info.yvPassageId, x: e.clientX, y: e.clientY })
+  }
+
+  const LONG_PRESS_MS = 600
+  const LONG_PRESS_MOVE_PX = 10
+
+  const handleTouchStart = (e: ReactTouchEvent<HTMLDivElement>) => {
+    const info = resolveVerseFromNode(e.target)
+    if (!info) return
+    const touch = e.touches[0]
+    touchTargetRef.current = info
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY }
+    if (touchTimerRef.current) window.clearTimeout(touchTimerRef.current)
+    touchTimerRef.current = window.setTimeout(() => {
+      touchTimerRef.current = null
+      touchStartRef.current = null
+      setContextMenu({ verseId: info.yvPassageId, yvPassageId: info.yvPassageId, x: touch.clientX, y: touch.clientY })
+    }, LONG_PRESS_MS)
+  }
+
+  const handleTouchMove = (e: ReactTouchEvent<HTMLDivElement>) => {
+    if (!touchStartRef.current || !touchTimerRef.current) return
+    const touch = e.touches[0]
+    const dx = touch.clientX - touchStartRef.current.x
+    const dy = touch.clientY - touchStartRef.current.y
+    if (Math.sqrt(dx * dx + dy * dy) > LONG_PRESS_MOVE_PX) {
+      window.clearTimeout(touchTimerRef.current)
+      touchTimerRef.current = null
+      touchStartRef.current = null
+      touchTargetRef.current = null
+    }
+  }
+
+  const handleTouchEnd = () => {
+    if (touchTimerRef.current) window.clearTimeout(touchTimerRef.current)
+    touchTimerRef.current = null
+    touchStartRef.current = null
+    touchTargetRef.current = null
+  }
 
   useLayoutEffect(() => {
     const shell = passageShellRef.current
@@ -263,7 +324,14 @@ function ReaderPassageStack({
   }
 
   return (
-    <div className='yv-reader-passage-shell' ref={passageShellRef}>
+    <div
+      className='yv-reader-passage-shell'
+      ref={passageShellRef}
+      onContextMenu={handleContextMenu}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
       <div className='yv-reader-passage-stack'>
         {sections.map((section) => (
           <Fragment key={section.key}>
@@ -392,6 +460,24 @@ function ReaderPassageStack({
           </div>
         ) : null}
       </div>
+
+      {contextMenu && onToggleBookmark && onToggleHighlight && (
+        <MarkMenu
+          isBookmarked={bookmarkedVerseIds?.has(contextMenu.verseId) ?? false}
+          isHighlighted={highlightedVerseIds?.has(contextMenu.verseId) ?? false}
+          highlightColor={highlightColors?.[contextMenu.verseId]}
+          onToggleBookmark={() => {
+            onToggleBookmark(contextMenu.verseId, contextMenu.yvPassageId)
+            setContextMenu(null)
+          }}
+          onToggleHighlight={(color) => {
+            onToggleHighlight(contextMenu.verseId, contextMenu.yvPassageId, color)
+            setContextMenu(null)
+          }}
+          onClose={() => setContextMenu(null)}
+          style={{ position: 'fixed', top: contextMenu.y, left: contextMenu.x, right: 'auto', zIndex: 1000 }}
+        />
+      )}
     </div>
   )
 }

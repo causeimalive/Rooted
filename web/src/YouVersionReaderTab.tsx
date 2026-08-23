@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react'
 import { Bookmark as BookmarkIcon, ChevronLeft, ChevronRight, GripVertical, Highlighter, Loader2, Pin, PinOff } from 'lucide-react'
 import { findVerse, getAllVerses, loadBible, setYvToLocalMap } from './bible'
 import { 
@@ -32,6 +32,7 @@ import { beginYouVersionSignIn, getYouVersionRedirectUrl } from './youversionRed
 import { applyRedLetterMarkup } from './redLetter'
 import { applyEntityMarkup } from './entityMarkup'
 import { applyHighlightsToHtml } from './htmlHighlights'
+import { MarkMenu } from './MarkMenu'
 import { useEntityData } from './useEntityData'
 import ComparePaneFrame from './ComparePaneFrame'
 import ReaderBookList from './ReaderBookList'
@@ -3272,9 +3273,74 @@ export default function YouVersionReaderTab({
     [compareSections, compareSectionsHtml, compareSelection, handleCompareVerseClick, handleCompareHtmlVerseClick, compareHtmlMarkTops, compareHtmlMarkInfo, readerView, bookmarkedIds, highlightedVerseIds, highlightColors, handleToggleBookmark, handleToggleHighlight, catalogVersions, compareVersionId],
   )
 
+  const [compareContextMenu, setCompareContextMenu] = useState<{ verseId: string; yvPassageId: string; x: number; y: number } | null>(null)
+  const compareTouchTimerRef = useRef<number | null>(null)
+  const compareTouchStartRef = useRef<{ x: number; y: number } | null>(null)
+
+  const resolveCompareVerseFromNode = (node: EventTarget | HTMLElement | null) => {
+    const el = (node as HTMLElement | null)?.closest?.('.yv-v[v]') as HTMLElement | null
+    if (!el) return null
+    const verse = el.getAttribute('v')
+    const article = el.closest('article[data-section]') as HTMLElement | null
+    const sectionKey = article?.getAttribute('data-section')
+    if (!verse || !sectionKey) return null
+    const section = compareSections.find((s) => s.key === sectionKey)
+    if (!section) return null
+    const yvPassageId = `${section.bookId}.${section.chapter}.${verse}`
+    return { verseId: yvPassageId, yvPassageId }
+  }
+
+  const handleCompareContextMenu = (e: ReactMouseEvent<HTMLDivElement>) => {
+    const info = resolveCompareVerseFromNode(e.target)
+    if (!info) return
+    e.preventDefault()
+    setCompareContextMenu({ ...info, x: e.clientX, y: e.clientY })
+  }
+
+  const LONG_PRESS_MS = 600
+  const LONG_PRESS_MOVE_PX = 10
+
+  const handleCompareTouchStart = (e: ReactTouchEvent<HTMLDivElement>) => {
+    const info = resolveCompareVerseFromNode(e.target)
+    if (!info) return
+    const touch = e.touches[0]
+    compareTouchStartRef.current = { x: touch.clientX, y: touch.clientY }
+    if (compareTouchTimerRef.current) window.clearTimeout(compareTouchTimerRef.current)
+    compareTouchTimerRef.current = window.setTimeout(() => {
+      compareTouchTimerRef.current = null
+      compareTouchStartRef.current = null
+      setCompareContextMenu({ ...info, x: touch.clientX, y: touch.clientY })
+    }, LONG_PRESS_MS)
+  }
+
+  const handleCompareTouchMove = (e: ReactTouchEvent<HTMLDivElement>) => {
+    if (!compareTouchStartRef.current || !compareTouchTimerRef.current) return
+    const touch = e.touches[0]
+    const dx = touch.clientX - compareTouchStartRef.current.x
+    const dy = touch.clientY - compareTouchStartRef.current.y
+    if (Math.sqrt(dx * dx + dy * dy) > LONG_PRESS_MOVE_PX) {
+      window.clearTimeout(compareTouchTimerRef.current)
+      compareTouchTimerRef.current = null
+      compareTouchStartRef.current = null
+    }
+  }
+
+  const handleCompareTouchEnd = () => {
+    if (compareTouchTimerRef.current) window.clearTimeout(compareTouchTimerRef.current)
+    compareTouchTimerRef.current = null
+    compareTouchStartRef.current = null
+  }
+
   const compareGrid = useMemo(
     () => (
-      <div className="yv-reader-compare-grid" aria-label="Split-screen Bible comparison">
+      <div
+        className="yv-reader-compare-grid"
+        aria-label="Split-screen Bible comparison"
+        onContextMenu={handleCompareContextMenu}
+        onTouchStart={handleCompareTouchStart}
+        onTouchMove={handleCompareTouchMove}
+        onTouchEnd={handleCompareTouchEnd}
+      >
         <ComparePaneFrame
           paneRef={compareCurrentPaneRef}
           onScroll={handleCurrentPaneScroll}
@@ -3291,6 +3357,24 @@ export default function YouVersionReaderTab({
         >
           {renderComparePaneContent('compare')}
         </ComparePaneFrame>
+
+        {compareContextMenu && handleToggleBookmark && handleToggleHighlight && (
+          <MarkMenu
+            isBookmarked={bookmarkedIds.has(compareContextMenu.verseId)}
+            isHighlighted={highlightedVerseIds.has(compareContextMenu.verseId)}
+            highlightColor={highlightColors[compareContextMenu.verseId]}
+            onToggleBookmark={() => {
+              handleToggleBookmark(compareContextMenu.verseId, compareContextMenu.yvPassageId)
+              setCompareContextMenu(null)
+            }}
+            onToggleHighlight={(color) => {
+              handleToggleHighlight(compareContextMenu.verseId, compareContextMenu.yvPassageId, color)
+              setCompareContextMenu(null)
+            }}
+            onClose={() => setCompareContextMenu(null)}
+            style={{ position: 'fixed', top: compareContextMenu.y, left: compareContextMenu.x, right: 'auto', zIndex: 1000 }}
+          />
+        )}
       </div>
     ),
     [
@@ -3299,6 +3383,17 @@ export default function YouVersionReaderTab({
       handleComparePaneScrollSide,
       handleComparePaneMouseOver,
       handleComparePaneMouseLeave,
+      compareContextMenu,
+      handleCompareContextMenu,
+      handleCompareTouchStart,
+      handleCompareTouchMove,
+      handleCompareTouchEnd,
+      compareSections,
+      bookmarkedIds,
+      highlightedVerseIds,
+      highlightColors,
+      handleToggleBookmark,
+      handleToggleHighlight,
     ],
   )
 
