@@ -1,4 +1,4 @@
-import { Fragment, memo, useEffect, useLayoutEffect, useMemo, useState, type MouseEvent as ReactMouseEvent, type RefObject } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useState, type MouseEvent as ReactMouseEvent, type RefObject } from 'react'
 import { Bookmark, Highlighter } from 'lucide-react'
 import { useI18n } from './i18n'
 
@@ -43,6 +43,7 @@ const SWATCHES = ['#F5E98A', '#C7F5C8', '#C7D7F5', '#F5C7F5', '#F5E0C7']
 
 type HtmlSectionProps = {
   section: ReaderSection
+  bookCodeById?: Record<string, string>
   highlightedVerseIds?: Set<string>
   bookmarkedVerseIds?: Set<string>
   highlightColors?: Record<string, string>
@@ -51,29 +52,32 @@ type HtmlSectionProps = {
 
 function HtmlSection({
   section,
+  bookCodeById,
   highlightedVerseIds,
   bookmarkedVerseIds,
   highlightColors,
   onSelectVerse,
 }: HtmlSectionProps) {
-  const html = useMemo(() => {
-    const doc = new DOMParser().parseFromString(section.content, 'text/html')
-    const verseEls = Array.from(doc.querySelectorAll('.yv-v[v]')) as HTMLElement[]
-    for (const el of verseEls) {
-      const v = el.getAttribute('v')
-      if (!v) continue
-      const yvVerseId = `${section.bookId}.${section.chapter}.${v}`
-      if (highlightedVerseIds?.has(yvVerseId)) {
-        const color = highlightColors?.[yvVerseId] ?? '#F5E98A'
-        el.setAttribute('data-highlighted', 'true')
-        el.style.setProperty('--yv-verse-highlight', color)
-      }
-      if (bookmarkedVerseIds?.has(yvVerseId)) {
-        el.setAttribute('data-bookmarked', 'true')
-      }
+  const doc = new DOMParser().parseFromString(section.content, 'text/html')
+  const verseEls = Array.from(doc.querySelectorAll('.yv-v[v]')) as HTMLElement[]
+  for (const el of verseEls) {
+    const v = el.getAttribute('v')
+    if (!v) continue
+    const yvVerseId = `${section.bookId}.${section.chapter}.${v}`
+    const localBookCode = bookCodeById?.[section.bookId] ?? section.bookId
+    const localVerseId = `${localBookCode}.${section.chapter}.${v}`
+    const isHighlighted = highlightedVerseIds?.has(yvVerseId) || highlightedVerseIds?.has(localVerseId)
+    if (isHighlighted) {
+      const color = highlightColors?.[yvVerseId] ?? highlightColors?.[localVerseId] ?? '#F5E98A'
+      el.setAttribute('data-highlighted', 'true')
+      el.style.setProperty('--yv-verse-highlight', color)
     }
-    return doc.body.innerHTML
-  }, [section, highlightedVerseIds, bookmarkedVerseIds, highlightColors])
+    const isBookmarked = bookmarkedVerseIds?.has(yvVerseId) || bookmarkedVerseIds?.has(localVerseId)
+    if (isBookmarked) {
+      el.setAttribute('data-bookmarked', 'true')
+    }
+  }
+  const html = doc.body.innerHTML
 
   const handleClick = (e: ReactMouseEvent<HTMLElement>) => {
     const targetEl = (e.target as HTMLElement).closest('.yv-v[v]') as HTMLElement | null
@@ -369,6 +373,7 @@ function ReaderPassageStack({
               ) : (
                 <HtmlSection
                   section={section}
+                  bookCodeById={bookCodeById}
                   highlightedVerseIds={highlightedVerseIds}
                   bookmarkedVerseIds={bookmarkedVerseIds}
                   highlightColors={highlightColors}
@@ -401,4 +406,4 @@ function ReaderPassageStack({
   )
 }
 
-export default memo(ReaderPassageStack)
+export default ReaderPassageStack
