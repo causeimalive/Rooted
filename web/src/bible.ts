@@ -111,6 +111,9 @@ export async function loadBible(): Promise<Verse[]> {
     includeScore: true,
     minMatchCharLength: 2,
   })
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('bible-loaded'))
+  }
   return verses
 }
 

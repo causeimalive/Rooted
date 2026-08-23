@@ -1364,11 +1364,17 @@ export default function YouVersionReaderTab({
     [focusedSectionKey, sections],
   )
 
+  const [allVerses, setAllVerses] = useState<ReturnType<typeof getAllVerses>>(() => getAllVerses())
+  useEffect(() => {
+    const handle = () => setAllVerses(getAllVerses())
+    window.addEventListener('bible-loaded', handle)
+    return () => window.removeEventListener('bible-loaded', handle)
+  }, [])
+
   const bookCodeById = useMemo(() => {
-    const all = getAllVerses()
     const nameToCode = new Map<string, string>()
     const usfmToCode = new Map<string, string>()
-    for (const verse of all) {
+    for (const verse of allVerses) {
       if (!nameToCode.has(verse.bookName)) {
         nameToCode.set(verse.bookName, verse.book)
       }
@@ -1386,7 +1392,7 @@ export default function YouVersionReaderTab({
         return [book.id, code]
       }),
     )
-  }, [books, getAllVerses])
+  }, [books, allVerses])
   const yvBookByCode = useMemo(() => {
     const map: Record<string, string> = {}
     for (const [yv, code] of Object.entries(bookCodeById)) {
@@ -1395,10 +1401,9 @@ export default function YouVersionReaderTab({
     return map
   }, [bookCodeById])
   const bookNumberById = useMemo(() => {
-    const all = getAllVerses()
     const canonicalByCode = new Map<string, number>()
     const seen = new Set<string>()
-    for (const v of all) {
+    for (const v of allVerses) {
       if (seen.has(v.book)) continue
       seen.add(v.book)
       canonicalByCode.set(v.book, seen.size)
@@ -1409,7 +1414,7 @@ export default function YouVersionReaderTab({
       if (number) map[id] = number
     }
     return map
-  }, [bookCodeById])
+  }, [allVerses, bookCodeById])
   const selectedVerse = useMemo(() => {
     if (!selectedId) return undefined
     const direct = findVerse(selectedId)
