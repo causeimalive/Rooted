@@ -111,6 +111,34 @@ function ReaderPassageStack({
     }
   }, [selectedId, sections, bookCodeById, passageShellRef, readerView])
 
+  useLayoutEffect(() => {
+    const shell = passageShellRef.current
+    if (!shell || readerView !== 'html') return
+    const previouslyHighlighted = shell.querySelectorAll('.yv-reader-passage-html .yv-v[data-highlighted]')
+    previouslyHighlighted.forEach((el) => {
+      el.removeAttribute('data-highlighted')
+      ;(el as HTMLElement).style.backgroundColor = ''
+    })
+    if (!highlightedVerseIds?.size) return
+    for (const section of sections) {
+      const bookCode = bookCodeById?.[section.bookId] ?? section.bookId
+      const container = shell.querySelector(
+        `.yv-reader-passage-html[data-book-id="${CSS.escape(section.bookId)}"][data-chapter="${section.chapter}"]`,
+      )
+      if (!container) continue
+      const verseEls = Array.from(container.querySelectorAll('.yv-v[v]')) as HTMLElement[]
+      for (const el of verseEls) {
+        const v = el.getAttribute('v')
+        if (!v) continue
+        const verseId = `${bookCode}.${section.chapter}.${v}`
+        if (highlightedVerseIds.has(verseId)) {
+          el.style.backgroundColor = highlightColors?.[verseId] ?? '#F5E98A'
+          el.setAttribute('data-highlighted', 'true')
+        }
+      }
+    }
+  }, [sections, readerView, highlightedVerseIds, highlightColors, bookCodeById, passageShellRef])
+
   function handleHtmlVerseClick(e: ReactMouseEvent<HTMLElement>, section: ReaderSection) {
     const targetEl = (e.target as HTMLElement).closest('.yv-v[v]') as HTMLElement | null
     if (!targetEl) return

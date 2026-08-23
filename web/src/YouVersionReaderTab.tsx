@@ -2656,6 +2656,34 @@ export default function YouVersionReaderTab({
   }, [compareOpen, compareSelection, compareCurrentPaneRef, compareComparePaneRef, readerView])
 
   useLayoutEffect(() => {
+    if (readerView !== 'html') return
+    const panes = [compareCurrentPaneRef.current, compareComparePaneRef.current]
+    for (const pane of panes) {
+      if (!pane) continue
+      pane.querySelectorAll('.yv-reader-passage-html .yv-v[data-highlighted]').forEach((el) => {
+        el.removeAttribute('data-highlighted')
+        ;(el as HTMLElement).style.backgroundColor = ''
+      })
+      if (!highlightedVerseIds.size) continue
+      for (const section of compareSections) {
+        const bookCode = bookCodeById[section.bookId] ?? section.bookId
+        const container = pane.querySelector(`article[data-section="${CSS.escape(section.key)}"]`)
+        if (!container) continue
+        const verseEls = Array.from(container.querySelectorAll('.yv-v[v]')) as HTMLElement[]
+        for (const el of verseEls) {
+          const v = el.getAttribute('v')
+          if (!v) continue
+          const verseId = `${bookCode}.${section.chapter}.${v}`
+          if (highlightedVerseIds.has(verseId)) {
+            el.style.backgroundColor = highlightColors[verseId] ?? '#F5E98A'
+            el.setAttribute('data-highlighted', 'true')
+          }
+        }
+      }
+    }
+  }, [compareSections, readerView, highlightedVerseIds, highlightColors, bookCodeById, compareCurrentPaneRef, compareComparePaneRef])
+
+  useLayoutEffect(() => {
     const panes = [compareCurrentPaneRef.current, compareComparePaneRef.current]
     for (const pane of panes) {
       pane?.querySelectorAll('.verse-hover').forEach((el) => el.classList.remove('verse-hover'))
