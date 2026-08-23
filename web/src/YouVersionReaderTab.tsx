@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { Bookmark as BookmarkIcon, ChevronLeft, ChevronRight, GripVertical, Highlighter, Loader2, Pin, PinOff } from 'lucide-react'
-import { findVerse, getAllVerses } from './bible'
+import { findVerse, getAllVerses, loadBible } from './bible'
 import { 
   fetchYouVersionPassage, 
   type YouVersionBook, 
@@ -1368,6 +1368,11 @@ export default function YouVersionReaderTab({
   useEffect(() => {
     const handle = () => setAllVerses(getAllVerses())
     window.addEventListener('bible-loaded', handle)
+    if (getAllVerses().length === 0) {
+      void loadBible().then(handle)
+    } else {
+      handle()
+    }
     return () => window.removeEventListener('bible-loaded', handle)
   }, [])
 
