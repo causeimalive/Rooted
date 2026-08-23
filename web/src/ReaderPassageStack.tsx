@@ -1,5 +1,4 @@
 import { Fragment, memo, useEffect, useLayoutEffect, useState, type MouseEvent as ReactMouseEvent, type RefObject } from 'react'
-import { createPortal } from 'react-dom'
 import { Bookmark, Highlighter } from 'lucide-react'
 import { useI18n } from './i18n'
 
@@ -77,16 +76,15 @@ function ReaderPassageStack({
     return () => document.removeEventListener('mousedown', handler)
   }, [openMenuVerseId])
 
-  const [htmlMarkHost, setHtmlMarkHost] = useState<HTMLElement | null>(null)
   const [htmlMarkInfo, setHtmlMarkInfo] = useState<{ verseId: string; yvPassageId: string } | null>(null)
+  const [htmlMarkTop, setHtmlMarkTop] = useState<number | null>(null)
 
   useLayoutEffect(() => {
     const shell = passageShellRef.current
     if (!shell) return
-    shell.querySelectorAll('.yv-reader-verse-mark-host').forEach((el) => el.remove())
     shell.querySelectorAll('.yv-reader-passage-html .yv-v.selected').forEach((el) => el.classList.remove('selected'))
-    setHtmlMarkHost(null)
     setHtmlMarkInfo(null)
+    setHtmlMarkTop(null)
     if (!selectedId) return
     const parts = selectedId.split('.')
     const verse = parts.pop()
@@ -103,11 +101,12 @@ function ReaderPassageStack({
     if (!target) return
     target.classList.add('selected')
     if (readerView === 'html') {
-      const host = document.createElement('span')
-      host.className = 'yv-reader-verse-mark-host'
-      target.appendChild(host)
-      setHtmlMarkHost(host)
-      setHtmlMarkInfo({ verseId: selectedId, yvPassageId: `${section.bookId}.${section.chapter}.${verse}` })
+      const stack = shell.querySelector('.yv-reader-passage-stack') as HTMLElement | null
+      if (stack) {
+        const top = target.getBoundingClientRect().top - stack.getBoundingClientRect().top
+        setHtmlMarkTop(top)
+        setHtmlMarkInfo({ verseId: selectedId, yvPassageId: `${section.bookId}.${section.chapter}.${verse}` })
+      }
     }
   }, [selectedId, sections, bookCodeById, passageShellRef, readerView])
 
@@ -362,19 +361,19 @@ function ReaderPassageStack({
             Loading more chapters...
           </div>
         ) : null}
-      </div>
-      {readerView === 'html' && htmlMarkHost && htmlMarkInfo
-        ? createPortal(
+
+        {readerView === 'html' && htmlMarkInfo && htmlMarkTop !== null ? (
+          <div className='yv-reader-verse-mark-float' style={{ top: htmlMarkTop }}>
             <VerseMarkButton
               verseId={htmlMarkInfo.verseId}
               yvPassageId={htmlMarkInfo.yvPassageId}
               isBookmarked={bookmarkedVerseIds?.has(htmlMarkInfo.verseId) ?? false}
               isHighlighted={highlightedVerseIds?.has(htmlMarkInfo.verseId) ?? false}
               highlightColor={highlightColors?.[htmlMarkInfo.verseId]}
-            />,
-            htmlMarkHost,
-          )
-        : null}
+            />
+          </div>
+        ) : null}
+      </div>
     </div>
   )
 }

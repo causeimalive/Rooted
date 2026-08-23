@@ -8110,10 +8110,18 @@ dialog.header-settings-dialog::backdrop {
   display: inline-flex;
 }
 
-.yv-reader-verse-mark-host {
-  display: inline-flex;
-  vertical-align: middle;
-  margin-left: 0.4rem;
+.yv-reader-verse-mark-float {
+  position: absolute;
+  right: 0.4rem;
+  z-index: 8;
+}
+
+.yv-reader-passage-stack {
+  position: relative;
+}
+
+.yv-reader-compare-pane-body {
+  position: relative;
 }
 
 .yv-reader-verse-card.selected > .yv-reader-verse-mark,

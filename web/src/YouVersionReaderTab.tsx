@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
-import { createPortal } from 'react-dom'
 import { Bookmark as BookmarkIcon, ChevronLeft, ChevronRight, GripVertical, Highlighter, Loader2, Pin, PinOff } from 'lucide-react'
 import { findVerse, getAllVerses } from './bible'
 import { 
@@ -2618,7 +2617,7 @@ export default function YouVersionReaderTab({
     }
   }, [bookCodeById, compareOpen, compareSelection, compareSections, readerView])
 
-  const [compareHtmlMarkHosts, setCompareHtmlMarkHosts] = useState<{ current: HTMLElement | null; compare: HTMLElement | null }>({
+  const [compareHtmlMarkTops, setCompareHtmlMarkTops] = useState<{ current: number | null; compare: number | null }>({
     current: null,
     compare: null,
   })
@@ -2629,15 +2628,14 @@ export default function YouVersionReaderTab({
       ['compare', compareComparePaneRef.current],
     ]
     for (const [, pane] of panes) {
-      pane?.querySelectorAll('.yv-reader-verse-mark-host').forEach((el) => el.remove())
       pane?.querySelectorAll('.yv-reader-passage-html .yv-v.selected').forEach((el) => el.classList.remove('selected'))
     }
     if (!compareOpen || !compareSelection) {
-      setCompareHtmlMarkHosts({ current: null, compare: null })
+      setCompareHtmlMarkTops({ current: null, compare: null })
       return
     }
 
-    const hosts: { current: HTMLElement | null; compare: HTMLElement | null } = { current: null, compare: null }
+    const tops: { current: number | null; compare: number | null } = { current: null, compare: null }
     for (const [side, pane] of panes) {
       if (!pane) continue
       const htmlVerse = pane.querySelector(
@@ -2646,14 +2644,14 @@ export default function YouVersionReaderTab({
       if (!htmlVerse) continue
       htmlVerse.classList.add('selected')
       if (readerView === 'html') {
-        const host = document.createElement('span')
-        host.className = 'yv-reader-verse-mark-host'
-        htmlVerse.appendChild(host)
-        hosts[side] = host
+        const body = pane.querySelector('.yv-reader-compare-pane-body') as HTMLElement | null
+        if (body) {
+          tops[side] = htmlVerse.getBoundingClientRect().top - body.getBoundingClientRect().top
+        }
       }
     }
-    setCompareHtmlMarkHosts(hosts)
-  }, [compareOpen, compareSelection, compareCurrentPaneRef, compareComparePaneRef, readerView])
+    setCompareHtmlMarkTops(tops)
+  }, [compareOpen, compareSelection, compareCurrentPaneRef, compareComparePaneRef, readerView, compareSections])
 
   useLayoutEffect(() => {
     if (readerView !== 'html') return
@@ -3090,7 +3088,7 @@ export default function YouVersionReaderTab({
           return <div className="empty yv-reader-compare-empty">Select a comparison version to see the passage side-by-side.</div>
         }
 
-        const host = side === 'current' ? compareHtmlMarkHosts.current : compareHtmlMarkHosts.compare
+        const markTop = side === 'current' ? compareHtmlMarkTops.current : compareHtmlMarkTops.compare
         return (
           <>
             {compareSections.map((section) => (
@@ -3116,17 +3114,18 @@ export default function YouVersionReaderTab({
                 )}
               </article>
             ))}
-            {host && compareHtmlMarkInfo && createPortal(
-              <MarkButton
-                verseId={compareHtmlMarkInfo.verseId}
-                yvPassageId={compareHtmlMarkInfo.yvPassageId}
-                isBookmarked={bookmarkedIds.has(compareHtmlMarkInfo.verseId)}
-                isHighlighted={highlightedVerseIds.has(compareHtmlMarkInfo.verseId)}
-                highlightColor={highlightedVerseIds.has(compareHtmlMarkInfo.verseId) ? (highlightColors[compareHtmlMarkInfo.verseId] ?? '#F5E98A') : undefined}
-                onToggleBookmark={handleToggleBookmark}
-                onToggleHighlight={handleToggleHighlight}
-              />,
-              host,
+            {markTop !== null && compareHtmlMarkInfo && (
+              <div className="yv-reader-verse-mark-float" style={{ top: markTop }}>
+                <MarkButton
+                  verseId={compareHtmlMarkInfo.verseId}
+                  yvPassageId={compareHtmlMarkInfo.yvPassageId}
+                  isBookmarked={bookmarkedIds.has(compareHtmlMarkInfo.verseId)}
+                  isHighlighted={highlightedVerseIds.has(compareHtmlMarkInfo.verseId)}
+                  highlightColor={highlightedVerseIds.has(compareHtmlMarkInfo.verseId) ? (highlightColors[compareHtmlMarkInfo.verseId] ?? '#F5E98A') : undefined}
+                  onToggleBookmark={handleToggleBookmark}
+                  onToggleHighlight={handleToggleHighlight}
+                />
+              </div>
             )}
           </>
         )
@@ -3220,7 +3219,7 @@ export default function YouVersionReaderTab({
         </>
       )
     },
-    [compareSections, compareSelection, handleCompareVerseClick, handleCompareHtmlVerseClick, compareHtmlMarkHosts, compareHtmlMarkInfo, readerView, bookmarkedIds, highlightedVerseIds, highlightColors, handleToggleBookmark, handleToggleHighlight, catalogVersions, compareVersionId],
+    [compareSections, compareSelection, handleCompareVerseClick, handleCompareHtmlVerseClick, compareHtmlMarkTops, compareHtmlMarkInfo, readerView, bookmarkedIds, highlightedVerseIds, highlightColors, handleToggleBookmark, handleToggleHighlight, catalogVersions, compareVersionId],
   )
 
   const compareGrid = useMemo(
