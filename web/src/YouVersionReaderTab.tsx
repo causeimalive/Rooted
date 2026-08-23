@@ -31,6 +31,7 @@ import { getTestamentForBook, type Testament } from './bookTaxonomy'
 import { beginYouVersionSignIn, getYouVersionRedirectUrl } from './youversionRedirect'
 import { applyRedLetterMarkup } from './redLetter'
 import { applyEntityMarkup } from './entityMarkup'
+import { applyHighlightsToHtml } from './htmlHighlights'
 import { useEntityData } from './useEntityData'
 import ComparePaneFrame from './ComparePaneFrame'
 import ReaderBookList from './ReaderBookList'
@@ -1470,6 +1471,32 @@ export default function YouVersionReaderTab({
     return map
   }, [highlights, readerVersionId, bookCodeById, yvBookByCode])
 
+  const compareSectionsHtml = useMemo(
+    () =>
+      compareSections.map((section) => ({
+        ...section,
+        currentHtml: applyHighlightsToHtml(
+          section.currentHtml,
+          section.bookId,
+          section.chapter,
+          bookCodeById,
+          highlightedVerseIds,
+          bookmarkedIds,
+          highlightColors,
+        ),
+        compareHtml: applyHighlightsToHtml(
+          section.compareHtml,
+          section.bookId,
+          section.chapter,
+          bookCodeById,
+          highlightedVerseIds,
+          bookmarkedIds,
+          highlightColors,
+        ),
+      })),
+    [compareSections, bookCodeById, highlightedVerseIds, bookmarkedIds, highlightColors],
+  )
+
   useEffect(() => {
     if (!remoteHighlights?.data?.length || !resolvedVersionId) return
     const all = getAllVerses()
@@ -2698,39 +2725,9 @@ export default function YouVersionReaderTab({
       }
     }
     setCompareHtmlMarkTops(tops)
-  }, [compareOpen, compareSelection, compareCurrentPaneRef, compareComparePaneRef, readerView, compareSections])
+  }, [compareOpen, compareSelection, compareCurrentPaneRef, compareComparePaneRef, readerView, compareSections, highlightedVerseIds, bookmarkedIds, highlightColors, bookCodeById])
 
-  useLayoutEffect(() => {
-    if (readerView !== 'html') return
-    const panes = [compareCurrentPaneRef.current, compareComparePaneRef.current]
-    for (const pane of panes) {
-      if (!pane) continue
-      pane.querySelectorAll('.yv-reader-passage-html .yv-v[data-highlighted], .yv-reader-passage-html .yv-v[data-bookmarked]').forEach((el) => {
-        el.removeAttribute('data-highlighted')
-        el.removeAttribute('data-bookmarked')
-        ;(el as HTMLElement).style.removeProperty('--yv-verse-highlight')
-      })
-      if (!highlightedVerseIds.size && !bookmarkedIds.size) continue
-      for (const section of compareSections) {
-        const bookCode = bookCodeById[section.bookId] ?? section.bookId
-        const container = pane.querySelector(`article[data-section="${CSS.escape(section.key)}"]`)
-        if (!container) continue
-        const verseEls = Array.from(container.querySelectorAll('.yv-v[v]')) as HTMLElement[]
-        for (const el of verseEls) {
-          const v = el.getAttribute('v')
-          if (!v) continue
-          const verseId = `${bookCode}.${section.chapter}.${v}`
-          if (highlightedVerseIds.has(verseId)) {
-            el.style.setProperty('--yv-verse-highlight', highlightColors[verseId] ?? '#F5E98A')
-            el.setAttribute('data-highlighted', 'true')
-          }
-          if (bookmarkedIds.has(verseId)) {
-            el.setAttribute('data-bookmarked', 'true')
-          }
-        }
-      }
-    }
-  }, [compareSections, readerView, highlightedVerseIds, bookmarkedIds, highlightColors, bookCodeById, compareCurrentPaneRef, compareComparePaneRef])
+
 
   useLayoutEffect(() => {
     const panes = [compareCurrentPaneRef.current, compareComparePaneRef.current]
@@ -3143,7 +3140,7 @@ export default function YouVersionReaderTab({
         const markTop = side === 'current' ? compareHtmlMarkTops.current : compareHtmlMarkTops.compare
         return (
           <>
-            {compareSections.map((section) => (
+            {compareSectionsHtml.map((section) => (
               <article
                 key={`${side}-${section.key}`}
                 className="yv-reader-passage yv-reader-passage-html yv-reader-section yv-reader-compare-section"
@@ -3272,7 +3269,7 @@ export default function YouVersionReaderTab({
         </>
       )
     },
-    [compareSections, compareSelection, handleCompareVerseClick, handleCompareHtmlVerseClick, compareHtmlMarkTops, compareHtmlMarkInfo, readerView, bookmarkedIds, highlightedVerseIds, highlightColors, handleToggleBookmark, handleToggleHighlight, catalogVersions, compareVersionId],
+    [compareSections, compareSectionsHtml, compareSelection, handleCompareVerseClick, handleCompareHtmlVerseClick, compareHtmlMarkTops, compareHtmlMarkInfo, readerView, bookmarkedIds, highlightedVerseIds, highlightColors, handleToggleBookmark, handleToggleHighlight, catalogVersions, compareVersionId],
   )
 
   const compareGrid = useMemo(

@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useLayoutEffect, useState, type MouseEvent as ReactMouseEvent, type RefObject } from 'react'
+import { applyHighlightsToHtml } from './htmlHighlights'
 import { Bookmark, Highlighter } from 'lucide-react'
 import { useI18n } from './i18n'
 
@@ -58,26 +59,15 @@ function HtmlSection({
   highlightColors,
   onSelectVerse,
 }: HtmlSectionProps) {
-  const doc = new DOMParser().parseFromString(section.content, 'text/html')
-  const verseEls = Array.from(doc.querySelectorAll('.yv-v[v]')) as HTMLElement[]
-  for (const el of verseEls) {
-    const v = el.getAttribute('v')
-    if (!v) continue
-    const yvVerseId = `${section.bookId}.${section.chapter}.${v}`
-    const localBookCode = bookCodeById?.[section.bookId] ?? section.bookId
-    const localVerseId = `${localBookCode}.${section.chapter}.${v}`
-    const isHighlighted = highlightedVerseIds?.has(yvVerseId) || highlightedVerseIds?.has(localVerseId)
-    if (isHighlighted) {
-      const color = highlightColors?.[yvVerseId] ?? highlightColors?.[localVerseId] ?? '#F5E98A'
-      el.setAttribute('data-highlighted', 'true')
-      el.style.setProperty('--yv-verse-highlight', color)
-    }
-    const isBookmarked = bookmarkedVerseIds?.has(yvVerseId) || bookmarkedVerseIds?.has(localVerseId)
-    if (isBookmarked) {
-      el.setAttribute('data-bookmarked', 'true')
-    }
-  }
-  const html = doc.body.innerHTML
+  const html = applyHighlightsToHtml(
+    section.content,
+    section.bookId,
+    section.chapter,
+    bookCodeById,
+    highlightedVerseIds,
+    bookmarkedVerseIds,
+    highlightColors,
+  )
 
   const handleClick = (e: ReactMouseEvent<HTMLElement>) => {
     const targetEl = (e.target as HTMLElement).closest('.yv-v[v]') as HTMLElement | null
