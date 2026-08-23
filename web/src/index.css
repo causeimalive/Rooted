@@ -349,6 +349,17 @@ main {
   margin-bottom: 0.6rem;
 }
 
+.saved-filter-toggle {
+  margin-top: -0.2rem;
+  opacity: 0.9;
+}
+
+.saved-filter-toggle .search-mode-btn {
+  font-size: 0.8rem;
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+}
+
 .search-mode-btn {
   display: inline-flex;
   align-items: center;
