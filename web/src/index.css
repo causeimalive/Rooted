@@ -5157,7 +5157,19 @@ button.secondary {
   border-radius: 0.3rem;
   padding: 0.02rem 0.3rem;
   margin: -0.02rem 0;
-  color: #1a1a1a;
+  color: var(--text-on-accent);
+}
+
+.yv-reader-passage-html .yv-v[data-highlighted] .yv-vlbl,
+.yv-reader-passage-html .yv-v[data-highlighted] .vn,
+.yv-reader-passage-html .yv-v[data-highlighted] .wj,
+.yv-reader-passage-html .yv-v[data-highlighted] .woj,
+.yv-reader-passage-html .yv-v[data-highlighted] .woc,
+.yv-reader-passage-html .yv-v[data-highlighted] .words-of-jesus,
+.yv-reader-passage-html .yv-v[data-highlighted] .words-of-christ,
+.yv-reader-passage-html .yv-v[data-highlighted] .jesuswords,
+.yv-reader-passage-html .yv-v[data-highlighted] .jesusquote {
+  color: var(--text-on-accent) !important;
 }
 
 .yv-reader-passage-html .yv-v[data-bookmarked] {
