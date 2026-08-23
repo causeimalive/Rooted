@@ -5159,7 +5159,7 @@ button.secondary {
   border-radius: 0.3rem;
   padding: 0.02rem 0.3rem;
   margin: -0.02rem 0;
-  color: var(--text-on-accent);
+  color: #1a1a1a;
 }
 
 .yv-reader-passage-html .yv-v[data-highlighted] .yv-vlbl,
@@ -5171,7 +5171,7 @@ button.secondary {
 .yv-reader-passage-html .yv-v[data-highlighted] .words-of-christ,
 .yv-reader-passage-html .yv-v[data-highlighted] .jesuswords,
 .yv-reader-passage-html .yv-v[data-highlighted] .jesusquote {
-  color: var(--text-on-accent) !important;
+  color: #1a1a1a !important;
 }
 
 .yv-reader-passage-html .yv-v[data-bookmarked] {
