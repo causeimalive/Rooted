@@ -130,7 +130,7 @@ function ReaderPassageStack({
     })
     if (!highlightedVerseIds?.size && !bookmarkedVerseIds?.size) return
     for (const section of sections) {
-      const bookCode = bookCodeById?.[section.bookId] ?? section.bookId
+      const localBookCode = bookCodeById?.[section.bookId] ?? section.bookId
       const container = shell.querySelector(
         `.yv-reader-passage-html[data-book-id="${CSS.escape(section.bookId)}"][data-chapter="${section.chapter}"]`,
       )
@@ -139,12 +139,16 @@ function ReaderPassageStack({
       for (const el of verseEls) {
         const v = el.getAttribute('v')
         if (!v) continue
-        const verseId = `${bookCode}.${section.chapter}.${v}`
-        if (highlightedVerseIds?.has(verseId)) {
-          el.style.setProperty('--yv-verse-highlight', highlightColors?.[verseId] ?? '#F5E98A')
+        const yvVerseId = `${section.bookId}.${section.chapter}.${v}`
+        const localVerseId = `${localBookCode}.${section.chapter}.${v}`
+        const isHighlighted = highlightedVerseIds?.has(yvVerseId) || highlightedVerseIds?.has(localVerseId)
+        if (isHighlighted) {
+          const color = highlightColors?.[yvVerseId] ?? highlightColors?.[localVerseId] ?? '#F5E98A'
+          el.style.setProperty('--yv-verse-highlight', color)
           el.setAttribute('data-highlighted', 'true')
         }
-        if (bookmarkedVerseIds?.has(verseId)) {
+        const isBookmarked = bookmarkedVerseIds?.has(yvVerseId) || bookmarkedVerseIds?.has(localVerseId)
+        if (isBookmarked) {
           el.setAttribute('data-bookmarked', 'true')
         }
       }
@@ -156,8 +160,7 @@ function ReaderPassageStack({
     if (!targetEl) return
     const verseAttr = targetEl.getAttribute('v')
     if (!verseAttr) return
-    const bookCode = bookCodeById?.[section.bookId] ?? section.bookId
-    onSelectVerse?.(`${bookCode}.${section.chapter}.${verseAttr}`)
+    onSelectVerse?.(`${section.bookId}.${section.chapter}.${verseAttr}`)
   }
 
   function VerseMarkButton({
@@ -280,20 +283,19 @@ function ReaderPassageStack({
                 section.verses.length ? (
                   <div className='yv-reader-verse-stack'>
                     {section.verses.map((verse) => {
-                      const bookCode = bookCodeById?.[section.bookId] ?? section.bookId
-                      const verseId = `${bookCode}.${section.chapter}.${verse.verse}`
-                      const yvPassageId = `${section.bookId}.${section.chapter}.${verse.verse}`
-                      const selected = selectedId === verseId
-                      const isBookmarked = bookmarkedVerseIds?.has(verseId) ?? false
-                      const isHighlighted = highlightedVerseIds?.has(verseId) ?? false
-                      const highlightColor = isHighlighted ? (highlightColors?.[verseId] ?? '#F5E98A') : undefined
+                      const yvVerseId = `${section.bookId}.${section.chapter}.${verse.verse}`
+                      const localVerseId = `${bookCodeById?.[section.bookId] ?? section.bookId}.${section.chapter}.${verse.verse}`
+                      const selected = selectedId === yvVerseId || selectedId === localVerseId
+                      const isBookmarked = bookmarkedVerseIds?.has(yvVerseId) ?? false
+                      const isHighlighted = highlightedVerseIds?.has(yvVerseId) ?? false
+                      const highlightColor = isHighlighted ? (highlightColors?.[yvVerseId] ?? '#F5E98A') : undefined
                       return (
                         <article
                           key={`${section.key}-${verse.verse}`}
                           className={`yv-reader-verse-card ${selected ? 'selected' : ''} ${isBookmarked ? 'bookmarked' : ''} ${isHighlighted ? 'highlighted' : ''}`}
                           data-verse={verse.verse}
                           style={highlightColor ? { ['--yv-verse-highlight' as any]: highlightColor } : undefined}
-                          onClick={() => onSelectVerse?.(verseId)}
+                          onClick={() => onSelectVerse?.(yvVerseId)}
                         >
                           <div className='yv-reader-verse-number'>{verse.verse}</div>
                           <div
@@ -303,8 +305,8 @@ function ReaderPassageStack({
                           {selected && (
                             <div className='yv-reader-verse-actions'>
                               <VerseMarkButton
-                                verseId={verseId}
-                                yvPassageId={yvPassageId}
+                                verseId={yvVerseId}
+                                yvPassageId={yvVerseId}
                                 isBookmarked={isBookmarked}
                                 isHighlighted={isHighlighted}
                                 highlightColor={highlightColor}
@@ -322,27 +324,26 @@ function ReaderPassageStack({
                 section.verses.length ? (
                   <div className='yv-reader-verse-flow'>
                     {section.verses.map((verse) => {
-                      const bookCode = bookCodeById?.[section.bookId] ?? section.bookId
-                      const verseId = `${bookCode}.${section.chapter}.${verse.verse}`
-                      const yvPassageId = `${section.bookId}.${section.chapter}.${verse.verse}`
-                      const selected = selectedId === verseId
-                      const isBookmarked = bookmarkedVerseIds?.has(verseId) ?? false
-                      const isHighlighted = highlightedVerseIds?.has(verseId) ?? false
-                      const highlightColor = isHighlighted ? (highlightColors?.[verseId] ?? '#F5E98A') : undefined
+                      const yvVerseId = `${section.bookId}.${section.chapter}.${verse.verse}`
+                      const localVerseId = `${bookCodeById?.[section.bookId] ?? section.bookId}.${section.chapter}.${verse.verse}`
+                      const selected = selectedId === yvVerseId || selectedId === localVerseId
+                      const isBookmarked = bookmarkedVerseIds?.has(yvVerseId) ?? false
+                      const isHighlighted = highlightedVerseIds?.has(yvVerseId) ?? false
+                      const highlightColor = isHighlighted ? (highlightColors?.[yvVerseId] ?? '#F5E98A') : undefined
                       return (
                         <article
                           key={`${section.key}-${verse.verse}`}
                           className={`yv-reader-verse-flow-item ${selected ? 'selected' : ''} ${isBookmarked ? 'bookmarked' : ''} ${isHighlighted ? 'highlighted' : ''}`}
                           data-verse={verse.verse}
                           style={highlightColor ? { ['--yv-verse-highlight' as any]: highlightColor } : undefined}
-                          onClick={() => onSelectVerse?.(verseId)}
+                          onClick={() => onSelectVerse?.(yvVerseId)}
                         >
                           <div className='yv-reader-verse-flow-content' dangerouslySetInnerHTML={{ __html: verse.html }} />
                           {selected && (
                             <div className='yv-reader-verse-actions'>
                               <VerseMarkButton
-                                verseId={verseId}
-                                yvPassageId={yvPassageId}
+                                verseId={yvVerseId}
+                                yvPassageId={yvVerseId}
                                 isBookmarked={isBookmarked}
                                 isHighlighted={isHighlighted}
                                 highlightColor={highlightColor}

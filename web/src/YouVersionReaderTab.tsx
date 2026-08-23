@@ -1808,8 +1808,17 @@ export default function YouVersionReaderTab({
       handleOpenBookSource()
     }
   }, [bookIntroHtml, bookIntroOpen, bookIntroReference, bookNumberById, currentBookInfoUrl, currentBookMetadata, entityHighlightsEnabled, handleOpenBookSource, resolvedVersionId, tagPositionsByVerseId])
+  const localVerseId = useCallback(
+    (yvPassageIdOrVerseId: string) =>
+      yvPassageIdOrVerseId
+        .split('.')
+        .map((part, i) => (i === 0 ? bookCodeById?.[part] ?? part : part))
+        .join('.'),
+    [bookCodeById],
+  )
+
   const handleToggleBookmark = useCallback(async (verseId: string, yvPassageId?: string) => {
-    onToggleBookmark(verseId, selectedVersion ? String(selectedVersion.id) : '', selectedVersionLabel || versionTitle)
+    onToggleBookmark(localVerseId(yvPassageId ?? verseId), selectedVersion ? String(selectedVersion.id) : '', selectedVersionLabel || versionTitle)
     if (!auth.isAuthenticated || resolvedVersionId === null || isLocalFallbackSelected) return
     const highlightPassageId = yvPassageId ?? verseId
     try {
@@ -1817,11 +1826,11 @@ export default function YouVersionReaderTab({
     } catch {
       // Remote highlight removal is best-effort.
     }
-  }, [auth.isAuthenticated, deleteHighlight, onToggleBookmark, resolvedVersionId, selectedVersion, selectedVersionLabel])
+  }, [auth.isAuthenticated, bookCodeById, deleteHighlight, localVerseId, onToggleBookmark, resolvedVersionId, selectedVersion, selectedVersionLabel])
 
   const handleToggleHighlight = useCallback(async (verseId: string, yvPassageId?: string, color?: string) => {
     const isSaved = highlightedVerseIds.has(verseId)
-    onToggleHighlight(verseId, selectedVersion ? String(selectedVersion.id) : '', selectedVersionLabel || versionTitle, color)
+    onToggleHighlight(localVerseId(yvPassageId ?? verseId), selectedVersion ? String(selectedVersion.id) : '', selectedVersionLabel || versionTitle, color)
     if (!auth.isAuthenticated || resolvedVersionId === null || isLocalFallbackSelected) return
     const highlightPassageId = yvPassageId ?? verseId
     setLocalError('')
@@ -1840,7 +1849,7 @@ export default function YouVersionReaderTab({
     } catch (error) {
       setLocalError(error instanceof Error ? error.message : String(error))
     }
-  }, [auth.isAuthenticated, createHighlight, deleteHighlight, highlightedVerseIds, onToggleHighlight, refetchHighlights, resolvedVersionId, selectedVersion, selectedVersionLabel])
+  }, [auth.isAuthenticated, bookCodeById, createHighlight, deleteHighlight, highlightedVerseIds, localVerseId, onToggleHighlight, refetchHighlights, resolvedVersionId, selectedVersion, selectedVersionLabel])
 
   const handleYouVersionSignIn = useCallback(async () => {
     const redirectUrl = getYouVersionRedirectUrl()
@@ -2631,7 +2640,7 @@ export default function YouVersionReaderTab({
     const bookCode = parts.join('.')
     if (!verse || Number.isNaN(chapter)) return null
 
-    const section = compareSections.find((entry) => (bookCodeById[entry.bookId] ?? entry.bookId) === bookCode && entry.chapter === chapter)
+    const section = compareSections.find((entry) => (entry.bookId === bookCode || (bookCodeById[entry.bookId] ?? entry.bookId) === bookCode) && entry.chapter === chapter)
     if (!section) return null
 
     return {
@@ -2645,9 +2654,8 @@ export default function YouVersionReaderTab({
     if (!compareOpen || !compareSelection || readerView !== 'html') return null
     const section = compareSections.find((entry) => entry.key === compareSelection.sectionKey)
     if (!section) return null
-    const bookCode = bookCodeById[section.bookId] ?? section.bookId
     return {
-      verseId: `${bookCode}.${section.chapter}.${compareSelection.verse}`,
+      verseId: `${section.bookId}.${section.chapter}.${compareSelection.verse}`,
       yvPassageId: `${section.bookId}.${section.chapter}.${compareSelection.verse}`,
     }
   }, [bookCodeById, compareOpen, compareSelection, compareSections, readerView])
@@ -3089,7 +3097,7 @@ export default function YouVersionReaderTab({
       const chapter = chapterParts[1]
       if (rawBookId && chapter) {
         const bookCode = bookCodeById[rawBookId] ?? rawBookId
-        const selectedVerseId = `${bookCode}.${chapter}.${verse}`
+        const selectedVerseId = `${rawBookId}.${chapter}.${verse}`
         pendingReaderSelectionIdRef.current = selectedVerseId
         compareSelectionScrollKeyRef.current = activeKey
         onSelect(selectedVerseId)
