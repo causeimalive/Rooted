@@ -2658,11 +2658,12 @@ export default function YouVersionReaderTab({
     const panes = [compareCurrentPaneRef.current, compareComparePaneRef.current]
     for (const pane of panes) {
       if (!pane) continue
-      pane.querySelectorAll('.yv-reader-passage-html .yv-v[data-highlighted]').forEach((el) => {
+      pane.querySelectorAll('.yv-reader-passage-html .yv-v[data-highlighted], .yv-reader-passage-html .yv-v[data-bookmarked]').forEach((el) => {
         el.removeAttribute('data-highlighted')
-        ;(el as HTMLElement).style.backgroundColor = ''
+        el.removeAttribute('data-bookmarked')
+        ;(el as HTMLElement).style.removeProperty('--yv-verse-highlight')
       })
-      if (!highlightedVerseIds.size) continue
+      if (!highlightedVerseIds.size && !bookmarkedIds.size) continue
       for (const section of compareSections) {
         const bookCode = bookCodeById[section.bookId] ?? section.bookId
         const container = pane.querySelector(`article[data-section="${CSS.escape(section.key)}"]`)
@@ -2673,13 +2674,16 @@ export default function YouVersionReaderTab({
           if (!v) continue
           const verseId = `${bookCode}.${section.chapter}.${v}`
           if (highlightedVerseIds.has(verseId)) {
-            el.style.backgroundColor = highlightColors[verseId] ?? '#F5E98A'
+            el.style.setProperty('--yv-verse-highlight', highlightColors[verseId] ?? '#F5E98A')
             el.setAttribute('data-highlighted', 'true')
+          }
+          if (bookmarkedIds.has(verseId)) {
+            el.setAttribute('data-bookmarked', 'true')
           }
         }
       }
     }
-  }, [compareSections, readerView, highlightedVerseIds, highlightColors, bookCodeById, compareCurrentPaneRef, compareComparePaneRef])
+  }, [compareSections, readerView, highlightedVerseIds, bookmarkedIds, highlightColors, bookCodeById, compareCurrentPaneRef, compareComparePaneRef])
 
   useLayoutEffect(() => {
     const panes = [compareCurrentPaneRef.current, compareComparePaneRef.current]
@@ -3176,14 +3180,14 @@ export default function YouVersionReaderTab({
                   {sectionVerses.map((verse) => {
                     const activeKey = `${section.key}:${verse.verse}`
                     const isSelected = compareSelection?.key === activeKey
-                    const articleClass = isFlow
-                      ? `yv-reader-verse-flow-item yv-reader-compare-verse-flow-item ${isSelected ? 'selected' : ''}`
-                      : `yv-reader-compare-verse-card ${isSelected ? 'selected' : ''}`
                     const verseId = `${bookCodeById[section.bookId] ?? section.bookId}.${section.chapter}.${verse.verse}`
                     const yvPassageId = `${section.bookId}.${section.chapter}.${verse.verse}`
                     const isSaved = bookmarkedIds.has(verseId)
                     const isHighlighted = highlightedVerseIds.has(verseId)
                     const highlightColor = isHighlighted ? (highlightColors[verseId] ?? '#F5E98A') : undefined
+                    const articleClass = isFlow
+                      ? `yv-reader-verse-flow-item yv-reader-compare-verse-flow-item ${isSelected ? 'selected' : ''} ${isSaved ? 'bookmarked' : ''} ${isHighlighted ? 'highlighted' : ''}`
+                      : `yv-reader-compare-verse-card ${isSelected ? 'selected' : ''} ${isSaved ? 'bookmarked' : ''} ${isHighlighted ? 'highlighted' : ''}`
 
                     return (
                       <article
@@ -3191,6 +3195,7 @@ export default function YouVersionReaderTab({
                         className={articleClass}
                         data-section={section.key}
                         data-verse={verse.verse}
+                        style={isHighlighted ? { ['--yv-verse-highlight' as any]: highlightColor } : undefined}
                         onClick={() => handleCompareVerseClick(activeKey)}
                       >
                         <div className="yv-reader-compare-verse-number">{verse.verse}</div>

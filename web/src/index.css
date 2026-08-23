@@ -5144,12 +5144,24 @@ button.secondary {
   box-shadow: inset 3px 0 0 0 var(--accent);
 }
 
+.yv-reader-verse-card.highlighted,
+.yv-reader-verse-flow-item.highlighted,
+.yv-reader-compare-verse-card.highlighted,
+.yv-reader-compare-verse-flow-item.highlighted,
+.yv-reader-passage-html .yv-v[data-highlighted] {
+  background-color: var(--yv-verse-highlight, #F5E98A) !important;
+}
+
 .yv-reader-passage-html .yv-v[data-highlighted] {
   display: inline;
   border-radius: 0.3rem;
   padding: 0.02rem 0.3rem;
   margin: -0.02rem 0;
   color: #1a1a1a;
+}
+
+.yv-reader-passage-html .yv-v[data-bookmarked] {
+  box-shadow: inset 0 0 0 2px var(--accent-2);
 }
 
 .yv-reader-passage-html .yv-v[data-highlighted].selected {

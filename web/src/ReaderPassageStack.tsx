@@ -113,12 +113,13 @@ function ReaderPassageStack({
   useLayoutEffect(() => {
     const shell = passageShellRef.current
     if (!shell || readerView !== 'html') return
-    const previouslyHighlighted = shell.querySelectorAll('.yv-reader-passage-html .yv-v[data-highlighted]')
-    previouslyHighlighted.forEach((el) => {
+    const previouslyMarked = shell.querySelectorAll('.yv-reader-passage-html .yv-v[data-highlighted], .yv-reader-passage-html .yv-v[data-bookmarked]')
+    previouslyMarked.forEach((el) => {
       el.removeAttribute('data-highlighted')
-      ;(el as HTMLElement).style.backgroundColor = ''
+      el.removeAttribute('data-bookmarked')
+      ;(el as HTMLElement).style.removeProperty('--yv-verse-highlight')
     })
-    if (!highlightedVerseIds?.size) return
+    if (!highlightedVerseIds?.size && !bookmarkedVerseIds?.size) return
     for (const section of sections) {
       const bookCode = bookCodeById?.[section.bookId] ?? section.bookId
       const container = shell.querySelector(
@@ -130,13 +131,16 @@ function ReaderPassageStack({
         const v = el.getAttribute('v')
         if (!v) continue
         const verseId = `${bookCode}.${section.chapter}.${v}`
-        if (highlightedVerseIds.has(verseId)) {
-          el.style.backgroundColor = highlightColors?.[verseId] ?? '#F5E98A'
+        if (highlightedVerseIds?.has(verseId)) {
+          el.style.setProperty('--yv-verse-highlight', highlightColors?.[verseId] ?? '#F5E98A')
           el.setAttribute('data-highlighted', 'true')
+        }
+        if (bookmarkedVerseIds?.has(verseId)) {
+          el.setAttribute('data-bookmarked', 'true')
         }
       }
     }
-  }, [sections, readerView, highlightedVerseIds, highlightColors, bookCodeById, passageShellRef])
+  }, [sections, readerView, highlightedVerseIds, bookmarkedVerseIds, highlightColors, bookCodeById, passageShellRef])
 
   function handleHtmlVerseClick(e: ReactMouseEvent<HTMLElement>, section: ReaderSection) {
     const targetEl = (e.target as HTMLElement).closest('.yv-v[v]') as HTMLElement | null
@@ -279,7 +283,7 @@ function ReaderPassageStack({
                           key={`${section.key}-${verse.verse}`}
                           className={`yv-reader-verse-card ${selected ? 'selected' : ''} ${isBookmarked ? 'bookmarked' : ''} ${isHighlighted ? 'highlighted' : ''}`}
                           data-verse={verse.verse}
-                          style={{ backgroundColor: highlightColor }}
+                          style={highlightColor ? { ['--yv-verse-highlight' as any]: highlightColor } : undefined}
                           onClick={() => onSelectVerse?.(verseId)}
                         >
                           <div className='yv-reader-verse-number'>{verse.verse}</div>
@@ -321,7 +325,7 @@ function ReaderPassageStack({
                           key={`${section.key}-${verse.verse}`}
                           className={`yv-reader-verse-flow-item ${selected ? 'selected' : ''} ${isBookmarked ? 'bookmarked' : ''} ${isHighlighted ? 'highlighted' : ''}`}
                           data-verse={verse.verse}
-                          style={{ backgroundColor: highlightColor }}
+                          style={highlightColor ? { ['--yv-verse-highlight' as any]: highlightColor } : undefined}
                           onClick={() => onSelectVerse?.(verseId)}
                         >
                           <div className='yv-reader-verse-flow-content' dangerouslySetInnerHTML={{ __html: verse.html }} />
