@@ -131,17 +131,30 @@ function ReaderPassageStack({
   const [contextMenu, setContextMenu] = useState<{ verseId: string; yvPassageId: string; x: number; y: number } | null>(null)
   const touchTimerRef = useRef<number | null>(null)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
-  const touchTargetRef = useRef<{ bookId: string; chapter: number; verse: string } | null>(null)
+  const longPressFiredRef = useRef(false)
 
   const resolveVerseFromNode = (node: EventTarget | HTMLElement | null) => {
-    const el = (node as HTMLElement | null)?.closest?.('.yv-v[v]') as HTMLElement | null
-    if (!el) return null
-    const verse = el.getAttribute('v')
-    const article = el.closest('article[data-book-id]') as HTMLElement | null
-    const bookId = article?.getAttribute('data-book-id')
-    const chapter = Number(article?.getAttribute('data-chapter'))
-    if (!verse || !bookId || Number.isNaN(chapter)) return null
-    return { bookId, chapter, verse, yvPassageId: `${bookId}.${chapter}.${verse}` }
+    const target = node as HTMLElement | null
+    if (!target?.closest) return null
+    const verseEl = target.closest('.yv-v[v]') as HTMLElement | null
+    if (verseEl) {
+      const verse = verseEl.getAttribute('v')
+      const article = verseEl.closest('article[data-book-id]') as HTMLElement | null
+      const bookId = article?.getAttribute('data-book-id')
+      const chapter = Number(article?.getAttribute('data-chapter'))
+      if (!verse || !bookId || Number.isNaN(chapter)) return null
+      return { verseId: `${bookId}.${chapter}.${verse}`, yvPassageId: `${bookId}.${chapter}.${verse}` }
+    }
+    const card = target.closest('article[data-verse]') as HTMLElement | null
+    if (card) {
+      const verse = card.getAttribute('data-verse')
+      const section = card.closest('article[data-book-id]') as HTMLElement | null
+      const bookId = section?.getAttribute('data-book-id')
+      const chapter = Number(section?.getAttribute('data-chapter'))
+      if (!verse || !bookId || Number.isNaN(chapter)) return null
+      return { verseId: `${bookId}.${chapter}.${verse}`, yvPassageId: `${bookId}.${chapter}.${verse}` }
+    }
+    return null
   }
 
   const handleContextMenu = (e: ReactMouseEvent<HTMLDivElement>) => {
@@ -158,12 +171,13 @@ function ReaderPassageStack({
     const info = resolveVerseFromNode(e.target)
     if (!info) return
     const touch = e.touches[0]
-    touchTargetRef.current = info
+    longPressFiredRef.current = false
     touchStartRef.current = { x: touch.clientX, y: touch.clientY }
     if (touchTimerRef.current) window.clearTimeout(touchTimerRef.current)
     touchTimerRef.current = window.setTimeout(() => {
       touchTimerRef.current = null
       touchStartRef.current = null
+      longPressFiredRef.current = true
       setContextMenu({ verseId: info.yvPassageId, yvPassageId: info.yvPassageId, x: touch.clientX, y: touch.clientY })
     }, LONG_PRESS_MS)
   }
@@ -177,15 +191,18 @@ function ReaderPassageStack({
       window.clearTimeout(touchTimerRef.current)
       touchTimerRef.current = null
       touchStartRef.current = null
-      touchTargetRef.current = null
+      longPressFiredRef.current = false
     }
   }
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e: ReactTouchEvent<HTMLDivElement>) => {
     if (touchTimerRef.current) window.clearTimeout(touchTimerRef.current)
     touchTimerRef.current = null
     touchStartRef.current = null
-    touchTargetRef.current = null
+    if (longPressFiredRef.current) {
+      longPressFiredRef.current = false
+      e.preventDefault()
+    }
   }
 
   useLayoutEffect(() => {

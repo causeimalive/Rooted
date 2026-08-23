@@ -3276,18 +3276,33 @@ export default function YouVersionReaderTab({
   const [compareContextMenu, setCompareContextMenu] = useState<{ verseId: string; yvPassageId: string; x: number; y: number } | null>(null)
   const compareTouchTimerRef = useRef<number | null>(null)
   const compareTouchStartRef = useRef<{ x: number; y: number } | null>(null)
+  const compareLongPressFiredRef = useRef(false)
 
   const resolveCompareVerseFromNode = (node: EventTarget | HTMLElement | null) => {
-    const el = (node as HTMLElement | null)?.closest?.('.yv-v[v]') as HTMLElement | null
-    if (!el) return null
-    const verse = el.getAttribute('v')
-    const article = el.closest('article[data-section]') as HTMLElement | null
-    const sectionKey = article?.getAttribute('data-section')
-    if (!verse || !sectionKey) return null
-    const section = compareSections.find((s) => s.key === sectionKey)
-    if (!section) return null
-    const yvPassageId = `${section.bookId}.${section.chapter}.${verse}`
-    return { verseId: yvPassageId, yvPassageId }
+    const target = node as HTMLElement | null
+    if (!target?.closest) return null
+    const verseEl = target.closest('.yv-v[v]') as HTMLElement | null
+    if (verseEl) {
+      const verse = verseEl.getAttribute('v')
+      const article = verseEl.closest('article[data-section]') as HTMLElement | null
+      const sectionKey = article?.getAttribute('data-section')
+      if (!verse || !sectionKey) return null
+      const section = compareSections.find((s) => s.key === sectionKey)
+      if (!section) return null
+      const yvPassageId = `${section.bookId}.${section.chapter}.${verse}`
+      return { verseId: yvPassageId, yvPassageId }
+    }
+    const card = target.closest('article[data-verse][data-section]') as HTMLElement | null
+    if (card) {
+      const verse = card.getAttribute('data-verse')
+      const sectionKey = card.getAttribute('data-section')
+      if (!verse || !sectionKey) return null
+      const section = compareSections.find((s) => s.key === sectionKey)
+      if (!section) return null
+      const yvPassageId = `${section.bookId}.${section.chapter}.${verse}`
+      return { verseId: yvPassageId, yvPassageId }
+    }
+    return null
   }
 
   const handleCompareContextMenu = (e: ReactMouseEvent<HTMLDivElement>) => {
@@ -3304,11 +3319,13 @@ export default function YouVersionReaderTab({
     const info = resolveCompareVerseFromNode(e.target)
     if (!info) return
     const touch = e.touches[0]
+    compareLongPressFiredRef.current = false
     compareTouchStartRef.current = { x: touch.clientX, y: touch.clientY }
     if (compareTouchTimerRef.current) window.clearTimeout(compareTouchTimerRef.current)
     compareTouchTimerRef.current = window.setTimeout(() => {
       compareTouchTimerRef.current = null
       compareTouchStartRef.current = null
+      compareLongPressFiredRef.current = true
       setCompareContextMenu({ ...info, x: touch.clientX, y: touch.clientY })
     }, LONG_PRESS_MS)
   }
@@ -3322,13 +3339,18 @@ export default function YouVersionReaderTab({
       window.clearTimeout(compareTouchTimerRef.current)
       compareTouchTimerRef.current = null
       compareTouchStartRef.current = null
+      compareLongPressFiredRef.current = false
     }
   }
 
-  const handleCompareTouchEnd = () => {
+  const handleCompareTouchEnd = (e: ReactTouchEvent<HTMLDivElement>) => {
     if (compareTouchTimerRef.current) window.clearTimeout(compareTouchTimerRef.current)
     compareTouchTimerRef.current = null
     compareTouchStartRef.current = null
+    if (compareLongPressFiredRef.current) {
+      compareLongPressFiredRef.current = false
+      e.preventDefault()
+    }
   }
 
   const compareGrid = useMemo(
