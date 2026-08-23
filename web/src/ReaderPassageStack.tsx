@@ -1,4 +1,4 @@
-import { Fragment, memo, useEffect, useLayoutEffect, useState, type MouseEvent as ReactMouseEvent, type RefObject } from 'react'
+import { Fragment, memo, useEffect, useLayoutEffect, useMemo, useState, type MouseEvent as ReactMouseEvent, type RefObject } from 'react'
 import { Bookmark, Highlighter } from 'lucide-react'
 import { useI18n } from './i18n'
 
@@ -40,6 +40,59 @@ type ReaderPassageStackProps = {
 }
 
 const SWATCHES = ['#F5E98A', '#C7F5C8', '#C7D7F5', '#F5C7F5', '#F5E0C7']
+
+type HtmlSectionProps = {
+  section: ReaderSection
+  highlightedVerseIds?: Set<string>
+  bookmarkedVerseIds?: Set<string>
+  highlightColors?: Record<string, string>
+  onSelectVerse?: (verseId: string) => void
+}
+
+function HtmlSection({
+  section,
+  highlightedVerseIds,
+  bookmarkedVerseIds,
+  highlightColors,
+  onSelectVerse,
+}: HtmlSectionProps) {
+  const html = useMemo(() => {
+    const doc = new DOMParser().parseFromString(section.content, 'text/html')
+    const verseEls = Array.from(doc.querySelectorAll('.yv-v[v]')) as HTMLElement[]
+    for (const el of verseEls) {
+      const v = el.getAttribute('v')
+      if (!v) continue
+      const yvVerseId = `${section.bookId}.${section.chapter}.${v}`
+      if (highlightedVerseIds?.has(yvVerseId)) {
+        const color = highlightColors?.[yvVerseId] ?? '#F5E98A'
+        el.setAttribute('data-highlighted', 'true')
+        el.style.setProperty('--yv-verse-highlight', color)
+      }
+      if (bookmarkedVerseIds?.has(yvVerseId)) {
+        el.setAttribute('data-bookmarked', 'true')
+      }
+    }
+    return doc.body.innerHTML
+  }, [section, highlightedVerseIds, bookmarkedVerseIds, highlightColors])
+
+  const handleClick = (e: ReactMouseEvent<HTMLElement>) => {
+    const targetEl = (e.target as HTMLElement).closest('.yv-v[v]') as HTMLElement | null
+    if (!targetEl) return
+    const verseAttr = targetEl.getAttribute('v')
+    if (!verseAttr) return
+    onSelectVerse?.(`${section.bookId}.${section.chapter}.${verseAttr}`)
+  }
+
+  return (
+    <article
+      className='yv-reader-passage yv-reader-passage-html'
+      data-book-id={section.bookId}
+      data-chapter={section.chapter}
+      onClick={handleClick}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  )
+}
 
 function ReaderPassageStack({
   passageShellRef,
@@ -117,51 +170,7 @@ function ReaderPassageStack({
     if (readerView === 'html') {
       setHtmlMarkInfo({ verseId: selectedId, yvPassageId: `${section.bookId}.${section.chapter}.${verse}` })
     }
-  }, [selectedId, sections, bookCodeById, passageShellRef, readerView])
-
-  useLayoutEffect(() => {
-    const shell = passageShellRef.current
-    if (!shell || readerView !== 'html') return
-    const previouslyMarked = shell.querySelectorAll('.yv-reader-passage-html .yv-v[data-highlighted], .yv-reader-passage-html .yv-v[data-bookmarked]')
-    previouslyMarked.forEach((el) => {
-      el.removeAttribute('data-highlighted')
-      el.removeAttribute('data-bookmarked')
-      ;(el as HTMLElement).style.removeProperty('--yv-verse-highlight')
-    })
-    if (!highlightedVerseIds?.size && !bookmarkedVerseIds?.size) return
-    for (const section of sections) {
-      const localBookCode = bookCodeById?.[section.bookId] ?? section.bookId
-      const container = shell.querySelector(
-        `.yv-reader-passage-html[data-book-id="${CSS.escape(section.bookId)}"][data-chapter="${section.chapter}"]`,
-      )
-      if (!container) continue
-      const verseEls = Array.from(container.querySelectorAll('.yv-v[v]')) as HTMLElement[]
-      for (const el of verseEls) {
-        const v = el.getAttribute('v')
-        if (!v) continue
-        const yvVerseId = `${section.bookId}.${section.chapter}.${v}`
-        const localVerseId = `${localBookCode}.${section.chapter}.${v}`
-        const isHighlighted = highlightedVerseIds?.has(yvVerseId) || highlightedVerseIds?.has(localVerseId)
-        if (isHighlighted) {
-          const color = highlightColors?.[yvVerseId] ?? highlightColors?.[localVerseId] ?? '#F5E98A'
-          el.style.setProperty('--yv-verse-highlight', color)
-          el.setAttribute('data-highlighted', 'true')
-        }
-        const isBookmarked = bookmarkedVerseIds?.has(yvVerseId) || bookmarkedVerseIds?.has(localVerseId)
-        if (isBookmarked) {
-          el.setAttribute('data-bookmarked', 'true')
-        }
-      }
-    }
-  }, [sections, readerView, highlightedVerseIds, bookmarkedVerseIds, highlightColors, bookCodeById, passageShellRef])
-
-  function handleHtmlVerseClick(e: ReactMouseEvent<HTMLElement>, section: ReaderSection) {
-    const targetEl = (e.target as HTMLElement).closest('.yv-v[v]') as HTMLElement | null
-    if (!targetEl) return
-    const verseAttr = targetEl.getAttribute('v')
-    if (!verseAttr) return
-    onSelectVerse?.(`${section.bookId}.${section.chapter}.${verseAttr}`)
-  }
+  }, [selectedId, sections, bookCodeById, passageShellRef, readerView, highlightedVerseIds, bookmarkedVerseIds, highlightColors])
 
   function VerseMarkButton({
     verseId,
@@ -358,12 +367,12 @@ function ReaderPassageStack({
                   <div className='empty'>No verse markers found.</div>
                 )
               ) : (
-                <article
-                  className='yv-reader-passage yv-reader-passage-html'
-                  data-book-id={section.bookId}
-                  data-chapter={section.chapter}
-                  onClick={(e) => handleHtmlVerseClick(e, section)}
-                  dangerouslySetInnerHTML={{ __html: section.content }}
+                <HtmlSection
+                  section={section}
+                  highlightedVerseIds={highlightedVerseIds}
+                  bookmarkedVerseIds={bookmarkedVerseIds}
+                  highlightColors={highlightColors}
+                  onSelectVerse={onSelectVerse}
                 />
               )}
             </article>
