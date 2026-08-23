@@ -10,6 +10,7 @@ let fuse: Fuse<Verse> | null = null
 let bookMeta: { code: string; name: string }[] = []
 let bookFuse: Fuse<{ code: string; name: string }> | null = null
 let wordIndex: Map<string, Verse[]> = new Map()
+let yvToLocalMap: Record<string, string> = {}
 
 let lexicon: Record<string, LexiconEntry> = {}
 let lexiconFuse: Fuse<LexiconEntry> | null = null
@@ -266,6 +267,14 @@ async function loadLexicon() {
 
 export function getAllVerses(): Verse[] {
   return verses
+}
+
+export function setYvToLocalMap(map: Record<string, string>): void {
+  yvToLocalMap = map
+}
+
+export function getYvToLocalMap(): Record<string, string> {
+  return yvToLocalMap
 }
 
 export function searchBible(q: string, translation?: string): { verse: Verse; score: number }[] {

@@ -42,6 +42,7 @@ import {
   getAllVerses,
   getCrossReferences,
   getCrossReferenceMatches,
+  getYvToLocalMap,
   loadBible,
   lookupLexicon,
   searchBible,
@@ -971,8 +972,17 @@ export default function App() {
     return null
   }, [])
 
+  const resolveVerseId = useCallback((id: string) => {
+    const direct = findVerse(id)
+    if (direct) return direct
+    const map = getYvToLocalMap()
+    const parts = id.split('.')
+    if (parts.length !== 3) return undefined
+    return findVerse(`${map[parts[0]] ?? parts[0]}.${parts[1]}.${parts[2]}`)
+  }, [])
+
   const openVerseInReader = useCallback((id: string, versionId?: string, versionAbbreviation?: string) => {
-    const verse = findVerse(id)
+    const verse = resolveVerseId(id)
     if (!verse) return
     setSelectedId(id)
     setReaderSelectedId(id)
@@ -980,12 +990,12 @@ export default function App() {
     setReaderTargetVersionId(resolveReaderVersionId(versionId, versionAbbreviation))
     setReaderOpenSeq((n) => n + 1)
     setTab('reader')
-  }, [resolveReaderVersionId])
+  }, [resolveReaderVersionId, resolveVerseId])
 
   // Log a recent search only once the user actually picks a verse from the
   // results, so the list shows what they were looking for, not every keystroke.
   const recordSearchSelection = useCallback((verseId: string, searchQuery: string, versionId?: string, versionAbbreviation?: string) => {
-    const verse = findVerse(verseId)
+    const verse = resolveVerseId(verseId)
     if (!verse || !searchQuery?.trim()) return
     const resolvedVersionId = versionId ?? (readerVersion ? String(readerVersion.id) : verse.translation)
     const resolvedVersionAbbreviation = versionAbbreviation ?? (readerVersion ? (readerVersion.abbreviation || readerVersion.name) : verse.translation.toUpperCase())

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { Bookmark as BookmarkIcon, ChevronLeft, ChevronRight, GripVertical, Highlighter, Loader2, Pin, PinOff } from 'lucide-react'
-import { findVerse, getAllVerses, loadBible } from './bible'
+import { findVerse, getAllVerses, loadBible, setYvToLocalMap } from './bible'
 import { 
   fetchYouVersionPassage, 
   type YouVersionBook, 
@@ -1398,6 +1398,9 @@ export default function YouVersionReaderTab({
       }),
     )
   }, [books, allVerses])
+  useEffect(() => {
+    setYvToLocalMap(bookCodeById)
+  }, [bookCodeById])
   const yvBookByCode = useMemo(() => {
     const map: Record<string, string> = {}
     for (const [yv, code] of Object.entries(bookCodeById)) {
@@ -1818,17 +1821,8 @@ export default function YouVersionReaderTab({
       handleOpenBookSource()
     }
   }, [bookIntroHtml, bookIntroOpen, bookIntroReference, bookNumberById, currentBookInfoUrl, currentBookMetadata, entityHighlightsEnabled, handleOpenBookSource, resolvedVersionId, tagPositionsByVerseId])
-  const localVerseId = useCallback(
-    (yvPassageIdOrVerseId: string) =>
-      yvPassageIdOrVerseId
-        .split('.')
-        .map((part, i) => (i === 0 ? bookCodeById?.[part] ?? part : part))
-        .join('.'),
-    [bookCodeById],
-  )
-
   const handleToggleBookmark = useCallback(async (verseId: string, yvPassageId?: string) => {
-    onToggleBookmark(localVerseId(yvPassageId ?? verseId), selectedVersion ? String(selectedVersion.id) : '', selectedVersionLabel || versionTitle)
+    onToggleBookmark(yvPassageId ?? verseId, selectedVersion ? String(selectedVersion.id) : '', selectedVersionLabel || versionTitle)
     if (!auth.isAuthenticated || resolvedVersionId === null || isLocalFallbackSelected) return
     const highlightPassageId = yvPassageId ?? verseId
     try {
@@ -1836,11 +1830,11 @@ export default function YouVersionReaderTab({
     } catch {
       // Remote highlight removal is best-effort.
     }
-  }, [auth.isAuthenticated, bookCodeById, deleteHighlight, localVerseId, onToggleBookmark, resolvedVersionId, selectedVersion, selectedVersionLabel])
+  }, [auth.isAuthenticated, deleteHighlight, onToggleBookmark, resolvedVersionId, selectedVersion, selectedVersionLabel])
 
   const handleToggleHighlight = useCallback(async (verseId: string, yvPassageId?: string, color?: string) => {
     const isSaved = highlightedVerseIds.has(verseId)
-    onToggleHighlight(localVerseId(yvPassageId ?? verseId), selectedVersion ? String(selectedVersion.id) : '', selectedVersionLabel || versionTitle, color)
+    onToggleHighlight(yvPassageId ?? verseId, selectedVersion ? String(selectedVersion.id) : '', selectedVersionLabel || versionTitle, color)
     if (!auth.isAuthenticated || resolvedVersionId === null || isLocalFallbackSelected) return
     const highlightPassageId = yvPassageId ?? verseId
     setLocalError('')
@@ -1859,7 +1853,7 @@ export default function YouVersionReaderTab({
     } catch (error) {
       setLocalError(error instanceof Error ? error.message : String(error))
     }
-  }, [auth.isAuthenticated, bookCodeById, createHighlight, deleteHighlight, highlightedVerseIds, localVerseId, onToggleHighlight, refetchHighlights, resolvedVersionId, selectedVersion, selectedVersionLabel])
+  }, [auth.isAuthenticated, createHighlight, deleteHighlight, highlightedVerseIds, onToggleHighlight, refetchHighlights, resolvedVersionId, selectedVersion, selectedVersionLabel])
 
   const handleYouVersionSignIn = useCallback(async () => {
     const redirectUrl = getYouVersionRedirectUrl()
