@@ -53,6 +53,36 @@ const SHARE_LEVEL_LABELS: Record<Memory['shareLevel'], string> = {
   public: 'Public',
 }
 
+type WayfinderGraphNode = {
+  id: string
+  label: string
+  detail: string
+  x: number
+  y: number
+  kind: 'character' | 'stop'
+  characterId?: string
+  verseId?: string
+  stopIndex?: number
+}
+
+type WayfinderGraphEdge = {
+  source: string
+  target: string
+}
+
+const GRAPH_WIDTH = 1000
+const GRAPH_HEIGHT = 460
+const GRAPH_CENTER_X = GRAPH_WIDTH / 2
+const GRAPH_CENTER_Y = GRAPH_HEIGHT / 2
+
+function polarPoint(index: number, total: number, radius: number, phase = -Math.PI / 2) {
+  const angle = phase + (index / Math.max(total, 1)) * Math.PI * 2
+  return {
+    x: GRAPH_CENTER_X + Math.cos(angle) * radius,
+    y: GRAPH_CENTER_Y + Math.sin(angle) * radius,
+  }
+}
+
 export default function WayfinderTab({ memories, friends, selectedVerse, onSelect, onSaveMemory, onDeleteMemory, onSaveFriend, onDeleteFriend }: WayfinderTabProps) {
   const { t } = useI18n()
   const [query, setQuery] = useState('')
@@ -154,6 +184,71 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
   const currentUserId = getCurrentUserId()
   const activeStop = stops[activeStopIndex]
   const activeStopVerse = activeStop ? findFirstVerse(activeStop) : undefined
+
+  const graphModel = useMemo(() => {
+    if (selectedCharacter && stops.length > 0) {
+      const centerNode: WayfinderGraphNode = {
+        id: `character-${selectedCharacter.id}`,
+        label: selectedCharacter.name,
+        detail: selectedCharacter.era,
+        x: GRAPH_CENTER_X,
+        y: GRAPH_CENTER_Y,
+        kind: 'character',
+        characterId: selectedCharacter.id,
+      }
+      const stopNodes = stops.map((stop, index) => {
+        const point = polarPoint(index, stops.length, 150 + Math.min(index * 12, 32), -Math.PI / 2)
+        const verse = findFirstVerse(stop)
+        const passageLabel = stop.event.passages[0] ? formatPassage(stop.event.passages[0]) : 'Stop'
+        const detail = stop.place?.name ?? stop.event.approxDate ?? passageLabel
+        return {
+          id: `stop-${index}`,
+          label: stop.event.label,
+          detail,
+          x: point.x,
+          y: point.y,
+          kind: 'stop' as const,
+          verseId: verse?.id,
+          stopIndex: index,
+        }
+      })
+      return {
+        title: selectedCharacter.name,
+        subtitle: selectedCharacter.summary,
+        nodes: [centerNode, ...stopNodes],
+        edges: stopNodes.map((stop) => ({ source: centerNode.id, target: stop.id })),
+      }
+    }
+
+    const previewCharacters = filteredCharacters.slice(0, 12)
+    const centerNode: WayfinderGraphNode = {
+      id: 'graph-center',
+      label: previewCharacters[0]?.name ?? 'Wayfinder',
+      detail: previewCharacters.length > 0 ? 'Select a person to expand their path' : 'No people matched',
+      x: GRAPH_CENTER_X,
+      y: GRAPH_CENTER_Y,
+      kind: 'character',
+      characterId: previewCharacters[0]?.id,
+    }
+    const orbitNodes = previewCharacters.map((character, index) => {
+      const point = polarPoint(index, previewCharacters.length, 160 + (index % 3) * 18, -Math.PI / 2)
+      return {
+        id: `preview-${character.id}`,
+        label: character.name,
+        detail: character.era,
+        x: point.x,
+        y: point.y,
+        kind: 'character' as const,
+        characterId: character.id,
+      }
+    })
+    return {
+      title: 'Wayfinder graph',
+      subtitle: 'Select a biblical figure to see their path through Scripture.',
+      nodes: [centerNode, ...orbitNodes],
+      edges: orbitNodes.map((node) => ({ source: centerNode.id, target: node.id })),
+    }
+  }, [filteredCharacters, selectedCharacter, stops])
 
   const sortedMemories = useMemo(
     () =>
@@ -644,11 +739,80 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
         </aside>
 
         <section className="bubble-canvas-card" style={{ minWidth: 0, overflowY: 'auto' }}>
-          {!selectedCharacter ? (
-            <div className="panel empty" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              Select a biblical figure to see their path through Scripture.
+          <div className="bubble-card" style={{ marginBottom: '1rem' }}>
+            <div className="lexicon-card-heading" style={{ marginBottom: '0.35rem' }}>
+              <h3 style={{ margin: 0 }}>Wayfinder graph</h3>
+              <span className="verse-meta-pill">{graphModel.nodes.length} nodes</span>
             </div>
-          ) : (
+            <p style={{ margin: '0 0 0.75rem', fontSize: '0.88rem', opacity: 0.8 }}>{graphModel.subtitle}</p>
+            <div
+              style={{
+                position: 'relative',
+                height: 420,
+                borderRadius: '0.85rem',
+                border: '1px solid color-mix(in srgb, var(--muted) 70%, transparent)',
+                background: 'linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, transparent), var(--bg))',
+                overflow: 'hidden',
+              }}
+            >
+              <svg viewBox={`0 0 ${GRAPH_WIDTH} ${GRAPH_HEIGHT}`} preserveAspectRatio="none" style={{ width: '100%', height: '100%', display: 'block' }}>
+                <defs>
+                  <linearGradient id="wayfinderGraphEdge" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.35" />
+                    <stop offset="100%" stopColor="var(--muted)" stopOpacity="0.15" />
+                  </linearGradient>
+                </defs>
+                {graphModel.edges.map((edge, index) => {
+                  const source = graphModel.nodes.find((node) => node.id === edge.source)
+                  const target = graphModel.nodes.find((node) => node.id === edge.target)
+                  if (!source || !target) return null
+                  return <line key={`${edge.source}-${edge.target}-${index}`} x1={source.x} y1={source.y} x2={target.x} y2={target.y} stroke="url(#wayfinderGraphEdge)" strokeWidth={2} strokeLinecap="round" />
+                })}
+                {graphModel.nodes.map((node) => {
+                  const isCenter = node.id === graphModel.nodes[0]?.id
+                  const isActiveStop = node.kind === 'stop' && node.stopIndex === activeStopIndex
+                  const characterId = node.kind === 'character' ? node.characterId : undefined
+                  const isSelectedCharacter = node.kind === 'character' && characterId === selectedCharacter?.id
+                  const fill = node.kind === 'stop' ? (isActiveStop ? 'var(--accent)' : 'var(--surface)') : 'color-mix(in srgb, var(--accent) 28%, var(--surface))'
+                  const stroke = isCenter || isSelectedCharacter || isActiveStop ? 'var(--accent)' : 'color-mix(in srgb, var(--muted) 66%, transparent)'
+                  return (
+                    <g
+                      key={node.id}
+                      onClick={() => {
+                        if (selectedCharacter && node.kind === 'stop') {
+                          if (node.verseId) onSelect(node.verseId)
+                          if (node.stopIndex != null) setActiveStopIndex(node.stopIndex)
+                          return
+                        }
+                        if (characterId) {
+                          setSelectedId(characterId)
+                          setQuery('')
+                        }
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <circle cx={node.x} cy={node.y} r={node.kind === 'character' ? (isCenter ? 34 : 24) : isActiveStop ? 18 : 14} fill={fill} stroke={stroke} strokeWidth={2.5} />
+                      <circle cx={node.x} cy={node.y} r={node.kind === 'character' ? (isCenter ? 44 : 30) : isActiveStop ? 25 : 20} fill="transparent" stroke={stroke} strokeOpacity={0.18} strokeWidth={1.5} />
+                      <text x={node.x} y={node.y + 4} textAnchor="middle" fontSize={node.kind === 'character' ? 12 : 11} fontWeight={node.kind === 'character' ? 700 : 600} fill="var(--text)">
+                        {node.label.length > 14 ? `${node.label.slice(0, 14)}…` : node.label}
+                      </text>
+                      {node.detail && (
+                        <text x={node.x} y={node.y + (node.kind === 'character' ? 20 : 18)} textAnchor="middle" fontSize={9} fill="var(--text-muted)">
+                          {node.detail.length > 26 ? `${node.detail.slice(0, 26)}…` : node.detail}
+                        </text>
+                      )}
+                    </g>
+                  )
+                })}
+              </svg>
+              {graphModel.nodes.length === 0 && <div className="panel empty" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>No graph data yet.</div>}
+            </div>
+            {!selectedCharacter && (
+              <p style={{ margin: '0.75rem 0 0', fontSize: '0.85rem', opacity: 0.75 }}>Pick a biblical figure on the left to turn the graph into a path map.</p>
+            )}
+          </div>
+
+          {selectedCharacter ? (
             <div className="bubble-card" style={{ height: 'auto' }}>
               <div style={{ marginBottom: '1rem' }}>
                 <h3 style={{ margin: 0 }}>{selectedCharacter.name}</h3>
@@ -774,6 +938,10 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
                   )
                 })}
               </div>
+            </div>
+          ) : (
+            <div className="panel empty" style={{ minHeight: 220, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              Select a biblical figure to see their path through Scripture.
             </div>
           )}
         </section>
