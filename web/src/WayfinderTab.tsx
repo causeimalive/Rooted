@@ -3,7 +3,8 @@ import { getAllCharacters, getCharacter, getCharacterPath, type CharacterPathSto
 import { getPlace, formatPassage } from './places'
 import { findVerse } from './bible'
 import { useI18n } from './i18n'
-import { Character, Friend, Memory, MemoryType, Verse } from './types'
+import { Character, Friend, Memory, MemoryType, PublicMemory, Verse } from './types'
+import { getPublicMemories } from './cloudStorage'
 
 type WayfinderTabProps = {
   memories: Memory[]
@@ -63,6 +64,7 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
   const [filterTo, setFilterTo] = useState('')
   const [friendUserId, setFriendUserId] = useState('')
   const [friendDisplayName, setFriendDisplayName] = useState('')
+  const [friendMemories, setFriendMemories] = useState<PublicMemory[]>([])
 
   const allCharacters = useMemo(() => getAllCharacters().sort((a, b) => a.name.localeCompare(b.name)), [])
   const filteredCharacters = useMemo(() => {
@@ -108,6 +110,17 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
       }
     }
   }, [isPlaying, activeStopIndex, stops])
+
+  useEffect(() => {
+    if (!friends.length) {
+      setFriendMemories([])
+      return
+    }
+    const friendIds = new Set(friends.map((f) => f.userId))
+    getPublicMemories()
+      .then((memories) => setFriendMemories(memories.filter((m) => friendIds.has(m.ownerUserId))))
+      .catch(() => setFriendMemories([]))
+  }, [friends])
 
   const activeStop = stops[activeStopIndex]
   const activeStopVerse = activeStop ? findFirstVerse(activeStop) : undefined
@@ -412,10 +425,11 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
                 type="button"
                 className="primary"
                 onClick={() => {
-                  if (!friendUserId.trim()) return
+                  const uid = friendUserId.trim()
+                  if (!uid) return
                   onSaveFriend({
-                    id: crypto.randomUUID(),
-                    userId: friendUserId.trim(),
+                    id: uid,
+                    userId: uid,
                     displayName: friendDisplayName.trim() || undefined,
                     createdAt: new Date().toISOString(),
                   })
@@ -448,6 +462,42 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
                   </button>
                 </div>
               ))}
+            </div>
+          </div>
+
+          <div className="bubble-card" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <h3>Friends' Public Journey</h3>
+            <div className="bubble-list" style={{ maxHeight: 240, overflowY: 'auto' }}>
+              {friendMemories.length === 0 && <div className="empty">No public memories from friends.</div>}
+              {friendMemories.map((memory) => {
+                const verse = findVerse(memory.verseId)
+                const friend = friends.find((f) => f.userId === memory.ownerUserId)
+                return (
+                  <div
+                    key={memory.id}
+                    className="bubble-list-item"
+                    onClick={() => onSelect(memory.verseId)}
+                    style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 4, cursor: 'pointer' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.9rem' }}>
+                        {verse ? `${verse.bookName} ${verse.chapter}:${verse.verse}` : memory.verseId}
+                        <small style={{ display: 'block', opacity: 0.7 }}>
+                          {friend?.displayName || friend?.userId || memory.ownerUserId} · {new Date(memory.createdAt).toLocaleDateString()} · {MEMORY_TYPE_LABELS[memory.type]}
+                        </small>
+                      </span>
+                    </div>
+                    {memory.body && <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.9 }}>{memory.body}</p>}
+                    {memory.tags && memory.tags.length > 0 && (
+                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                        {memory.tags.map((tag) => (
+                          <span key={tag} style={{ fontSize: '0.75rem', padding: '0.1rem 0.35rem', borderRadius: '0.5rem', background: 'var(--surface)', color: 'var(--accent)' }}>{tag}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
         </aside>

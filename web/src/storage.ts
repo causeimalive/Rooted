@@ -27,12 +27,15 @@ import {
   deleteUserHighlight,
   deleteUserNote,
   deleteUserRecentSearch,
+  deletePublicMemory,
+  getPublicMemories,
   getUserBookmarks,
   getUserFriends,
   getUserHighlights,
   getUserNotes,
   getUserPinnedVersionIds,
   getUserRecentSearches,
+  savePublicMemory,
   saveUserBookmark,
   saveUserFriend,
   saveUserHighlight,
@@ -606,12 +609,20 @@ export function saveMemory(memory: Memory): Memory[] {
     ? memories.map((m) => (m.id === memory.id ? { ...memory, updatedAt: new Date().toISOString() } : m))
     : [memory, ...memories]
   set(MEMORIES_KEY, next)
+  if (currentUserId) {
+    if (memory.shareLevel === 'public') {
+      void savePublicMemory(currentUserId, { ...memory, ownerUserId: currentUserId }).catch(() => {})
+    } else {
+      void deletePublicMemory(memory.id).catch(() => {})
+    }
+  }
   return next
 }
 
 export function deleteMemory(id: string): Memory[] {
   const next = getMemories().filter((m) => m.id !== id)
   set(MEMORIES_KEY, next)
+  if (currentUserId) void deletePublicMemory(id).catch(() => {})
   return next
 }
 

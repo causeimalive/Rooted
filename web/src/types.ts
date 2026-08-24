@@ -58,6 +58,10 @@ export interface Highlight {
 export type MemoryType = 'note' | 'prayer' | 'highlight' | 'photo' | 'bookmark'
 export type ShareLevel = 'private' | 'friends' | 'public'
 
+export interface PublicMemory extends Memory {
+  ownerUserId: string
+}
+
 export interface Memory {
   id: string
   verseId: string

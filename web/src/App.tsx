@@ -5,7 +5,6 @@ import { Capacitor } from '@capacitor/core'
 import { App as CapacitorApp } from '@capacitor/app'
 import {
   BookOpen,
-  Book,
   Map as MapIcon,
   ExternalLink,
   Search,
@@ -131,9 +130,9 @@ import { getWikipediaLink, useWikiImages, useWikiSummary, type WikiImage } from 
 import { useYVAuth } from '@youversion/platform-react-hooks'
 import { getYouVersionRedirectUrl } from './youversionRedirect'
 
-type Tab = 'search' | 'reader' | 'wayfinder' | 'map' | 'words'
+type Tab = 'search' | 'reader' | 'wayfinder' | 'map'
 
-const TABS: Tab[] = ['search', 'reader', 'wayfinder', 'map', 'words']
+const TABS: Tab[] = ['search', 'reader', 'wayfinder', 'map']
 
 const USFM_BOOK_NORMALIZE: Record<string, string> = {
   genesis: 'Gen', exodus: 'Exod', leviticus: 'Lev', numbers: 'Num', deuteronomy: 'Deut',
@@ -1111,9 +1110,6 @@ export default function App() {
           <button className={`tab ${tab === 'map' ? 'active' : ''}`} onClick={() => setTab('map')}>
             <MapIcon size={16} /> {t('map')}
           </button>
-          <button className={`tab ${tab === 'words' ? 'active' : ''}`} onClick={() => { setQuery(''); setHeaderQuery(''); setTab('words') }}>
-            <Book size={16} /> {t('words')}
-          </button>
         </div>
         <div className="header-tools">
           {tab !== 'search' && (
@@ -1124,10 +1120,6 @@ export default function App() {
                   e.preventDefault()
                   const trimmed = headerQuery.trim()
                   if (!trimmed) return
-                  if (tab === 'words') {
-                    setQuery(trimmed)
-                    return
-                  }
                   runSearch(trimmed)
                 }}
               >
