@@ -31,6 +31,10 @@
           "function": "mintYouVersionFirebaseToken"
         },
         {
+          "source": "/api/graph/analyze",
+          "function": "analyzeBibleGraph"
+        },
+        {
           "source": "**",
           "destination": "/index.html"
         }
@@ -86,6 +90,10 @@
         {
           "source": "/api/auth/youversion-token",
           "function": "mintYouVersionFirebaseToken"
+        },
+        {
+          "source": "/api/graph/analyze",
+          "function": "analyzeBibleGraph"
         },
         {
           "source": "**",

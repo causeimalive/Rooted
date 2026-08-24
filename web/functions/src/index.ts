@@ -5,6 +5,7 @@ import { logger } from 'firebase-functions'
 import { isAllowedOrigin, setCorsHeaders } from './cors'
 
 export { mintYouVersionFirebaseToken } from './youversionAuth'
+export { analyzeBibleGraph } from './graphAnalysis'
 
 export const proxyYouVersion = onRequest(
   { region: 'us-central1' },

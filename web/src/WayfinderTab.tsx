@@ -3,7 +3,7 @@ import { getAllCharacters, getCharacter, getCharacterPath, type CharacterPathSto
 import { getPlace, formatPassage } from './places'
 import { findVerse } from './bible'
 import { useI18n } from './i18n'
-import { Character, Comment, Friend, Memory, MemoryType, PublicMemory, Reaction, ReactionType, Verse } from './types'
+import { Character, Comment, Friend, GraphAnalysisSummary, Memory, MemoryType, PublicMemory, Reaction, ReactionType, Verse } from './types'
 import {
   deleteMemoryComment,
   deleteMemoryReaction,
@@ -108,6 +108,8 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
   const [comments, setComments] = useState<Comment[]>([])
   const [reactions, setReactions] = useState<Reaction[]>([])
   const [commentBody, setCommentBody] = useState('')
+  const [graphAnalysis, setGraphAnalysis] = useState<GraphAnalysisSummary | null>(null)
+  const [graphAnalysisLoaded, setGraphAnalysisLoaded] = useState(false)
 
   const allCharacters = useMemo(() => getAllCharacters().sort((a, b) => a.name.localeCompare(b.name)), [])
   const filteredCharacters = useMemo(() => {
@@ -180,6 +182,27 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
       .then(setReactions)
       .catch(() => setReactions([]))
   }, [selectedPublicMemory])
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/graph/analyze')
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`Graph analysis failed: ${res.status}`))))
+      .then((summary: GraphAnalysisSummary) => {
+        if (!cancelled) {
+          setGraphAnalysis(summary)
+          setGraphAnalysisLoaded(true)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setGraphAnalysis(null)
+          setGraphAnalysisLoaded(true)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const currentUserId = getCurrentUserId()
   const activeStop = stops[activeStopIndex]
@@ -739,6 +762,45 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
         </aside>
 
         <section className="bubble-canvas-card" style={{ minWidth: 0, overflowY: 'auto' }}>
+          <div className="bubble-card" style={{ marginBottom: '1rem' }}>
+            <div className="lexicon-card-heading" style={{ marginBottom: '0.35rem' }}>
+              <h3 style={{ margin: 0 }}>Graph analysis</h3>
+              <span className="verse-meta-pill">Phase 5.4</span>
+            </div>
+            {graphAnalysisLoaded ? graphAnalysis ? (
+              <>
+                <div className="network-focus-metrics" style={{ marginBottom: '0.75rem' }}>
+                  <div><span>Verses</span><strong>{graphAnalysis.verseCount}</strong></div>
+                  <div><span>Books</span><strong>{graphAnalysis.bookCount}</strong></div>
+                  <div><span>Unique terms</span><strong>{graphAnalysis.uniqueTermCount}</strong></div>
+                </div>
+                <div className="network-focus-metrics" style={{ marginBottom: '0.75rem' }}>
+                  <div><span>Avg terms</span><strong>{graphAnalysis.averageUniqueTermsPerVerse}</strong></div>
+                  <div><span>Top verse</span><strong>{graphAnalysis.topVerses[0]?.reference ?? '—'}</strong></div>
+                  <div><span>Computed</span><strong>{new Date(graphAnalysis.computedAt).toLocaleTimeString()}</strong></div>
+                </div>
+                <div className="network-term-row" style={{ marginBottom: '0.5rem' }}>
+                  {graphAnalysis.topTerms.slice(0, 6).map((term) => (
+                    <span key={term.label} className="network-term-chip">{term.label} · {term.count}</span>
+                  ))}
+                </div>
+                <div className="network-term-row" style={{ marginBottom: '0.75rem' }}>
+                  {graphAnalysis.topBooks.slice(0, 5).map((book) => (
+                    <span key={book.label} className="network-term-chip">{book.label} · {book.count}</span>
+                  ))}
+                </div>
+                <div className="bubble-list" style={{ maxHeight: 140, overflowY: 'auto' }}>
+                  {graphAnalysis.topVerses.slice(0, 5).map((verse) => (
+                    <button key={verse.verseId} type="button" className="bubble-list-item network-context-item" onClick={() => onSelect(verse.verseId)}>
+                      <span>{verse.reference}</span>
+                      <small>Graph score {verse.score.toFixed(2)}</small>
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : <div className="network-helper-text">No analysis available yet.</div> : <div className="network-helper-text">Loading server-side graph analysis…</div>}
+          </div>
+
           <div className="bubble-card" style={{ marginBottom: '1rem' }}>
             <div className="lexicon-card-heading" style={{ marginBottom: '0.35rem' }}>
               <h3 style={{ margin: 0 }}>Wayfinder graph</h3>

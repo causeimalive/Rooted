@@ -114,6 +114,26 @@ export interface KnowledgeGraphAnchor {
   verseIds: string[]
 }
 
+export interface GraphAnalysisItem {
+  label: string
+  count: number
+}
+
+export interface GraphAnalysisSummary {
+  computedAt: string
+  verseCount: number
+  bookCount: number
+  uniqueTermCount: number
+  averageUniqueTermsPerVerse: number
+  topBooks: GraphAnalysisItem[]
+  topTerms: GraphAnalysisItem[]
+  topVerses: Array<{
+    verseId: string
+    reference: string
+    score: number
+  }>
+}
+
 export interface RecentSearch {
   id: string
   query: string
