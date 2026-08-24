@@ -1242,6 +1242,7 @@ export default function App() {
               onDeleteMemory={handleDeleteMemory}
               onSaveFriend={handleSaveFriend}
               onDeleteFriend={handleDeleteFriend}
+              theme={theme}
             />
           )}
           {tab === 'map' && (

@@ -30,6 +30,8 @@ type NetworkKind =
   | 'originalWord'
   | 'topic'
   | 'doctrine'
+  | 'character'
+  | 'stop'
 
 type NetworkNode = {
   id: string
@@ -93,9 +95,11 @@ function getNodeColor(kind: NetworkKind, theme: 'dark' | 'light', tier?: 'strong
       return palette.chapter
     case 'person':
     case 'event':
+    case 'character':
       return palette.person
     case 'place':
       return palette.place
+    case 'stop':
     case 'userWaypoint':
       return palette.verse
     case 'originalWord':
@@ -140,6 +144,8 @@ function getNodeTargetDistance(kind: NetworkKind, size: number): number {
     case 'person':
     case 'event':
     case 'userWaypoint':
+    case 'character':
+    case 'stop':
       return 120
     case 'place':
       return 120

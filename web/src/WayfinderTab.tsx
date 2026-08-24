@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import React, { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { getAllCharacters, getCharacter, getCharacterPath, type CharacterPathStop } from './characters'
 import { getPlace, formatPassage } from './places'
 import { findVerse } from './bible'
+import { SCENE_PALETTE } from './relationshipGraph/palette'
 import { useI18n } from './i18n'
 import { Character, Comment, Friend, GraphAnalysisSummary, Memory, MemoryType, PublicMemory, Reaction, ReactionType, Verse } from './types'
 import {
@@ -24,7 +25,10 @@ type WayfinderTabProps = {
   onDeleteMemory: (id: string) => void
   onSaveFriend: (friend: Friend) => void
   onDeleteFriend: (id: string) => void
+  theme: 'dark' | 'light'
 }
+
+const NetworkThreeScene = lazy(() => import('./NetworkThreeScene'))
 
 function findFirstVerse(stop: CharacterPathStop): Verse | undefined {
   const passage = stop.event.passages[0]
@@ -83,7 +87,7 @@ function polarPoint(index: number, total: number, radius: number, phase = -Math.
   }
 }
 
-export default function WayfinderTab({ memories, friends, selectedVerse, onSelect, onSaveMemory, onDeleteMemory, onSaveFriend, onDeleteFriend }: WayfinderTabProps) {
+export default function WayfinderTab({ memories, friends, selectedVerse, onSelect, onSaveMemory, onDeleteMemory, onSaveFriend, onDeleteFriend, theme }: WayfinderTabProps) {
   const { t } = useI18n()
   const [query, setQuery] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -272,6 +276,61 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
       edges: orbitNodes.map((node) => ({ source: centerNode.id, target: node.id })),
     }
   }, [filteredCharacters, selectedCharacter, stops])
+
+  const graphFocus = useMemo(() => ({ x: GRAPH_CENTER_X / 10, y: GRAPH_CENTER_Y / 10, z: 0 }), [])
+
+  const scene = useMemo(() => {
+    const nodes: any[] = graphModel.nodes.map((node) => {
+      const base = {
+        id: node.id,
+        label: node.label,
+        detail: node.detail ?? '',
+        x: node.x / 10,
+        y: node.y / 10,
+        z: 0,
+        size: node.kind === 'character' ? 140 : 90,
+        kind: node.kind,
+      }
+      if (node.kind === 'stop') {
+        const verse = node.verseId ? findVerse(node.verseId) : undefined
+        return { ...base, verseId: node.verseId, stopIndex: node.stopIndex, verse }
+      }
+      if (node.kind === 'character') {
+        return { ...base, characterId: node.characterId }
+      }
+      return base
+    })
+    const edges: any[] = graphModel.edges.map((edge) => ({
+      id: `${edge.source}-${edge.target}`,
+      source: edge.source,
+      target: edge.target,
+      weight: 1,
+      kind: 'spoke' as const,
+    }))
+    const stopNodes = nodes.filter((node) => node.kind === 'stop' && node.stopIndex != null)
+    const pathColor = SCENE_PALETTE[theme].nodeColors.person
+    const points = stopNodes
+      .sort((a, b) => (a.stopIndex as number) - (b.stopIndex as number))
+      .map((node) => ({ x: node.x, y: node.y, z: 0 }))
+    const paths = points.length > 0 ? [{ id: 'character-path', points, color: pathColor }] : []
+    return { nodes, edges, paths }
+  }, [graphModel, theme])
+
+  const handleSceneSelect = (id: string) => {
+    const node = graphModel.nodes.find((n) => n.id === id)
+    if (!node) return
+    if (node.kind === 'stop' && node.verseId) {
+      onSelect(node.verseId)
+      if (node.stopIndex != null) setActiveStopIndex(node.stopIndex)
+      return
+    }
+    if (node.kind === 'character' && node.characterId) {
+      setSelectedId(node.characterId)
+      setQuery('')
+    }
+  }
+
+  const selectedNetworkId = selectedCharacter ? `character-${selectedCharacter.id}` : null
 
   const sortedMemories = useMemo(
     () =>
@@ -817,56 +876,23 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
                 overflow: 'hidden',
               }}
             >
-              <svg viewBox={`0 0 ${GRAPH_WIDTH} ${GRAPH_HEIGHT}`} preserveAspectRatio="none" style={{ width: '100%', height: '100%', display: 'block' }}>
-                <defs>
-                  <linearGradient id="wayfinderGraphEdge" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.35" />
-                    <stop offset="100%" stopColor="var(--muted)" stopOpacity="0.15" />
-                  </linearGradient>
-                </defs>
-                {graphModel.edges.map((edge, index) => {
-                  const source = graphModel.nodes.find((node) => node.id === edge.source)
-                  const target = graphModel.nodes.find((node) => node.id === edge.target)
-                  if (!source || !target) return null
-                  return <line key={`${edge.source}-${edge.target}-${index}`} x1={source.x} y1={source.y} x2={target.x} y2={target.y} stroke="url(#wayfinderGraphEdge)" strokeWidth={2} strokeLinecap="round" />
-                })}
-                {graphModel.nodes.map((node) => {
-                  const isCenter = node.id === graphModel.nodes[0]?.id
-                  const isActiveStop = node.kind === 'stop' && node.stopIndex === activeStopIndex
-                  const characterId = node.kind === 'character' ? node.characterId : undefined
-                  const isSelectedCharacter = node.kind === 'character' && characterId === selectedCharacter?.id
-                  const fill = node.kind === 'stop' ? (isActiveStop ? 'var(--accent)' : 'var(--surface)') : 'color-mix(in srgb, var(--accent) 28%, var(--surface))'
-                  const stroke = isCenter || isSelectedCharacter || isActiveStop ? 'var(--accent)' : 'color-mix(in srgb, var(--muted) 66%, transparent)'
-                  return (
-                    <g
-                      key={node.id}
-                      onClick={() => {
-                        if (selectedCharacter && node.kind === 'stop') {
-                          if (node.verseId) onSelect(node.verseId)
-                          if (node.stopIndex != null) setActiveStopIndex(node.stopIndex)
-                          return
-                        }
-                        if (characterId) {
-                          setSelectedId(characterId)
-                          setQuery('')
-                        }
-                      }}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <circle cx={node.x} cy={node.y} r={node.kind === 'character' ? (isCenter ? 34 : 24) : isActiveStop ? 18 : 14} fill={fill} stroke={stroke} strokeWidth={2.5} />
-                      <circle cx={node.x} cy={node.y} r={node.kind === 'character' ? (isCenter ? 44 : 30) : isActiveStop ? 25 : 20} fill="transparent" stroke={stroke} strokeOpacity={0.18} strokeWidth={1.5} />
-                      <text x={node.x} y={node.y + 4} textAnchor="middle" fontSize={node.kind === 'character' ? 12 : 11} fontWeight={node.kind === 'character' ? 700 : 600} fill="var(--text)">
-                        {node.label.length > 14 ? `${node.label.slice(0, 14)}…` : node.label}
-                      </text>
-                      {node.detail && (
-                        <text x={node.x} y={node.y + (node.kind === 'character' ? 20 : 18)} textAnchor="middle" fontSize={9} fill="var(--text-muted)">
-                          {node.detail.length > 26 ? `${node.detail.slice(0, 26)}…` : node.detail}
-                        </text>
-                      )}
-                    </g>
-                  )
-                })}
-              </svg>
+              <Suspense
+                fallback={
+                  <div style={{ width: '100%', height: '100%', minHeight: 420, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)' }}>
+                    Loading 3D wayfinder…
+                  </div>
+                }
+              >
+                <NetworkThreeScene
+                  nodes={scene.nodes}
+                  edges={scene.edges}
+                  focus={graphFocus}
+                  selectedId={selectedNetworkId}
+                  onSelect={handleSceneSelect}
+                  paths={scene.paths}
+                  theme={theme}
+                />
+              </Suspense>
               {graphModel.nodes.length === 0 && <div className="panel empty" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>No graph data yet.</div>}
             </div>
             {!selectedCharacter && (
