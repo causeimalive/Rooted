@@ -49,6 +49,7 @@ import {
   type NetworkTheme,
   type VerseMatch,
 } from './bible'
+import { buildKnowledgeGraphSeed } from './knowledgeGraph'
 import { redLetterVerseHtml } from './redLetter'
 import { useEntityData } from './useEntityData'
 import {
@@ -113,7 +114,7 @@ import {
 } from './storage'
 import { linkYouVersionToFirebase } from './youversionFirebaseBridge'
 import { auth } from './firebase'
-import { Bookmark as BookmarkType, type Highlight as HighlightType, Memory, Verse, type LexiconEntry, type Place, type RecentSearch, type Friend } from './types'
+import { Bookmark as BookmarkType, type Highlight as HighlightType, Memory, Verse, type LexiconEntry, type Place, type RecentSearch, type Friend, type KnowledgeGraphAnchor } from './types'
 import type { Character } from './types'
 import { useI18n } from './i18n'
 import {
@@ -2624,6 +2625,37 @@ function OldNetworkTab({
     [centerVerse, relatedVerses],
   )
 
+  const knowledgeGraphSeed = useMemo(
+    () => (centerVerse ? buildKnowledgeGraphSeed(centerVerse, relatedMatches, themes) : { originalWords: [], topics: [], doctrines: [] }),
+    [centerVerse, relatedMatches, themes],
+  )
+
+  const renderKnowledgeAnchorGroup = (title: string, anchors: KnowledgeGraphAnchor[]) => (
+    <div className="network-context-section">
+      <h4>{title}</h4>
+      {anchors.length > 0 ? (
+        <div className="bubble-list network-context-list">
+          {anchors.map((anchor) => {
+            const verseId = anchor.verseIds[0] ?? focusedVerse?.id ?? centerVerse?.id
+            return (
+              <button
+                key={anchor.id}
+                type="button"
+                className="bubble-list-item network-context-item"
+                onClick={() => verseId && onSelect(verseId)}
+              >
+                <span>{anchor.label}</span>
+                <small>{anchor.detail} · {anchor.count} verse{anchor.count === 1 ? '' : 's'}</small>
+              </button>
+            )
+          })}
+        </div>
+      ) : (
+        <div className="network-helper-text">No anchors yet for this passage.</div>
+      )}
+    </div>
+  )
+
   const selectedPersonId = useMemo(
     () => (focusedNodeId?.startsWith('person-') ? focusedNodeId.replace('person-', '') : undefined),
     [focusedNodeId],
@@ -3270,6 +3302,19 @@ function OldNetworkTab({
                 </div>
               </>
             )}
+
+            <div className="bubble-card network-knowledge-card" style={{ marginTop: '0.75rem' }}>
+              <div className="lexicon-card-heading" style={{ marginBottom: '0.4rem' }}>
+                <h3 style={{ margin: 0 }}>Knowledge Graph</h3>
+                <span className="verse-meta-pill">Phase 5 seed</span>
+              </div>
+              <div className="network-helper-text" style={{ marginBottom: '0.75rem' }}>
+                Original words, topics, and doctrines anchored to this passage.
+              </div>
+              {renderKnowledgeAnchorGroup('Original Words', knowledgeGraphSeed.originalWords)}
+              {renderKnowledgeAnchorGroup('Topics', knowledgeGraphSeed.topics)}
+              {renderKnowledgeAnchorGroup('Doctrines', knowledgeGraphSeed.doctrines)}
+            </div>
 
             <div className="map-location-context" style={{ marginTop: '0.75rem' }}>{t('networkTapHint')}</div>
           </div>

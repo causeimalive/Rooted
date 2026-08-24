@@ -103,6 +103,17 @@ export interface Reaction {
   createdAt: string
 }
 
+export type KnowledgeGraphAnchorKind = 'originalWord' | 'topic' | 'doctrine'
+
+export interface KnowledgeGraphAnchor {
+  id: string
+  kind: KnowledgeGraphAnchorKind
+  label: string
+  detail: string
+  count: number
+  verseIds: string[]
+}
+
 export interface RecentSearch {
   id: string
   query: string
