@@ -204,9 +204,10 @@ header h1 {
 .tabs {
   display: flex;
   gap: 0.5rem;
-  flex: 1 1 0;
-  justify-content: center;
-  min-width: 0;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
 }
 
 .tabs::-webkit-scrollbar {
@@ -1105,6 +1106,9 @@ button.secondary {
   }
 
   .tabs {
+    position: static;
+    left: auto;
+    transform: none;
     order: 3;
     width: 100%;
     overflow-x: auto;
@@ -5978,8 +5982,8 @@ mark {
   flex-direction: column;
   gap: 0.22rem;
   flex: 1 1 auto;
-  min-width: 10rem;
-  max-width: 32rem;
+  min-width: 8rem;
+  max-width: 16rem;
   overflow: visible;
 }
 
