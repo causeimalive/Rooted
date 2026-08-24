@@ -1912,7 +1912,7 @@ function LexiconQueryPanel({
   )
 }
 
-type NetworkKind = 'center' | 'related' | 'theme' | 'echo' | 'ambient' | 'book' | 'chapter' | 'person' | 'place' | 'event' | 'userWaypoint'
+type NetworkKind = 'center' | 'related' | 'theme' | 'originalWord' | 'topic' | 'doctrine' | 'echo' | 'ambient' | 'book' | 'chapter' | 'person' | 'place' | 'event' | 'userWaypoint'
 
 type NetworkNode = {
   id: string
@@ -1927,6 +1927,7 @@ type NetworkNode = {
   score?: number
   tier?: 'strong' | 'medium' | 'soft'
   jumpVerseId?: string
+  verseIds?: string[]
   parentId?: string
   bookId?: string
   bookName?: string
@@ -2120,7 +2121,17 @@ function angleBetween(a: Point, b: Point) {
   return Math.atan2(b.y - a.y, b.x - a.x)
 }
 
-function buildNetworkNodes(centerVerse: Verse, relatedMatches: VerseMatch[], themes: NetworkTheme[], selectedPersonId?: string): NetworkNode[] {
+function buildNetworkNodes(
+  centerVerse: Verse,
+  relatedMatches: VerseMatch[],
+  themes: NetworkTheme[],
+  selectedPersonId?: string,
+  knowledgeGraphSeed?: {
+    originalWords: KnowledgeGraphAnchor[]
+    topics: KnowledgeGraphAnchor[]
+    doctrines: KnowledgeGraphAnchor[]
+  },
+): NetworkNode[] {
   const allVerses = getAllVerses()
   const nodes: NetworkNode[] = [
     {
@@ -2180,6 +2191,33 @@ function buildNetworkNodes(centerVerse: Verse, relatedMatches: VerseMatch[], the
       jumpVerseId,
     })
   })
+
+  const addAnchorNodes = (anchors: KnowledgeGraphAnchor[], kind: 'originalWord' | 'topic' | 'doctrine', radius: number, zBase: number) => {
+    anchors.forEach((anchor, index) => {
+      const angle = (hashString(anchor.id) / 3600) * Math.PI * 2 + index * 0.28
+      const x = clamp(50 + Math.cos(angle) * radius, 6, 94)
+      const y = clamp(50 + Math.sin(angle) * radius * 0.88, 6, 94)
+      nodes.push({
+        id: anchor.id,
+        kind,
+        label: anchor.label,
+        detail: anchor.detail,
+        x,
+        y,
+        z: clamp(zBase + index * 4, 8, 56),
+        size: kind === 'doctrine' ? 118 : kind === 'topic' ? 104 : 92,
+        score: anchor.count,
+        jumpVerseId: anchor.verseIds[0],
+        verseIds: anchor.verseIds,
+      })
+    })
+  }
+
+  if (knowledgeGraphSeed) {
+    addAnchorNodes(knowledgeGraphSeed.originalWords, 'originalWord', 62, 18)
+    addAnchorNodes(knowledgeGraphSeed.topics, 'topic', 74, 26)
+    addAnchorNodes(knowledgeGraphSeed.doctrines, 'doctrine', 58, 34)
+  }
 
   const people = getCharactersForVerse(centerVerse, 3)
   const places = getPlacesForVerse(centerVerse, 3)
@@ -2279,7 +2317,16 @@ function buildNetworkNodes(centerVerse: Verse, relatedMatches: VerseMatch[], the
   return nodes
 }
 
-function buildNetworkEdges(centerVerse: Verse, relatedMatches: VerseMatch[], themes: NetworkTheme[]): NetworkEdge[] {
+function buildNetworkEdges(
+  centerVerse: Verse,
+  relatedMatches: VerseMatch[],
+  themes: NetworkTheme[],
+  knowledgeGraphSeed?: {
+    originalWords: KnowledgeGraphAnchor[]
+    topics: KnowledgeGraphAnchor[]
+    doctrines: KnowledgeGraphAnchor[]
+  },
+): NetworkEdge[] {
   const allVerses = getAllVerses()
   const edges: NetworkEdge[] = []
   const occupied = new Set<string>([centerVerse.id])
@@ -2297,6 +2344,34 @@ function buildNetworkEdges(centerVerse: Verse, relatedMatches: VerseMatch[], the
       kind: 'spoke',
     })
   })
+
+  if (knowledgeGraphSeed) {
+    const anchorGroups = [
+      ...knowledgeGraphSeed.originalWords,
+      ...knowledgeGraphSeed.topics,
+      ...knowledgeGraphSeed.doctrines,
+    ]
+
+    anchorGroups.forEach((anchor) => {
+      edges.push({
+        id: `anchor-center-${anchor.id}`,
+        source: `center-${centerVerse.id}`,
+        target: anchor.id,
+        weight: Math.max(0.6, anchor.count / 8),
+        kind: 'theme',
+      })
+      anchor.verseIds.forEach((verseId) => {
+        if (verseId === centerVerse.id) return
+        edges.push({
+          id: `anchor-verse-${anchor.id}-${verseId}`,
+          source: anchor.id,
+          target: verseId,
+          weight: Math.max(0.25, anchor.count / 12),
+          kind: 'bridge',
+        })
+      })
+    })
+  }
 
   const peopleForCenter = getCharactersForVerse(centerVerse, 3)
   const placesForCenter = getPlacesForVerse(centerVerse, 3)
@@ -2662,13 +2737,13 @@ function OldNetworkTab({
   )
 
   const nodes = useMemo(
-    () => (centerVerse ? buildNetworkNodes(centerVerse, relatedMatches, themes, selectedPersonId) : []),
-    [centerVerse, relatedMatches, themes, selectedPersonId],
+    () => (centerVerse ? buildNetworkNodes(centerVerse, relatedMatches, themes, selectedPersonId, knowledgeGraphSeed) : []),
+    [centerVerse, relatedMatches, themes, selectedPersonId, knowledgeGraphSeed],
   )
 
   const edges = useMemo(
-    () => (centerVerse ? buildNetworkEdges(centerVerse, relatedMatches, themes) : []),
-    [centerVerse, relatedMatches, themes],
+    () => (centerVerse ? buildNetworkEdges(centerVerse, relatedMatches, themes, knowledgeGraphSeed) : []),
+    [centerVerse, relatedMatches, themes, knowledgeGraphSeed],
   )
 
   const allCharacters = useMemo(() => getAllCharacters().sort((a, b) => a.name.localeCompare(b.name)), [])
@@ -2942,6 +3017,13 @@ function OldNetworkTab({
   }, [focusedVerse, bookNumberByCode, tagsByVerseId])
   const focusedMatch = focusedVerse ? relatedMatches.find((match) => match.verse.id === focusedVerse.id) : undefined
   const focusedTheme = focusedNode?.kind === 'theme' ? themes.find((theme) => theme.label === focusedNode.label) : undefined
+  const focusedKnowledgeAnchor = useMemo(
+    () =>
+      focusedNode && (focusedNode.kind === 'originalWord' || focusedNode.kind === 'topic' || focusedNode.kind === 'doctrine')
+        ? [...knowledgeGraphSeed.originalWords, ...knowledgeGraphSeed.topics, ...knowledgeGraphSeed.doctrines].find((anchor) => anchor.id === focusedNode.id)
+        : undefined,
+    [focusedNode, knowledgeGraphSeed],
+  )
   const themeMatches = focusedTheme ? relatedMatches.filter((match) => match.sharedTerms.includes(focusedTheme.label)) : []
   const strongestMatch = relatedMatches[0]
 
@@ -3124,7 +3206,7 @@ function OldNetworkTab({
   const handleNodeSelect = (node: NetworkNode) => {
     setFocusedNodeId(node.id)
     focusNodeWithZoom(node)
-    if (node.kind === 'theme') {
+    if (node.kind === 'theme' || node.kind === 'originalWord' || node.kind === 'topic' || node.kind === 'doctrine') {
       onSelect(node.jumpVerseId ?? centerVerse?.id ?? selectedId ?? '')
       return
     }
@@ -3148,7 +3230,7 @@ function OldNetworkTab({
         setMapFocusChapter(node.chapterNumber ?? null)
         return
       }
-      if (node.kind === 'theme') {
+      if (node.kind === 'theme' || node.kind === 'originalWord' || node.kind === 'topic' || node.kind === 'doctrine') {
         const jump = node.jumpVerseId ? findVerse(node.jumpVerseId) : undefined
         const verse = jump ?? centerVerse
         if (verse) {
@@ -3216,6 +3298,8 @@ function OldNetworkTab({
             ['place', 'Place'],
             ['theme', 'Theme'],
             ['originalWord', 'Word'],
+            ['topic', 'Topic'],
+            ['doctrine', 'Doctrine'],
             ['userWaypoint', 'Journey'],
           ].map(([kind, label]) => {
             const [r, g, b] = SCENE_PALETTE[theme].nodeColors[kind as keyof typeof SCENE_PALETTE.dark.nodeColors]
@@ -3254,13 +3338,43 @@ function OldNetworkTab({
         <aside className={`network-sidebar ${sidebarOpen ? 'open' : ''}`}>
           <div className="bubble-card network-focus-card">
             <div className="network-focus-topline">
-              <span className="network-focus-badge">{focusedNode?.kind === 'theme' ? t('networkThemeFocus') : hoveredNodeId ? t('networkPreview') : t('networkVerseFocus')}</span>
-              {focusedMatch && focusedNode?.kind !== 'theme' && (
+              <span className="network-focus-badge">{focusedNode?.kind === 'theme' ? t('networkThemeFocus') : focusedKnowledgeAnchor ? 'Knowledge graph' : hoveredNodeId ? t('networkPreview') : t('networkVerseFocus')}</span>
+              {focusedMatch && focusedNode?.kind !== 'theme' && !focusedKnowledgeAnchor && (
                 <span className="network-focus-strength">{t('networkStrength')} {Math.round(focusedMatch.score)}</span>
               )}
             </div>
 
-            {focusedNode?.kind === 'theme' && focusedTheme ? (
+            {focusedKnowledgeAnchor ? (
+              <>
+                <div className="verse-ref">{focusedKnowledgeAnchor.label}</div>
+                <div className="verse-text">{focusedKnowledgeAnchor.detail}</div>
+                <div className="network-focus-metrics">
+                  <div>
+                    <span>Kind</span>
+                    <strong>{focusedKnowledgeAnchor.kind}</strong>
+                  </div>
+                  <div>
+                    <span>{t('networkConnections')}</span>
+                    <strong>{focusedKnowledgeAnchor.count}</strong>
+                  </div>
+                  <div>
+                    <span>Verses</span>
+                    <strong>{focusedKnowledgeAnchor.verseIds.length}</strong>
+                  </div>
+                </div>
+                <div className="network-theme-verse-list">
+                  {focusedKnowledgeAnchor.verseIds.slice(0, 4).map((verseId) => {
+                    const verse = findVerse(verseId)
+                    return verse ? (
+                      <button key={verse.id} className="network-theme-link" onClick={() => onSelect(verse.id)}>
+                        <span>{verse.bookName} {verse.chapter}:{verse.verse}</span>
+                        <small>{verse.text.slice(0, 90)}</small>
+                      </button>
+                    ) : null
+                  })}
+                </div>
+              </>
+            ) : focusedNode?.kind === 'theme' && focusedTheme ? (
               <>
                 <div className="verse-ref">{focusedTheme.label}</div>
                 <div className="verse-text">{focusedTheme.count} verses share this theme within the current network.</div>
