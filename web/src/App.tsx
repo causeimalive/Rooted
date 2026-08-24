@@ -1263,6 +1263,7 @@ export default function App() {
               onSelect={setSelectedId}
               selectedId={selectedId}
               bookmarks={bookmarks}
+              memories={memories}
               theme={theme}
             />
           )}
@@ -2583,6 +2584,7 @@ function OldNetworkTab({
   onSelect,
   selectedId,
   bookmarks,
+  memories,
   theme,
 }: {
   selectedVerse?: Verse
@@ -2590,6 +2592,7 @@ function OldNetworkTab({
   onSelect: (id: string) => void
   selectedId: string | null
   bookmarks: BookmarkType[]
+  memories: Memory[]
   theme: 'dark' | 'light'
 }) {
   const { t } = useI18n()
@@ -2918,13 +2921,13 @@ function OldNetworkTab({
 
   const userJourneyNodes = useMemo<NetworkNode[]>(() => {
     if (!showUserJourney) return []
-    const sorted = [...bookmarks]
-      .filter((b) => b.verseId)
+    const sorted = [...memories]
+      .filter((m) => m.verseId)
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
     if (sorted.length < 2) return []
     return sorted
-      .map((bookmark, i) => {
-        const verse = findVerse(bookmark.verseId)
+      .map((memory, i) => {
+        const verse = findVerse(memory.verseId)
         if (!verse) return null
         const chapterKey = `${verse.book}-${verse.chapter}`
         const chapterNode = ambientBible.chapterByKey.get(chapterKey)
@@ -2933,10 +2936,10 @@ function OldNetworkTab({
         const verseIndex = verses.findIndex((v) => v.id === verse.id)
         const offset = fibonacciSpherePoint(verseIndex, verses.length, 26)
         return {
-          id: `user-waypoint-${bookmark.id}`,
+          id: `user-waypoint-${memory.id}`,
           kind: 'userWaypoint' as NetworkKind,
           label: `${verse.bookName} ${verse.chapter}:${verse.verse}`,
-          detail: `Saved ${new Date(bookmark.createdAt).toLocaleDateString()}`,
+          detail: `${memory.type}${memory.mood ? ` · ${memory.mood}` : ''} · ${new Date(memory.createdAt).toLocaleDateString()}`,
           x: chapterNode.x + offset.x,
           y: chapterNode.y + offset.y,
           z: chapterNode.z + offset.z,
@@ -2949,7 +2952,7 @@ function OldNetworkTab({
         } as NetworkNode
       })
       .filter((n): n is NetworkNode => Boolean(n))
-  }, [bookmarks, showUserJourney, ambientBible])
+  }, [memories, showUserJourney, ambientBible])
 
   const userJourneyPaths = useMemo(() => {
     if (!showUserJourney || userJourneyNodes.length < 2) return []
