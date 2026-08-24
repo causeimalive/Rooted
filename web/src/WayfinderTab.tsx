@@ -3,8 +3,17 @@ import { getAllCharacters, getCharacter, getCharacterPath, type CharacterPathSto
 import { getPlace, formatPassage } from './places'
 import { findVerse } from './bible'
 import { useI18n } from './i18n'
-import { Character, Friend, Memory, MemoryType, PublicMemory, Verse } from './types'
-import { getPublicMemories } from './cloudStorage'
+import { Character, Comment, Friend, Memory, MemoryType, PublicMemory, Reaction, ReactionType, Verse } from './types'
+import {
+  deleteMemoryComment,
+  deleteMemoryReaction,
+  getMemoryComments,
+  getMemoryReactions,
+  getPublicMemories,
+  saveMemoryComment,
+  saveMemoryReaction,
+} from './cloudStorage'
+import { getCurrentUserId } from './storage'
 
 type WayfinderTabProps = {
   memories: Memory[]
@@ -65,6 +74,10 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
   const [friendUserId, setFriendUserId] = useState('')
   const [friendDisplayName, setFriendDisplayName] = useState('')
   const [friendMemories, setFriendMemories] = useState<PublicMemory[]>([])
+  const [selectedPublicMemory, setSelectedPublicMemory] = useState<PublicMemory | null>(null)
+  const [comments, setComments] = useState<Comment[]>([])
+  const [reactions, setReactions] = useState<Reaction[]>([])
+  const [commentBody, setCommentBody] = useState('')
 
   const allCharacters = useMemo(() => getAllCharacters().sort((a, b) => a.name.localeCompare(b.name)), [])
   const filteredCharacters = useMemo(() => {
@@ -122,6 +135,23 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
       .catch(() => setFriendMemories([]))
   }, [friends])
 
+  useEffect(() => {
+    if (!selectedPublicMemory) {
+      setComments([])
+      setReactions([])
+      setCommentBody('')
+      return
+    }
+    const memoryId = selectedPublicMemory.id
+    getMemoryComments(memoryId)
+      .then(setComments)
+      .catch(() => setComments([]))
+    getMemoryReactions(memoryId)
+      .then(setReactions)
+      .catch(() => setReactions([]))
+  }, [selectedPublicMemory])
+
+  const currentUserId = getCurrentUserId()
   const activeStop = stops[activeStopIndex]
   const activeStopVerse = activeStop ? findFirstVerse(activeStop) : undefined
 
@@ -476,7 +506,7 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
                   <div
                     key={memory.id}
                     className="bubble-list-item"
-                    onClick={() => onSelect(memory.verseId)}
+                    onClick={() => setSelectedPublicMemory(memory)}
                     style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 4, cursor: 'pointer' }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -500,6 +530,117 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
               })}
             </div>
           </div>
+
+          {selectedPublicMemory && (
+            <div className="bubble-card" style={{ display: 'flex', flexDirection: 'column', minHeight: 0, padding: '0.75rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <h4 style={{ margin: 0 }}>{MEMORY_TYPE_LABELS[selectedPublicMemory.type]}</h4>
+                <button type="button" className="secondary" onClick={() => setSelectedPublicMemory(null)} style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}>Back</button>
+              </div>
+              <p style={{ margin: '0.25rem 0', fontSize: '0.85rem' }}>
+                {(() => {
+                  const v = findVerse(selectedPublicMemory.verseId)
+                  return v ? `${v.bookName} ${v.chapter}:${v.verse}` : selectedPublicMemory.verseId
+                })()}
+              </p>
+              {selectedPublicMemory.body && <p style={{ margin: '0.5rem 0 0', fontSize: '0.9rem' }}>{selectedPublicMemory.body}</p>}
+              {selectedPublicMemory.tags && (selectedPublicMemory.tags ?? []).length > 0 && (
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                  {selectedPublicMemory.tags.map((tag) => (
+                    <span key={tag} style={{ fontSize: '0.75rem', padding: '0.1rem 0.35rem', borderRadius: '0.5rem', background: 'var(--surface)', color: 'var(--accent)' }}>{tag}</span>
+                  ))}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+                <button className="secondary" onClick={() => onSelect(selectedPublicMemory.verseId)}>Open in Reader</button>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+                {(['like', 'pray', 'amen'] as ReactionType[]).map((type) => {
+                  const count = reactions.filter((r) => r.type === type).length
+                  const isMine = reactions.some((r) => r.userId === currentUserId && r.type === type)
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      className={isMine ? 'primary' : 'secondary'}
+                      onClick={() => {
+                        if (!currentUserId) return
+                        const existing = reactions.find((r) => r.userId === currentUserId)
+                        if (existing && existing.type === type) {
+                          deleteMemoryReaction(selectedPublicMemory.id, currentUserId)
+                            .then(() => setReactions((prev) => prev.filter((r) => r.userId !== currentUserId)))
+                            .catch(() => {})
+                        } else {
+                          const reaction: Reaction = {
+                            id: `${selectedPublicMemory.id}_${currentUserId}`,
+                            memoryId: selectedPublicMemory.id,
+                            userId: currentUserId,
+                            type,
+                            createdAt: new Date().toISOString(),
+                          }
+                          saveMemoryReaction(selectedPublicMemory.id, reaction)
+                            .then(() => setReactions((prev) => [...prev.filter((r) => r.userId !== currentUserId), reaction]))
+                            .catch(() => {})
+                        }
+                      }}
+                      style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                    >
+                      {type} {count > 0 ? count : ''}
+                    </button>
+                  )
+                })}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.75rem' }}>
+                <h5 style={{ margin: 0 }}>Comments</h5>
+                <div className="bubble-list" style={{ maxHeight: 140, overflowY: 'auto' }}>
+                  {comments.length === 0 && <div className="empty">No comments yet.</div>}
+                  {comments.map((comment) => (
+                    <div key={comment.id} className="bubble-list-item" style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <span style={{ fontSize: '0.85rem' }}>
+                        {comment.authorName || comment.userId}
+                        <small style={{ display: 'block', opacity: 0.7 }}>{new Date(comment.createdAt).toLocaleString()}</small>
+                      </span>
+                      <p style={{ margin: 0, fontSize: '0.85rem' }}>{comment.body}</p>
+                    </div>
+                  ))}
+                </div>
+                {currentUserId && (
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input
+                      type="text"
+                      placeholder="Add a comment…"
+                      value={commentBody}
+                      onChange={(e) => setCommentBody(e.target.value)}
+                      style={{ padding: '0.35rem', flex: 1 }}
+                    />
+                    <button
+                      type="button"
+                      className="primary"
+                      onClick={() => {
+                        if (!commentBody.trim() || !currentUserId || !selectedPublicMemory) return
+                        const comment: Comment = {
+                          id: crypto.randomUUID(),
+                          memoryId: selectedPublicMemory.id,
+                          userId: currentUserId,
+                          body: commentBody.trim(),
+                          createdAt: new Date().toISOString(),
+                        }
+                        saveMemoryComment(selectedPublicMemory.id, comment)
+                          .then(() => {
+                            setComments((prev) => [comment, ...prev])
+                            setCommentBody('')
+                          })
+                          .catch(() => {})
+                      }}
+                      style={{ padding: '0.35rem 0.75rem' }}
+                    >
+                      Post
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </aside>
 
         <section className="bubble-canvas-card" style={{ minWidth: 0, overflowY: 'auto' }}>
