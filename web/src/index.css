@@ -156,6 +156,8 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .header-actions {
@@ -202,6 +204,9 @@ header h1 {
 .tabs {
   display: flex;
   gap: 0.5rem;
+  flex: 1 1 0;
+  justify-content: center;
+  min-width: 0;
 }
 
 .tabs::-webkit-scrollbar {
