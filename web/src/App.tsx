@@ -3317,7 +3317,7 @@ function OldNetworkTab({
             ['doctrine', 'Doctrine'],
             ['userWaypoint', 'Journey'],
           ].map(([kind, label]) => {
-            const [r, g, b] = SCENE_PALETTE[theme].nodeColors[kind as keyof typeof SCENE_PALETTE.dark.nodeColors]
+            const [r, g, b] = SCENE_PALETTE[theme].nodeColors[kind] ?? [128, 128, 128]
             return (
               <span key={kind}>
                 <span className="legend-dot" style={{ background: `rgb(${r}, ${g}, ${b})` }} /> {label}
