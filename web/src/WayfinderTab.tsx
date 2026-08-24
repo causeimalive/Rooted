@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { getAllCharacters, getCharacter, getCharacterPath, type CharacterPathStop } from './characters'
 import { getPlace, formatPassage } from './places'
 import { findVerse } from './bible'
@@ -56,6 +56,42 @@ export default function WayfinderTab({ memories, selectedVerse, onSelect, onSave
 
   const selectedCharacter = useMemo(() => (selectedId ? getCharacter(selectedId) ?? null : null), [selectedId])
   const stops = useMemo<CharacterPathStop[]>(() => (selectedCharacter ? getCharacterPath(selectedCharacter) : []), [selectedCharacter])
+
+  const [activeStopIndex, setActiveStopIndex] = useState(0)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const intervalRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    setActiveStopIndex(0)
+    setIsPlaying(false)
+  }, [selectedId])
+
+  useEffect(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
+    if (!isPlaying || !stops.length) return
+    if (activeStopIndex >= stops.length - 1) {
+      setIsPlaying(false)
+      return
+    }
+    intervalRef.current = window.setInterval(() => {
+      setActiveStopIndex((prev) => {
+        if (prev >= stops.length - 1) return prev
+        return prev + 1
+      })
+    }, 2000)
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
+  }, [isPlaying, activeStopIndex, stops])
+
+  const activeStop = stops[activeStopIndex]
+  const activeStopVerse = activeStop ? findFirstVerse(activeStop) : undefined
 
   const sortedMemories = useMemo(
     () =>
@@ -235,6 +271,64 @@ export default function WayfinderTab({ memories, selectedVerse, onSelect, onSave
                 )}
               </div>
 
+              <div
+                className="wayfinder-player"
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '0.75rem',
+                  alignItems: 'center',
+                  marginBottom: '1rem',
+                  padding: '0.75rem',
+                  background: 'var(--surface)',
+                  borderRadius: '0.5rem',
+                }}
+              >
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => setActiveStopIndex((i) => Math.max(0, i - 1))}
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={() => setIsPlaying((p) => !p)}
+                >
+                  {isPlaying ? 'Pause' : 'Play'}
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => setActiveStopIndex((i) => Math.min(stops.length - 1, i + 1))}
+                >
+                  Next
+                </button>
+                <span style={{ marginLeft: 'auto', fontSize: '0.9rem', opacity: 0.8 }}>
+                  {activeStopIndex + 1} / {stops.length}
+                </span>
+              </div>
+
+              {activeStop && (
+                <div className="bubble-card" style={{ marginBottom: '1rem', background: 'var(--bg)' }}>
+                  <h4 style={{ margin: 0 }}>{activeStop.event.label}</h4>
+                  <small style={{ display: 'block', opacity: 0.8, marginTop: 2 }}>
+                    {activeStop.event.approxDate ? `· ${activeStop.event.approxDate} ` : ''}
+                    {activeStop.place ? `· ${activeStop.place.name} ` : ''}
+                    {activeStop.event.passages.length > 0 ? `· ${formatPassage(activeStop.event.passages[0])}` : ''}
+                  </small>
+                  {activeStopVerse && (
+                    <>
+                      <p style={{ margin: '0.5rem 0 0', fontSize: '0.9rem', opacity: 0.9 }}>{activeStopVerse.text.slice(0, 180)}…</p>
+                      <button className="secondary" style={{ marginTop: '0.5rem' }} onClick={() => onSelect(activeStopVerse.id)}>
+                        Open {activeStopVerse.bookName} {activeStopVerse.chapter}:{activeStopVerse.verse}
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+
               <div className="wayfinder-timeline" style={{ position: 'relative', paddingLeft: '1.25rem' }}>
                 <div
                   className="wayfinder-timeline-line"
@@ -249,9 +343,15 @@ export default function WayfinderTab({ memories, selectedVerse, onSelect, onSave
                   }}
                 />
                 {stops.map((stop, index) => {
+                  const isActive = index === activeStopIndex
                   const verse = findFirstVerse(stop)
                   return (
-                    <div key={index} className="wayfinder-stop" style={{ position: 'relative', paddingBottom: '1rem' }}>
+                    <div
+                      key={index}
+                      className="wayfinder-stop"
+                      onClick={() => setActiveStopIndex(index)}
+                      style={{ position: 'relative', paddingBottom: '1rem', cursor: 'pointer', opacity: isActive ? 1 : 0.7 }}
+                    >
                       <div
                         className="wayfinder-stop-marker"
                         style={{
@@ -261,12 +361,12 @@ export default function WayfinderTab({ memories, selectedVerse, onSelect, onSave
                           width: 12,
                           height: 12,
                           borderRadius: '50%',
-                          background: 'var(--accent)',
+                          background: isActive ? 'var(--accent)' : 'var(--muted)',
                           border: '2px solid var(--bg)',
                         }}
                       />
                       <div className="wayfinder-stop-body" style={{ paddingLeft: '0.5rem' }}>
-                        <strong style={{ fontSize: '1.05rem' }}>{stop.event.label}</strong>
+                        <strong style={{ fontSize: '1.05rem', color: isActive ? 'var(--accent)' : 'var(--text)' }}>{stop.event.label}</strong>
                         <small style={{ display: 'block', opacity: 0.8, marginTop: 2 }}>
                           {stop.event.approxDate ? `· ${stop.event.approxDate} ` : ''}
                           {stop.place ? `· ${stop.place.name} ` : ''}
