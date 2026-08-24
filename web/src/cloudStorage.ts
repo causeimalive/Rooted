@@ -1,6 +1,6 @@
 import { collection, deleteDoc, doc, getDoc, getDocs, setDoc } from 'firebase/firestore'
 import { db } from './firebase'
-import { Bookmark, Friend, Highlight, Note, PublicMemory, RecentSearch } from './types'
+import { Bookmark, Comment, Friend, Highlight, Note, PublicMemory, Reaction, ReactionType, RecentSearch } from './types'
 
 async function getCollection<T>(userId: string, name: string): Promise<T[]> {
   const snap = await getDocs(collection(db, 'users', userId, name))
@@ -123,4 +123,42 @@ export function saveUserFriend(userId: string, friend: Friend): Promise<void> {
 
 export function deleteUserFriend(userId: string, id: string): Promise<void> {
   return deleteItem(userId, 'friends', id)
+}
+
+export function getMemoryComments(memoryId: string): Promise<Comment[]> {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const snap = await getDocs(collection(db, 'publicMemories', memoryId, 'comments'))
+      resolve(snap.docs.map((d) => d.data() as Comment))
+    } catch (e) {
+      reject(e)
+    }
+  })
+}
+
+export function saveMemoryComment(memoryId: string, comment: Comment): Promise<void> {
+  return setDoc(doc(db, 'publicMemories', memoryId, 'comments', comment.id), comment)
+}
+
+export function deleteMemoryComment(memoryId: string, commentId: string): Promise<void> {
+  return deleteDoc(doc(db, 'publicMemories', memoryId, 'comments', commentId))
+}
+
+export function getMemoryReactions(memoryId: string): Promise<Reaction[]> {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const snap = await getDocs(collection(db, 'publicMemories', memoryId, 'reactions'))
+      resolve(snap.docs.map((d) => d.data() as Reaction))
+    } catch (e) {
+      reject(e)
+    }
+  })
+}
+
+export function saveMemoryReaction(memoryId: string, reaction: Reaction): Promise<void> {
+  return setDoc(doc(db, 'publicMemories', memoryId, 'reactions', `${memoryId}_${reaction.userId}`), reaction)
+}
+
+export function deleteMemoryReaction(memoryId: string, userId: string): Promise<void> {
+  return deleteDoc(doc(db, 'publicMemories', memoryId, 'reactions', `${memoryId}_${userId}`))
 }

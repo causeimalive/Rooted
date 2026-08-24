@@ -83,6 +83,26 @@ export interface Friend {
   createdAt: string
 }
 
+export type ReactionType = 'like' | 'pray' | 'amen'
+
+export interface Comment {
+  id: string
+  memoryId: string
+  userId: string
+  authorName?: string
+  body: string
+  createdAt: string
+  updatedAt?: string
+}
+
+export interface Reaction {
+  id: string
+  memoryId: string
+  userId: string
+  type: ReactionType
+  createdAt: string
+}
+
 export interface RecentSearch {
   id: string
   query: string
