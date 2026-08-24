@@ -2629,7 +2629,7 @@ function OldNetworkTab({
     '--network-sidebar-width': sidebarOpen ? 'clamp(360px, 34vw, 520px)' : '0px',
     '--network-sidebar-gap': sidebarOpen ? '1.25rem' : '0px',
   } as CSSProperties
-  const centerVerse = networkSelectedVerse ?? selectedVerse ?? fallbackVerse
+  const centerVerse = networkSelectedVerse ?? selectedVerse ?? fallbackVerse ?? all[0]
   useEffect(() => {
     if (centerVerse) {
       setMapFocusBookId(centerVerse.book)
@@ -3265,7 +3265,7 @@ function OldNetworkTab({
   const viewportTransform = `translate3d(${camera.x}px, ${camera.y}px, 0) scale(${camera.scale})`
 
   if (!centerVerse) {
-    return <div className="panel empty">{t('networkEmpty')}</div>
+    return <div className="panel empty">{t('networkEmpty') || 'Loading the biblical network… select a verse once data loads.'}</div>
   }
 
   return (
