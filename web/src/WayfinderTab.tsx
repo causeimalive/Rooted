@@ -44,6 +44,13 @@ export default function WayfinderTab({ memories, selectedVerse, onSelect, onSave
   const [memoryTags, setMemoryTags] = useState('')
   const [memoryMood, setMemoryMood] = useState('')
   const [memoryColor, setMemoryColor] = useState('')
+  const [selectedMemoryId, setSelectedMemoryId] = useState<string | null>(null)
+  const [filterType, setFilterType] = useState<MemoryType | 'all'>('all')
+  const [filterTag, setFilterTag] = useState('')
+  const [filterMood, setFilterMood] = useState('')
+  const [filterBook, setFilterBook] = useState('')
+  const [filterFrom, setFilterFrom] = useState('')
+  const [filterTo, setFilterTo] = useState('')
 
   const allCharacters = useMemo(() => getAllCharacters().sort((a, b) => a.name.localeCompare(b.name)), [])
   const filteredCharacters = useMemo(() => {
@@ -100,6 +107,31 @@ export default function WayfinderTab({ memories, selectedVerse, onSelect, onSave
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
     [memories],
   )
+
+  const filteredMemories = useMemo(() => {
+    return sortedMemories.filter((m) => {
+      if (filterType !== 'all' && m.type !== filterType) return false
+      if (filterTag && !(m.tags ?? []).some((t) => t.toLowerCase().includes(filterTag.toLowerCase()))) return false
+      if (filterMood && !m.mood?.toLowerCase().includes(filterMood.toLowerCase())) return false
+      if (filterBook) {
+        const v = findVerse(m.verseId)
+        if (!v || !v.bookName.toLowerCase().includes(filterBook.toLowerCase())) return false
+      }
+      if (filterFrom) {
+        const d = new Date(m.createdAt)
+        if (d < new Date(filterFrom)) return false
+      }
+      if (filterTo) {
+        const d = new Date(m.createdAt)
+        const to = new Date(filterTo)
+        to.setHours(23, 59, 59, 999)
+        if (d > to) return false
+      }
+      return true
+    })
+  }, [sortedMemories, filterType, filterTag, filterMood, filterBook, filterFrom, filterTo])
+
+  const selectedMemory = useMemo(() => memories.find((m) => m.id === selectedMemoryId) ?? null, [memories, selectedMemoryId])
 
   const handleSaveMemory = () => {
     if (!selectedVerse) return
@@ -211,20 +243,102 @@ export default function WayfinderTab({ memories, selectedVerse, onSelect, onSave
                 </button>
               </div>
             )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', margin: '0.5rem 0' }}>
+              <select value={filterType} onChange={(e) => setFilterType(e.target.value as MemoryType | 'all')} style={{ padding: '0.35rem' }}>
+                <option value="all">All types</option>
+                {(['note', 'prayer', 'highlight', 'photo', 'bookmark'] as MemoryType[]).map((type) => (
+                  <option key={type} value={type}>{MEMORY_TYPE_LABELS[type]}</option>
+                ))}
+              </select>
+              <input
+                type="text"
+                placeholder="Book…"
+                value={filterBook}
+                onChange={(e) => setFilterBook(e.target.value)}
+                style={{ padding: '0.35rem' }}
+              />
+              <input
+                type="text"
+                placeholder="Tag…"
+                value={filterTag}
+                onChange={(e) => setFilterTag(e.target.value)}
+                style={{ padding: '0.35rem' }}
+              />
+              <input
+                type="text"
+                placeholder="Mood…"
+                value={filterMood}
+                onChange={(e) => setFilterMood(e.target.value)}
+                style={{ padding: '0.35rem' }}
+              />
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input
+                  type="date"
+                  value={filterFrom}
+                  onChange={(e) => setFilterFrom(e.target.value)}
+                  style={{ padding: '0.35rem', flex: 1 }}
+                />
+                <input
+                  type="date"
+                  value={filterTo}
+                  onChange={(e) => setFilterTo(e.target.value)}
+                  style={{ padding: '0.35rem', flex: 1 }}
+                />
+              </div>
+            </div>
+
+            {selectedMemory && (
+              <div className="bubble-card" style={{ margin: '0.5rem 0', padding: '0.75rem', background: 'var(--surface)', borderRadius: '0.5rem' }}>
+                <h4 style={{ margin: 0 }}>{MEMORY_TYPE_LABELS[selectedMemory.type]} · {new Date(selectedMemory.createdAt).toLocaleString()}</h4>
+                <p style={{ margin: '0.25rem 0', fontSize: '0.85rem' }}>
+                  {(() => {
+                    const v = findVerse(selectedMemory.verseId)
+                    return v ? `${v.bookName} ${v.chapter}:${v.verse}` : selectedMemory.verseId
+                  })()}
+                </p>
+                {selectedMemory.body && <p style={{ margin: '0.5rem 0 0', fontSize: '0.9rem' }}>{selectedMemory.body}</p>}
+                {selectedMemory.mood && <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', opacity: 0.8 }}>Mood: {selectedMemory.mood}</p>}
+                {selectedMemory.color && (
+                  <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem' }}>
+                    Color: <span style={{ color: selectedMemory.color }}>{selectedMemory.color}</span>
+                  </p>
+                )}
+                {(selectedMemory.tags ?? []).length > 0 && (
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                    {(selectedMemory.tags ?? []).map((tag) => (
+                      <span key={tag} style={{ fontSize: '0.75rem', padding: '0.1rem 0.35rem', borderRadius: '0.5rem', background: 'var(--bg)', color: 'var(--accent)' }}>
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+                  <button className="secondary" onClick={() => onSelect(selectedMemory.verseId)}>Open in Reader</button>
+                  <button className="secondary" onClick={() => onDeleteMemory(selectedMemory.id)}>Delete</button>
+                  <button className="secondary" onClick={() => setSelectedMemoryId(null)}>Close</button>
+                </div>
+              </div>
+            )}
+
             <div className="bubble-list" style={{ maxHeight: 240, overflowY: 'auto' }}>
-              {sortedMemories.length === 0 && <div className="empty">No memories yet.</div>}
-              {sortedMemories.map((memory) => {
+              {filteredMemories.length === 0 && <div className="empty">No memories match.</div>}
+              {filteredMemories.map((memory) => {
                 const verse = findVerse(memory.verseId)
                 return (
                   <div
                     key={memory.id}
                     className="bubble-list-item"
-                    style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 4 }}
+                    onClick={() => setSelectedMemoryId(memory.id)}
+                    style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 4, cursor: 'pointer' }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <button
                         className="unstyled"
-                        onClick={() => onSelect(memory.verseId)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onSelect(memory.verseId)
+                        }}
                         style={{ textAlign: 'left', color: 'var(--text)', fontSize: '0.9rem' }}
                       >
                         <span>{verse ? `${verse.bookName} ${verse.chapter}:${verse.verse}` : memory.verseId}</span>
@@ -233,7 +347,10 @@ export default function WayfinderTab({ memories, selectedVerse, onSelect, onSave
                       <button
                         type="button"
                         className="secondary"
-                        onClick={() => onDeleteMemory(memory.id)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onDeleteMemory(memory.id)
+                        }}
                         style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
                       >
                         Delete
