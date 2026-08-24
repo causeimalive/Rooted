@@ -16,6 +16,11 @@ let lexicon: Record<string, LexiconEntry> = {}
 let lexiconFuse: Fuse<LexiconEntry> | null = null
 
 const verseNetworkTerms = new Map<string, Set<string>>()
+const crossReferenceGraphByVerse = new Map<string, VerseMatch[]>()
+let crossReferenceGraphPromise: Promise<void> | null = null
+
+const CROSS_REFERENCE_GRAPH_LIMIT = 15
+const CROSS_REFERENCE_GRAPH_CHUNK_SIZE = 256
 
 const NETWORK_STOPWORDS = new Set([
   'the', 'and', 'that', 'with', 'from', 'have', 'this', 'unto', 'they', 'there', 'their', 'shall', 'which', 'will',
@@ -94,6 +99,9 @@ export async function loadBible(): Promise<Verse[]> {
     }
   }
   await precomputeNetworkTerms(verses)
+  void precomputeCrossReferenceGraph(verses).catch((error) => {
+    console.error('Failed to precompute cross-reference graph', error)
+  })
   fuse = new Fuse(verses, {
     keys: [
       { name: 'text', weight: 0.7 },
@@ -331,11 +339,7 @@ export function findVerse(id: string): Verse | undefined {
   return verses.find((v) => v.id === id)
 }
 
-export function getCrossReferences(verse: Verse, all: Verse[] = verses, limit = 15): Verse[] {
-  return getCrossReferenceMatches(verse, all, limit).map((match) => match.verse)
-}
-
-export function getCrossReferenceMatches(verse: Verse, all: Verse[] = verses, limit = 15): VerseMatch[] {
+function computeCrossReferenceMatches(verse: Verse, all: Verse[], limit = CROSS_REFERENCE_GRAPH_LIMIT): VerseMatch[] {
   const scored = new Map<string, VerseMatch>()
   const verseById = new Map(all.map((entry) => [entry.id, entry]))
 
@@ -374,6 +378,35 @@ export function getCrossReferenceMatches(verse: Verse, all: Verse[] = verses, li
   return Array.from(scored.values())
     .sort((a, b) => b.score - a.score || a.verse.book.localeCompare(b.verse.book) || a.verse.chapter - b.verse.chapter || a.verse.verse - b.verse.verse)
     .slice(0, limit)
+}
+
+async function precomputeCrossReferenceGraph(all: Verse[]): Promise<void> {
+  if (crossReferenceGraphPromise) return crossReferenceGraphPromise
+
+  crossReferenceGraphPromise = (async () => {
+    crossReferenceGraphByVerse.clear()
+    for (let i = 0; i < all.length; i += CROSS_REFERENCE_GRAPH_CHUNK_SIZE) {
+      const chunk = all.slice(i, i + CROSS_REFERENCE_GRAPH_CHUNK_SIZE)
+      for (const verse of chunk) {
+        crossReferenceGraphByVerse.set(verse.id, computeCrossReferenceMatches(verse, all, CROSS_REFERENCE_GRAPH_LIMIT))
+      }
+      await new Promise<void>((resolve) => window.setTimeout(resolve, 0))
+    }
+  })()
+
+  return crossReferenceGraphPromise
+}
+
+export function getCrossReferences(verse: Verse, all: Verse[] = verses, limit = 15): Verse[] {
+  return getCrossReferenceMatches(verse, all, limit).map((match) => match.verse)
+}
+
+export function getCrossReferenceMatches(verse: Verse, all: Verse[] = verses, limit = 15): VerseMatch[] {
+  const cached = crossReferenceGraphByVerse.get(verse.id)
+  if (cached) return cached.slice(0, limit)
+  const computed = computeCrossReferenceMatches(verse, all, limit)
+  crossReferenceGraphByVerse.set(verse.id, computed)
+  return computed
 }
 
 export function extractNetworkThemes(verses: Verse[], limit = 6): NetworkTheme[] {
