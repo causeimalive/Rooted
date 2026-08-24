@@ -34,6 +34,12 @@ const MEMORY_TYPE_LABELS: Record<MemoryType, string> = {
   bookmark: 'Bookmark',
 }
 
+const SHARE_LEVEL_LABELS: Record<Memory['shareLevel'], string> = {
+  private: 'Private',
+  friends: 'Friends',
+  public: 'Public',
+}
+
 export default function WayfinderTab({ memories, selectedVerse, onSelect, onSaveMemory, onDeleteMemory }: WayfinderTabProps) {
   const { t } = useI18n()
   const [query, setQuery] = useState('')
@@ -44,6 +50,7 @@ export default function WayfinderTab({ memories, selectedVerse, onSelect, onSave
   const [memoryTags, setMemoryTags] = useState('')
   const [memoryMood, setMemoryMood] = useState('')
   const [memoryColor, setMemoryColor] = useState('')
+  const [memoryShareLevel, setMemoryShareLevel] = useState<Memory['shareLevel']>('private')
   const [selectedMemoryId, setSelectedMemoryId] = useState<string | null>(null)
   const [filterType, setFilterType] = useState<MemoryType | 'all'>('all')
   const [filterTag, setFilterTag] = useState('')
@@ -143,7 +150,7 @@ export default function WayfinderTab({ memories, selectedVerse, onSelect, onSave
       color: memoryColor.trim() || undefined,
       tags: memoryTags.split(',').map((s) => s.trim()).filter(Boolean),
       mood: memoryMood.trim() || undefined,
-      shareLevel: 'private',
+      shareLevel: memoryShareLevel,
       createdAt: new Date().toISOString(),
     }
     onSaveMemory(memory)
@@ -151,6 +158,7 @@ export default function WayfinderTab({ memories, selectedVerse, onSelect, onSave
     setMemoryTags('')
     setMemoryMood('')
     setMemoryColor('')
+    setMemoryShareLevel('private')
     setShowMemoryForm(false)
   }
 
@@ -238,6 +246,11 @@ export default function WayfinderTab({ memories, selectedVerse, onSelect, onSave
                   onChange={(e) => setMemoryColor(e.target.value)}
                   style={{ padding: '0.35rem' }}
                 />
+                <select value={memoryShareLevel} onChange={(e) => setMemoryShareLevel(e.target.value as Memory['shareLevel'])} style={{ padding: '0.35rem' }}>
+                  {(['private', 'friends', 'public'] as Memory['shareLevel'][]).map((level) => (
+                    <option key={level} value={level}>{SHARE_LEVEL_LABELS[level]}</option>
+                  ))}
+                </select>
                 <button type="button" className="primary" onClick={handleSaveMemory}>
                   Save memory
                 </button>
@@ -296,6 +309,9 @@ export default function WayfinderTab({ memories, selectedVerse, onSelect, onSave
                     const v = findVerse(selectedMemory.verseId)
                     return v ? `${v.bookName} ${v.chapter}:${v.verse}` : selectedMemory.verseId
                   })()}
+                </p>
+                <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', opacity: 0.8 }}>
+                  Share level: {SHARE_LEVEL_LABELS[selectedMemory.shareLevel ?? 'private']}
                 </p>
                 {selectedMemory.body && <p style={{ margin: '0.5rem 0 0', fontSize: '0.9rem' }}>{selectedMemory.body}</p>}
                 {selectedMemory.mood && <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', opacity: 0.8 }}>Mood: {selectedMemory.mood}</p>}
