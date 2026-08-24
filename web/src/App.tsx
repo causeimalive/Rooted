@@ -1129,7 +1129,7 @@ export default function App() {
                 <input
                   type="text"
                   enterKeyHint="search"
-                  placeholder={t('searchPlaceholder')}
+                  placeholder="Search"
                   value={headerQuery}
                   onChange={(e) => setHeaderQuery(e.target.value)}
                 />
