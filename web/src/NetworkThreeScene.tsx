@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Html, OrbitControls } from '@react-three/drei'
 import { OrbitControls as OrbitControlsClass } from 'three-stdlib'
@@ -699,7 +699,7 @@ function isLowEndDevice(): boolean {
   return cores <= 4 || memory <= 4 || prefersReduced
 }
 
-export default function NetworkThreeScene(props: NetworkThreeSceneProps) {
+function NetworkThreeScene(props: NetworkThreeSceneProps) {
   const [useFallback, setUseFallback] = useState(() => !isWebGLAvailable() || isLowEndDevice())
 
   useEffect(() => {
@@ -712,3 +712,13 @@ export default function NetworkThreeScene(props: NetworkThreeSceneProps) {
 
   return <Network3DScene {...props} />
 }
+
+export default React.memo(NetworkThreeScene, (prev, next) => {
+  return (
+    prev.nodes === next.nodes &&
+    prev.edges === next.edges &&
+    prev.focus === next.focus &&
+    prev.selectedId === next.selectedId &&
+    prev.theme === next.theme
+  )
+})

@@ -36,9 +36,18 @@ function tokenizeNetworkTerms(text: string): string[] {
 
 export async function precomputeNetworkTerms(versesToIndex: Verse[]): Promise<void> {
   verseNetworkTerms.clear()
-  for (const v of versesToIndex) {
+  for (let i = 0; i < versesToIndex.length; i += 1) {
+    const v = versesToIndex[i]
     verseNetworkTerms.set(v.id, new Set(tokenizeNetworkTerms(v.text)))
+    if (i > 0 && i % 1024 === 0) {
+      await new Promise<void>((resolve) => window.setTimeout(resolve, 0))
+    }
   }
+}
+
+async function precomputeNetworkTermsIdle(versesToIndex: Verse[]): Promise<void> {
+  if (verseNetworkTerms.size >= versesToIndex.length) return
+  return precomputeNetworkTerms(versesToIndex)
 }
 
 function getCachedNetworkTerms(verse: Verse): Set<string> {
@@ -98,9 +107,8 @@ export async function loadBible(): Promise<Verse[]> {
       else wordIndex.set(word, [v])
     }
   }
-  await precomputeNetworkTerms(verses)
-  void precomputeCrossReferenceGraph(verses).catch((error) => {
-    console.error('Failed to precompute cross-reference graph', error)
+  void precomputeNetworkTermsIdle(verses).catch((error) => {
+    console.error('Failed to precompute network terms', error)
   })
   fuse = new Fuse(verses, {
     keys: [

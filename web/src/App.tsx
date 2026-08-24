@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from 'react'
+import { lazy, Suspense, useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from 'react'
 import { onAuthStateChanged } from 'firebase/auth'
 import { Capacitor } from '@capacitor/core'
 import { App as CapacitorApp } from '@capacitor/app'
@@ -2745,6 +2745,7 @@ function OldNetworkTab({
     () => (centerVerse ? buildNetworkEdges(centerVerse, relatedMatches, themes, knowledgeGraphSeed) : []),
     [centerVerse, relatedMatches, themes, knowledgeGraphSeed],
   )
+  const deferredEdges = useDeferredValue(edges)
 
   const allCharacters = useMemo(() => getAllCharacters().sort((a, b) => a.name.localeCompare(b.name)), [])
   const filteredCharacters = useMemo(() => {
@@ -2962,7 +2963,8 @@ function OldNetworkTab({
   }, [focusedNodeId, showUserJourney])
 
   const sceneNodes = useMemo(() => [...visibleAmbientNodes, ...nodes, ...personPath, ...userJourneyNodes], [visibleAmbientNodes, nodes, personPath, userJourneyNodes])
-  const sceneNodeById = useMemo(() => new Map(sceneNodes.map((node) => [node.id, node])), [sceneNodes])
+  const deferredSceneNodes = useDeferredValue(sceneNodes)
+  const sceneNodeById = useMemo(() => new Map(deferredSceneNodes.map((node) => [node.id, node])), [deferredSceneNodes])
 
   const centerNode = useMemo(() => nodes.find((node) => node.kind === 'center'), [nodes])
   const selectedNode = useMemo(
@@ -3322,8 +3324,8 @@ function OldNetworkTab({
             }
           >
             <NetworkThreeScene
-              nodes={sceneNodes}
-              edges={edges}
+              nodes={deferredSceneNodes}
+              edges={deferredEdges}
               focus={graphFocus}
               selectedId={selectedSceneNodeId}
               onSelect={handleSceneSelect}
