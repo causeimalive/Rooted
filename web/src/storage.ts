@@ -1,4 +1,4 @@
-import { Bookmark, Highlight, Memory, Note, RecentSearch, Verse } from './types'
+import { Bookmark, Friend, Highlight, Memory, Note, RecentSearch, Verse } from './types'
 import { findVerse, getAllVerses } from './bible'
 import {
   ApiClient,
@@ -23,15 +23,18 @@ import {
 import {
   clearUserRecentSearches,
   deleteUserBookmark,
+  deleteUserFriend,
   deleteUserHighlight,
   deleteUserNote,
   deleteUserRecentSearch,
   getUserBookmarks,
+  getUserFriends,
   getUserHighlights,
   getUserNotes,
   getUserPinnedVersionIds,
   getUserRecentSearches,
   saveUserBookmark,
+  saveUserFriend,
   saveUserHighlight,
   saveUserNote,
   saveUserRecentSearch,
@@ -51,6 +54,7 @@ const NOTES_KEY = 'bible.notes'
 const BOOKMARKS_KEY = 'bible.bookmarks'
 const HIGHLIGHTS_KEY = 'bible.highlights'
 const MEMORIES_KEY = 'bible.memories'
+const FRIENDS_KEY = 'bible.friends'
 const USER_KEY = 'bible.user'
 const RECENT_SEARCHES_KEY = 'bible.recentSearches'
 const MAX_RECENT_SEARCHES = 25
@@ -153,13 +157,15 @@ export function normalizeHighlights(highlights: Highlight[]): Highlight[] {
 export async function syncUserData(userId: string) {
   currentUserId = userId
   let cloudBookmarks: Bookmark[] = []
+  let cloudFriends: Friend[] = []
   let cloudHighlights: Highlight[] = []
   let cloudNotes: Note[] = []
   let cloudRecent: RecentSearch[] = []
   let cloudPinnedVersionIds: number[] | null = null
   try {
-    ;[cloudBookmarks, cloudHighlights, cloudNotes, cloudRecent, cloudPinnedVersionIds] = await Promise.all([
+    ;[cloudBookmarks, cloudFriends, cloudHighlights, cloudNotes, cloudRecent, cloudPinnedVersionIds] = await Promise.all([
       getUserBookmarks(userId),
+      getUserFriends(userId),
       getUserHighlights(userId),
       getUserNotes(userId),
       getUserRecentSearches(userId),
@@ -172,6 +178,7 @@ export async function syncUserData(userId: string) {
   const mergedBookmarks = normalizeBookmarks(
     mergeById(get<Bookmark>(BOOKMARKS_KEY), cloudBookmarks),
   )
+  const mergedFriends = mergeById(getFriends(), cloudFriends)
   const mergedHighlights = normalizeHighlights(
     mergeById(get<Highlight>(HIGHLIGHTS_KEY), cloudHighlights),
   )
@@ -183,6 +190,7 @@ export async function syncUserData(userId: string) {
   )
 
   set(BOOKMARKS_KEY, mergedBookmarks)
+  set(FRIENDS_KEY, mergedFriends)
   set(HIGHLIGHTS_KEY, mergedHighlights)
   set(NOTES_KEY, mergedNotes)
   set(RECENT_SEARCHES_KEY, mergedRecent)
@@ -198,6 +206,7 @@ export async function syncUserData(userId: string) {
   try {
     await Promise.all([
       Promise.all(mergedBookmarks.map((b) => saveUserBookmark(userId, b))),
+      Promise.all(mergedFriends.map((f) => saveUserFriend(userId, f))),
       Promise.all(mergedHighlights.map((h) => saveUserHighlight(userId, h))),
       Promise.all(mergedNotes.map((n) => saveUserNote(userId, n))),
       Promise.all(mergedRecent.map((r) => saveUserRecentSearch(userId, r))),
@@ -603,5 +612,27 @@ export function saveMemory(memory: Memory): Memory[] {
 export function deleteMemory(id: string): Memory[] {
   const next = getMemories().filter((m) => m.id !== id)
   set(MEMORIES_KEY, next)
+  return next
+}
+
+export function getFriends(): Friend[] {
+  return get<Friend>(FRIENDS_KEY)
+}
+
+export function saveFriend(friend: Friend): Friend[] {
+  const friends = getFriends()
+  const existing = friends.find((f) => f.id === friend.id)
+  const next = existing
+    ? friends.map((f) => (f.id === friend.id ? friend : f))
+    : [friend, ...friends]
+  set(FRIENDS_KEY, next)
+  if (currentUserId) void saveUserFriend(currentUserId, friend).catch(() => {})
+  return next
+}
+
+export function deleteFriend(id: string): Friend[] {
+  const next = getFriends().filter((f) => f.id !== id)
+  set(FRIENDS_KEY, next)
+  if (currentUserId) void deleteUserFriend(currentUserId, id).catch(() => {})
   return next
 }

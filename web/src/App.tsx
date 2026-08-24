@@ -98,9 +98,12 @@ import {
   deleteMemory,
   getBookmarks,
   getCurrentUserId,
+  getFriends,
   getHighlights,
   getMemories,
   getRecentSearches,
+  saveFriend,
+  deleteFriend,
   getYouVersionAccessToken,
   importAllYouVersionHighlights,
   isBookmarked,
@@ -111,7 +114,7 @@ import {
 } from './storage'
 import { linkYouVersionToFirebase } from './youversionFirebaseBridge'
 import { auth } from './firebase'
-import { Bookmark as BookmarkType, type Highlight as HighlightType, Memory, Verse, type LexiconEntry, type Place, type RecentSearch } from './types'
+import { Bookmark as BookmarkType, type Highlight as HighlightType, Memory, Verse, type LexiconEntry, type Place, type RecentSearch, type Friend } from './types'
 import type { Character } from './types'
 import { useI18n } from './i18n'
 import {
@@ -775,6 +778,9 @@ export default function App() {
   const [memories, setMemories] = useState<Memory[]>(getMemories())
   const handleSaveMemory = useCallback((m: Memory) => setMemories(saveMemory(m)), [])
   const handleDeleteMemory = useCallback((id: string) => setMemories(deleteMemory(id)), [])
+  const [friends, setFriends] = useState<Friend[]>(getFriends())
+  const handleSaveFriend = useCallback((f: Friend) => setFriends(saveFriend(f)), [])
+  const handleDeleteFriend = useCallback((id: string) => setFriends(deleteFriend(id)), [])
   const [audioPlaying, setAudioPlaying] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
@@ -1233,10 +1239,13 @@ export default function App() {
           {tab === 'wayfinder' && (
             <WayfinderTab
               memories={memories}
+              friends={friends}
               selectedVerse={selected}
               onSelect={setSelectedId}
               onSaveMemory={handleSaveMemory}
               onDeleteMemory={handleDeleteMemory}
+              onSaveFriend={handleSaveFriend}
+              onDeleteFriend={handleDeleteFriend}
             />
           )}
           {tab === 'map' && (

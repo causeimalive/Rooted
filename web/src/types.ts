@@ -72,6 +72,13 @@ export interface Memory {
   updatedAt?: string
 }
 
+export interface Friend {
+  id: string
+  userId: string
+  displayName?: string
+  createdAt: string
+}
+
 export interface RecentSearch {
   id: string
   query: string

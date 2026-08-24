@@ -3,14 +3,17 @@ import { getAllCharacters, getCharacter, getCharacterPath, type CharacterPathSto
 import { getPlace, formatPassage } from './places'
 import { findVerse } from './bible'
 import { useI18n } from './i18n'
-import { Character, Memory, MemoryType, Verse } from './types'
+import { Character, Friend, Memory, MemoryType, Verse } from './types'
 
 type WayfinderTabProps = {
   memories: Memory[]
+  friends: Friend[]
   selectedVerse?: Verse
   onSelect: (verseId: string) => void
   onSaveMemory: (memory: Memory) => void
   onDeleteMemory: (id: string) => void
+  onSaveFriend: (friend: Friend) => void
+  onDeleteFriend: (id: string) => void
 }
 
 function findFirstVerse(stop: CharacterPathStop): Verse | undefined {
@@ -40,7 +43,7 @@ const SHARE_LEVEL_LABELS: Record<Memory['shareLevel'], string> = {
   public: 'Public',
 }
 
-export default function WayfinderTab({ memories, selectedVerse, onSelect, onSaveMemory, onDeleteMemory }: WayfinderTabProps) {
+export default function WayfinderTab({ memories, friends, selectedVerse, onSelect, onSaveMemory, onDeleteMemory, onSaveFriend, onDeleteFriend }: WayfinderTabProps) {
   const { t } = useI18n()
   const [query, setQuery] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -58,6 +61,8 @@ export default function WayfinderTab({ memories, selectedVerse, onSelect, onSave
   const [filterBook, setFilterBook] = useState('')
   const [filterFrom, setFilterFrom] = useState('')
   const [filterTo, setFilterTo] = useState('')
+  const [friendUserId, setFriendUserId] = useState('')
+  const [friendDisplayName, setFriendDisplayName] = useState('')
 
   const allCharacters = useMemo(() => getAllCharacters().sort((a, b) => a.name.localeCompare(b.name)), [])
   const filteredCharacters = useMemo(() => {
@@ -383,6 +388,66 @@ export default function WayfinderTab({ memories, selectedVerse, onSelect, onSave
                   </div>
                 )
               })}
+            </div>
+          </div>
+
+          <div className="bubble-card" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <h3>Friends</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', margin: '0.5rem 0' }}>
+              <input
+                type="text"
+                placeholder="Friend user ID or email"
+                value={friendUserId}
+                onChange={(e) => setFriendUserId(e.target.value)}
+                style={{ padding: '0.35rem' }}
+              />
+              <input
+                type="text"
+                placeholder="Display name (optional)"
+                value={friendDisplayName}
+                onChange={(e) => setFriendDisplayName(e.target.value)}
+                style={{ padding: '0.35rem' }}
+              />
+              <button
+                type="button"
+                className="primary"
+                onClick={() => {
+                  if (!friendUserId.trim()) return
+                  onSaveFriend({
+                    id: crypto.randomUUID(),
+                    userId: friendUserId.trim(),
+                    displayName: friendDisplayName.trim() || undefined,
+                    createdAt: new Date().toISOString(),
+                  })
+                  setFriendUserId('')
+                  setFriendDisplayName('')
+                }}
+              >
+                Add friend
+              </button>
+            </div>
+            <div className="bubble-list" style={{ maxHeight: 200, overflowY: 'auto' }}>
+              {friends.length === 0 && <div className="empty">No friends added.</div>}
+              {friends.map((friend) => (
+                <div
+                  key={friend.id}
+                  className="bubble-list-item"
+                  style={{ textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                >
+                  <span style={{ fontSize: '0.9rem' }}>
+                    {friend.displayName || friend.userId}
+                    <small style={{ display: 'block', opacity: 0.7 }}>{friend.userId}</small>
+                  </span>
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => onDeleteFriend(friend.id)}
+                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
         </aside>
