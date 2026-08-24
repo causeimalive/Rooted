@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Html, OrbitControls } from '@react-three/drei'
-import { OrbitControls as OrbitControlsClass } from 'three-stdlib'
 import {
   BufferGeometry,
   Color,
@@ -169,7 +168,7 @@ function CameraRig({
   onCameraChange?: NetworkThreeSceneProps['onCameraChange']
 }) {
   const { camera } = useThree()
-  const controlsRef = useRef<OrbitControlsClass | null>(null)
+  const controlsRef = useRef<any>(null)
   const targetGoal = useRef(new Vector3(focus.x, focus.y, focus.z))
   const reportRef = useRef(0)
   const tmpDir = useRef(new Vector3())
