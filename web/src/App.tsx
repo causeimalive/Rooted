@@ -131,9 +131,9 @@ import { getWikipediaLink, useWikiImages, useWikiSummary, type WikiImage } from 
 import { useYVAuth } from '@youversion/platform-react-hooks'
 import { getYouVersionRedirectUrl } from './youversionRedirect'
 
-type Tab = 'search' | 'reader' | 'wayfinder' | 'map'
+type Tab = 'search' | 'reader' | 'wayfinder' | 'map' | 'network'
 
-const TABS: Tab[] = ['search', 'reader', 'wayfinder', 'map']
+const TABS: Tab[] = ['search', 'reader', 'wayfinder', 'map', 'network']
 
 const USFM_BOOK_NORMALIZE: Record<string, string> = {
   genesis: 'Gen', exodus: 'Exod', leviticus: 'Lev', numbers: 'Num', deuteronomy: 'Deut',
@@ -1111,6 +1111,9 @@ export default function App() {
           <button className={`tab ${tab === 'map' ? 'active' : ''}`} onClick={() => setTab('map')}>
             <MapIcon size={16} /> {t('map')}
           </button>
+          <button className={`tab ${tab === 'network' ? 'active' : ''}`} onClick={() => setTab('network')}>
+            <Globe size={16} /> Network
+          </button>
         </div>
         <div className="header-tools">
           {tab !== 'search' && (
@@ -1250,6 +1253,16 @@ export default function App() {
               query={headerQuery}
               onQuery={setHeaderQuery}
               searchResultsHost={mapSearchResultsHost}
+            />
+          )}
+          {tab === 'network' && (
+            <OldNetworkTab
+              selectedVerse={selected}
+              fallbackVerse={recentVerse}
+              onSelect={setSelectedId}
+              selectedId={selectedId}
+              bookmarks={bookmarks}
+              theme={theme}
             />
           )}
           {tab === 'search' && (
