@@ -4,7 +4,7 @@ import { getPlace, formatPassage } from './places'
 import { findVerse } from './bible'
 import { SCENE_PALETTE } from './relationshipGraph/palette'
 import { useI18n } from './i18n'
-import { Character, Comment, Friend, GraphAnalysisSummary, Memory, MemoryType, PublicMemory, Reaction, ReactionType, Verse } from './types'
+import { Character, Comment, Friend, GraphAnalysisSummary, Memory, MemoryType, PublicMemory, Reaction, ReactionType, ShareLevel, Verse } from './types'
 import {
   deleteMemoryComment,
   deleteMemoryReaction,
@@ -105,6 +105,7 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
   const [filterBook, setFilterBook] = useState('')
   const [filterFrom, setFilterFrom] = useState('')
   const [filterTo, setFilterTo] = useState('')
+  const [filterShareLevel, setFilterShareLevel] = useState<ShareLevel | 'all'>('all')
   const [friendUserId, setFriendUserId] = useState('')
   const [friendDisplayName, setFriendDisplayName] = useState('')
   const [friendMemories, setFriendMemories] = useState<PublicMemory[]>([])
@@ -359,9 +360,10 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
         to.setHours(23, 59, 59, 999)
         if (d > to) return false
       }
+      if (filterShareLevel !== 'all' && m.shareLevel !== filterShareLevel) return false
       return true
     })
-  }, [sortedMemories, filterType, filterTag, filterMood, filterBook, filterFrom, filterTo])
+  }, [sortedMemories, filterType, filterTag, filterMood, filterBook, filterFrom, filterTo, filterShareLevel])
 
   const selectedMemory = useMemo(() => memories.find((m) => m.id === selectedMemoryId) ?? null, [memories, selectedMemoryId])
 
@@ -524,6 +526,12 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
                   style={{ padding: '0.35rem', flex: 1 }}
                 />
               </div>
+              <select value={filterShareLevel} onChange={(e) => setFilterShareLevel(e.target.value as ShareLevel | 'all')} style={{ padding: '0.35rem' }}>
+                <option value="all">All share levels</option>
+                {(['private', 'friends', 'public'] as ShareLevel[]).map((level) => (
+                  <option key={level} value={level}>{SHARE_LEVEL_LABELS[level]}</option>
+                ))}
+              </select>
             </div>
 
             {selectedMemory && (
