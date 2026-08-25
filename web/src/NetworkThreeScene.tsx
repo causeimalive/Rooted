@@ -27,6 +27,7 @@ type NetworkKind =
   | 'place'
   | 'event'
   | 'userWaypoint'
+  | 'friendWaypoint'
   | 'originalWord'
   | 'topic'
   | 'doctrine'
@@ -102,6 +103,8 @@ function getNodeColor(kind: NetworkKind, theme: 'dark' | 'light', tier?: 'strong
     case 'stop':
     case 'userWaypoint':
       return palette.verse
+    case 'friendWaypoint':
+      return palette.friendWaypoint
     case 'originalWord':
       return palette.originalWord
     case 'topic':
@@ -144,6 +147,7 @@ function getNodeTargetDistance(kind: NetworkKind, size: number): number {
     case 'person':
     case 'event':
     case 'userWaypoint':
+    case 'friendWaypoint':
     case 'character':
     case 'stop':
       return 120

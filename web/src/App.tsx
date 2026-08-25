@@ -113,8 +113,9 @@ import {
   toggleHighlight,
 } from './storage'
 import { linkYouVersionToFirebase } from './youversionFirebaseBridge'
+import { getPublicMemories } from './cloudStorage'
 import { auth } from './firebase'
-import { Bookmark as BookmarkType, type Highlight as HighlightType, Memory, Verse, type LexiconEntry, type Place, type RecentSearch, type Friend, type KnowledgeGraphAnchor } from './types'
+import { Bookmark as BookmarkType, type Highlight as HighlightType, Memory, PublicMemory, Verse, type LexiconEntry, type Place, type RecentSearch, type Friend, type KnowledgeGraphAnchor } from './types'
 import type { Character } from './types'
 import { useI18n } from './i18n'
 import {
@@ -1264,6 +1265,7 @@ export default function App() {
               selectedId={selectedId}
               bookmarks={bookmarks}
               memories={memories}
+              friends={friends}
               theme={theme}
             />
           )}
@@ -2585,6 +2587,7 @@ function OldNetworkTab({
   selectedId,
   bookmarks,
   memories,
+  friends,
   theme,
 }: {
   selectedVerse?: Verse
@@ -2593,6 +2596,7 @@ function OldNetworkTab({
   selectedId: string | null
   bookmarks: BookmarkType[]
   memories: Memory[]
+  friends: Friend[]
   theme: 'dark' | 'light'
 }) {
   const { t } = useI18n()
@@ -2627,6 +2631,26 @@ function OldNetworkTab({
   )
 
   const [showUserJourney, setShowUserJourney] = useState(false)
+  const [showFriendJourney, setShowFriendJourney] = useState(false)
+  const [friendMemories, setFriendMemories] = useState<PublicMemory[]>([])
+
+  useEffect(() => {
+    if (friends.length === 0) {
+      setFriendMemories([])
+      return
+    }
+    const friendIds = new Set(friends.map((f) => f.userId))
+    let cancelled = false
+    getPublicMemories()
+      .then((memories) => {
+        if (cancelled) return
+        setFriendMemories(memories.filter((m) => friendIds.has(m.ownerUserId)))
+      })
+      .catch(() => setFriendMemories([]))
+    return () => {
+      cancelled = true
+    }
+  }, [friends])
 
   const sidebarOpen = Boolean(networkSelectedVerse)
   const networkLayoutStyle = {
@@ -2961,9 +2985,51 @@ function OldNetworkTab({
     return [{ id: 'user-journey', points, color }]
   }, [userJourneyNodes, showUserJourney, theme])
 
+  const friendByUserId = useMemo(() => new Map(friends.map((f) => [f.userId, f])), [friends])
+
+  const friendWaypointNodes = useMemo<NetworkNode[]>(() => {
+    if (!showFriendJourney) return []
+    return friendMemories
+      .filter((m) => m.verseId)
+      .map((m) => {
+        const verse = findVerse(m.verseId)
+        if (!verse) return null
+        const chapterKey = `${verse.book}-${verse.chapter}`
+        const chapterNode = ambientBible.chapterByKey.get(chapterKey)
+        const verses = ambientBible.verseByChapter.get(chapterKey)
+        if (!chapterNode || !verses) return null
+        const verseIndex = verses.findIndex((v) => v.id === verse.id)
+        const offset = fibonacciSpherePoint(verseIndex, verses.length, 34)
+        const friend = friendByUserId.get(m.ownerUserId)
+        return {
+          id: `friend-waypoint-${m.id}`,
+          kind: 'friendWaypoint' as NetworkKind,
+          label: `${verse.bookName} ${verse.chapter}:${verse.verse}`,
+          detail: `${friend?.displayName ?? 'Friend'} · ${m.type}${m.mood ? ` · ${m.mood}` : ''}`,
+          x: chapterNode.x + offset.x,
+          y: chapterNode.y + offset.y,
+          z: chapterNode.z + offset.z,
+          size: 28,
+          verse,
+          parentId: `chapter-${chapterKey}`,
+          bookId: verse.book,
+          bookName: verse.bookName,
+          chapterNumber: verse.chapter,
+        } as NetworkNode
+      })
+      .filter((n): n is NetworkNode => Boolean(n))
+  }, [friendMemories, showFriendJourney, ambientBible, friendByUserId])
+
+  const friendJourneyPaths = useMemo(() => {
+    if (!showFriendJourney || friendWaypointNodes.length < 2) return []
+    const color = SCENE_PALETTE[theme].nodeColors.friendWaypoint
+    const points = friendWaypointNodes.map((n) => ({ x: n.x, y: n.y, z: n.z }))
+    return [{ id: 'friend-journey', points, color }]
+  }, [friendWaypointNodes, showFriendJourney, theme])
+
   const scenePaths = useMemo(
-    () => [...personPaths, ...userJourneyPaths].map((path) => ({ ...path, progress: pathProgress })),
-    [personPaths, userJourneyPaths, pathProgress],
+    () => [...personPaths, ...userJourneyPaths, ...friendJourneyPaths].map((path) => ({ ...path, progress: pathProgress })),
+    [personPaths, userJourneyPaths, friendJourneyPaths, pathProgress],
   )
 
   useEffect(() => {
@@ -2979,7 +3045,7 @@ function OldNetworkTab({
     setPathPlaying(false)
   }, [focusedNodeId, showUserJourney])
 
-  const sceneNodes = useMemo(() => [...visibleAmbientNodes, ...nodes, ...personPath, ...userJourneyNodes], [visibleAmbientNodes, nodes, personPath, userJourneyNodes])
+  const sceneNodes = useMemo(() => [...visibleAmbientNodes, ...nodes, ...personPath, ...userJourneyNodes, ...friendWaypointNodes], [visibleAmbientNodes, nodes, personPath, userJourneyNodes, friendWaypointNodes])
   const deferredSceneNodes = useDeferredValue(sceneNodes)
   const sceneNodeById = useMemo(() => new Map(deferredSceneNodes.map((node) => [node.id, node])), [deferredSceneNodes])
 
@@ -3532,6 +3598,30 @@ function OldNetworkTab({
                     </button>
                   ))}
                 </div>
+              )}
+            </div>
+
+            <div className="network-context-section" style={{ marginTop: '0.75rem' }}>
+              <h4>Friend Journeys</h4>
+              <button type="button" className={showFriendJourney ? 'primary' : 'secondary'} onClick={() => setShowFriendJourney((s) => !s)}>
+                {showFriendJourney ? 'Hide friend journeys' : 'Show friend journeys'}
+              </button>
+              {showFriendJourney && friendWaypointNodes.length > 0 && (
+                <div className="bubble-list network-character-list" style={{ maxHeight: 160, overflowY: 'auto', marginTop: '0.5rem' }}>
+                  {friendWaypointNodes.map((node) => (
+                    <button
+                      key={node.id}
+                      className="bubble-list-item network-context-item"
+                      onClick={() => node.verse && onSelect(node.verse.id)}
+                    >
+                      <span>{node.label}</span>
+                      <small>{node.detail}</small>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {showFriendJourney && friendMemories.length === 0 && friends.length === 0 && (
+                <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem', opacity: 0.75 }}>Add friends to see their shared memories here.</p>
               )}
             </div>
           </div>
