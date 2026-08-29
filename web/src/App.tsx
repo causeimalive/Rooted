@@ -115,7 +115,7 @@ import {
 import { linkYouVersionToFirebase } from './youversionFirebaseBridge'
 import { getPublicMemories } from './cloudStorage'
 import { auth } from './firebase'
-import { Bookmark as BookmarkType, type Highlight as HighlightType, Memory, PublicMemory, Verse, type LexiconEntry, type Place, type RecentSearch, type Friend, type KnowledgeGraphAnchor } from './types'
+import { Bookmark as BookmarkType, type Highlight as HighlightType, Memory, PublicMemory, Verse, type LexiconEntry, type Place, type RecentSearch, type Friend, type KnowledgeGraphAnchor, type GraphAnalysisSummary } from './types'
 import type { Character } from './types'
 import { useI18n } from './i18n'
 import {
@@ -2633,6 +2633,8 @@ function OldNetworkTab({
   const [showUserJourney, setShowUserJourney] = useState(false)
   const [showFriendJourney, setShowFriendJourney] = useState(false)
   const [friendMemories, setFriendMemories] = useState<PublicMemory[]>([])
+  const [graphAnalysis, setGraphAnalysis] = useState<GraphAnalysisSummary | null>(null)
+  const [graphAnalysisLoaded, setGraphAnalysisLoaded] = useState(false)
 
   useEffect(() => {
     if (friends.length === 0) {
@@ -2651,6 +2653,27 @@ function OldNetworkTab({
       cancelled = true
     }
   }, [friends])
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/graph/analyze')
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`Graph analysis failed: ${res.status}`))))
+      .then((summary: GraphAnalysisSummary) => {
+        if (!cancelled) {
+          setGraphAnalysis(summary)
+          setGraphAnalysisLoaded(true)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setGraphAnalysis(null)
+          setGraphAnalysisLoaded(true)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const sidebarOpen = Boolean(networkSelectedVerse)
   const networkLayoutStyle = {
@@ -3624,6 +3647,45 @@ function OldNetworkTab({
                 <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem', opacity: 0.75 }}>Add friends to see their shared memories here.</p>
               )}
             </div>
+          </div>
+
+          <div className="bubble-card" style={{ marginTop: '1rem' }}>
+            <div className="lexicon-card-heading" style={{ marginBottom: '0.35rem' }}>
+              <h3 style={{ margin: 0 }}>Graph analysis</h3>
+              <span className="verse-meta-pill">Phase 5.4</span>
+            </div>
+            {graphAnalysisLoaded ? graphAnalysis ? (
+              <>
+                <div className="network-focus-metrics" style={{ marginBottom: '0.75rem' }}>
+                  <div><span>Verses</span><strong>{graphAnalysis.verseCount}</strong></div>
+                  <div><span>Books</span><strong>{graphAnalysis.bookCount}</strong></div>
+                  <div><span>Unique terms</span><strong>{graphAnalysis.uniqueTermCount}</strong></div>
+                </div>
+                <div className="network-focus-metrics" style={{ marginBottom: '0.75rem' }}>
+                  <div><span>Avg terms</span><strong>{graphAnalysis.averageUniqueTermsPerVerse}</strong></div>
+                  <div><span>Top verse</span><strong>{graphAnalysis.topVerses[0]?.reference ?? '—'}</strong></div>
+                  <div><span>Computed</span><strong>{new Date(graphAnalysis.computedAt).toLocaleTimeString()}</strong></div>
+                </div>
+                <div className="network-term-row" style={{ marginBottom: '0.5rem' }}>
+                  {graphAnalysis.topTerms.slice(0, 6).map((term) => (
+                    <span key={term.label} className="network-term-chip">{term.label} · {term.count}</span>
+                  ))}
+                </div>
+                <div className="network-term-row" style={{ marginBottom: '0.75rem' }}>
+                  {graphAnalysis.topBooks.slice(0, 5).map((book) => (
+                    <span key={book.label} className="network-term-chip">{book.label} · {book.count}</span>
+                  ))}
+                </div>
+                <div className="bubble-list" style={{ maxHeight: 140, overflowY: 'auto' }}>
+                  {graphAnalysis.topVerses.slice(0, 5).map((verse) => (
+                    <button key={verse.verseId} type="button" className="bubble-list-item network-context-item" onClick={() => onSelect(verse.verseId)}>
+                      <span>{verse.reference}</span>
+                      <small>Graph score {verse.score.toFixed(2)}</small>
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : <div className="network-helper-text">No analysis available yet.</div> : <div className="network-helper-text">Loading server-side graph analysis…</div>}
           </div>
 
           {(focusedCharacters.length > 0 || focusedPlaces.length > 0 || focusedCharacterTimeline.length > 0) && (
