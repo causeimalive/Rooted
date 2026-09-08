@@ -1239,6 +1239,7 @@ export default function App() {
               memories={memories}
               friends={friends}
               theme={theme}
+              alwaysShowSidebar={true}
             />
           )}
           {tab === 'map' && (
@@ -2572,6 +2573,7 @@ function OldNetworkTab({
   memories,
   friends,
   theme,
+  alwaysShowSidebar = false,
 }: {
   selectedVerse?: Verse
   fallbackVerse?: Verse
@@ -2581,6 +2583,7 @@ function OldNetworkTab({
   memories: Memory[]
   friends: Friend[]
   theme: 'dark' | 'light'
+  alwaysShowSidebar?: boolean
 }) {
   const { t } = useI18n()
   const all = getAllVerses()
@@ -2658,7 +2661,7 @@ function OldNetworkTab({
     }
   }, [])
 
-  const sidebarOpen = Boolean(networkSelectedVerse)
+  const sidebarOpen = Boolean(networkSelectedVerse) || alwaysShowSidebar
   const networkLayoutStyle = {
     '--network-sidebar-width': sidebarOpen ? 'clamp(360px, 34vw, 520px)' : '0px',
     '--network-sidebar-gap': sidebarOpen ? '1.25rem' : '0px',
