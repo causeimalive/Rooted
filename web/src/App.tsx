@@ -80,6 +80,7 @@ import {
 import { BASE_LAYERS, getMapOptions, type MapBaseLayer } from './mapTileLayers'
 import WikiMediaCard from './WikiMediaCard'
 import LexiconTab from './LexiconTab'
+import WayfinderTab from './WayfinderTab'
 import YouVersionReaderTab, {
   ALL_VERSIONS_CACHE_KEY,
   ALL_VERSIONS_CACHE_UPDATED_EVENT,
@@ -131,9 +132,9 @@ import { getWikipediaLink, useWikiImages, useWikiSummary, type WikiImage } from 
 import { useYVAuth } from '@youversion/platform-react-hooks'
 import { getYouVersionRedirectUrl } from './youversionRedirect'
 
-type Tab = 'search' | 'reader' | 'wayfinder' | 'map'
+type Tab = 'search' | 'reader' | 'wayfinder' | 'map' | 'network'
 
-const TABS: Tab[] = ['search', 'reader', 'wayfinder', 'map']
+const TABS: Tab[] = ['search', 'reader', 'wayfinder', 'map', 'network']
 
 const USFM_BOOK_NORMALIZE: Record<string, string> = {
   genesis: 'Gen', exodus: 'Exod', leviticus: 'Lev', numbers: 'Num', deuteronomy: 'Deut',
@@ -1111,6 +1112,9 @@ export default function App() {
           <button className={`tab ${tab === 'map' ? 'active' : ''}`} onClick={() => setTab('map')}>
             <MapIcon size={16} /> {t('map')}
           </button>
+          <button className={`tab ${tab === 'network' ? 'active' : ''}`} onClick={() => setTab('network')}>
+            <Globe size={16} /> Network
+          </button>
         </div>
         <div className="header-tools">
           {tab !== 'search' && (
@@ -1230,16 +1234,16 @@ export default function App() {
             )
           )}
           {tab === 'wayfinder' && (
-            <OldNetworkTab
-              selectedVerse={selected}
-              fallbackVerse={recentVerse}
-              onSelect={setSelectedId}
-              selectedId={selectedId}
-              bookmarks={bookmarks}
+            <WayfinderTab
               memories={memories}
               friends={friends}
+              selectedVerse={selected}
+              onSelect={setSelectedId}
+              onSaveMemory={handleSaveMemory}
+              onDeleteMemory={handleDeleteMemory}
+              onSaveFriend={handleSaveFriend}
+              onDeleteFriend={handleDeleteFriend}
               theme={theme}
-              alwaysShowSidebar={true}
             />
           )}
           {tab === 'map' && (
@@ -1251,6 +1255,18 @@ export default function App() {
               query={headerQuery}
               onQuery={setHeaderQuery}
               searchResultsHost={mapSearchResultsHost}
+            />
+          )}
+          {tab === 'network' && (
+            <OldNetworkTab
+              selectedVerse={selected}
+              fallbackVerse={recentVerse}
+              onSelect={setSelectedId}
+              selectedId={selectedId}
+              bookmarks={bookmarks}
+              memories={memories}
+              friends={friends}
+              theme={theme}
             />
           )}
           {tab === 'search' && (
