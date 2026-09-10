@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { getAllCharacters, getCharacter, getCharacterPath, type CharacterPathStop } from './characters'
 import { getPlace, formatPassage } from './places'
 import { findVerse, getAllVerses, getCrossReferenceMatches, extractNetworkThemes } from './bible'
@@ -836,40 +837,42 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
                   {scene.nodes.length === 0 && <div className="panel empty" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>No graph data yet.</div>}
                 </div>
               </Suspense>
-              {graphExpanded && (
-                <div
-                  style={{
-                    position: 'fixed',
-                    top: 16,
-                    right: 16,
-                    zIndex: 9999,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    pointerEvents: 'auto',
-                  }}
-                >
-                  <button
-                    type="button"
-                    aria-label="Exit full-screen"
-                    onClick={() => setGraphExpanded(false)}
+              {graphExpanded &&
+                createPortal(
+                  <div
                     style={{
-                      fontSize: '0.9rem',
-                      fontWeight: 700,
-                      padding: '0.55rem 1rem',
-                      borderRadius: '0.5rem',
-                      border: '2px solid var(--muted)',
-                      background: 'var(--surface)',
-                      color: 'var(--text)',
-                      cursor: 'pointer',
-                      boxShadow: '0 2px 14px rgba(0,0,0,0.35)',
+                      position: 'fixed',
+                      top: 16,
+                      right: 16,
+                      zIndex: 2147483647,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
                       pointerEvents: 'auto',
                     }}
                   >
-                    × Exit full-screen
-                  </button>
-                </div>
-              )}
+                    <button
+                      type="button"
+                      aria-label="Exit full-screen"
+                      onClick={() => setGraphExpanded(false)}
+                      style={{
+                        fontSize: '0.9rem',
+                        fontWeight: 700,
+                        padding: '0.6rem 1.1rem',
+                        borderRadius: '0.5rem',
+                        border: '1px solid #ffffff',
+                        background: 'rgba(0, 0, 0, 0.85)',
+                        color: '#ffffff',
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 14px rgba(0,0,0,0.45)',
+                        pointerEvents: 'auto',
+                      }}
+                    >
+                      × Exit full-screen
+                    </button>
+                  </div>,
+                  document.body,
+                )}
             </div>
           </div>
 
