@@ -4,7 +4,6 @@ import { getPlace, formatPassage } from './places'
 import { findVerse, getAllVerses, getCrossReferenceMatches, extractNetworkThemes } from './bible'
 import { buildKnowledgeGraphSeed } from './knowledgeGraph'
 import { buildNetworkNodes, buildNetworkEdges } from './graphFactories'
-import { SCENE_PALETTE } from './relationshipGraph/palette'
 import { useI18n } from './i18n'
 import { Character, Comment, Friend, GraphAnalysisSummary, Memory, MemoryType, PublicMemory, Reaction, ReactionType, ShareLevel, Verse } from './types'
 import {
@@ -59,36 +58,6 @@ const SHARE_LEVEL_LABELS: Record<Memory['shareLevel'], string> = {
   public: 'Public',
 }
 
-type WayfinderGraphNode = {
-  id: string
-  label: string
-  detail: string
-  x: number
-  y: number
-  kind: 'character' | 'stop'
-  characterId?: string
-  verseId?: string
-  stopIndex?: number
-}
-
-type WayfinderGraphEdge = {
-  source: string
-  target: string
-}
-
-const GRAPH_WIDTH = 1000
-const GRAPH_HEIGHT = 460
-const GRAPH_CENTER_X = GRAPH_WIDTH / 2
-const GRAPH_CENTER_Y = GRAPH_HEIGHT / 2
-
-function polarPoint(index: number, total: number, radius: number, phase = -Math.PI / 2) {
-  const angle = phase + (index / Math.max(total, 1)) * Math.PI * 2
-  return {
-    x: GRAPH_CENTER_X + Math.cos(angle) * radius,
-    y: GRAPH_CENTER_Y + Math.sin(angle) * radius,
-  }
-}
-
 export default function WayfinderTab({ memories, friends, selectedVerse, onSelect, onSaveMemory, onDeleteMemory, onSaveFriend, onDeleteFriend, theme }: WayfinderTabProps) {
   const { t } = useI18n()
   const [query, setQuery] = useState('')
@@ -117,7 +86,6 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
   const [commentBody, setCommentBody] = useState('')
   const [graphAnalysis, setGraphAnalysis] = useState<GraphAnalysisSummary | null>(null)
   const [graphAnalysisLoaded, setGraphAnalysisLoaded] = useState(false)
-  const [showCharacterPath, setShowCharacterPath] = useState(true)
   const [graphExpanded, setGraphExpanded] = useState(false)
 
   const allCharacters = useMemo(() => getAllCharacters().sort((a, b) => a.name.localeCompare(b.name)), [])
@@ -226,71 +194,6 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
   const activeStop = stops[activeStopIndex]
   const activeStopVerse = activeStop ? findFirstVerse(activeStop) : undefined
 
-  const graphModel = useMemo(() => {
-    if (selectedCharacter && stops.length > 0) {
-      const centerNode: WayfinderGraphNode = {
-        id: `character-${selectedCharacter.id}`,
-        label: selectedCharacter.name,
-        detail: selectedCharacter.era,
-        x: GRAPH_CENTER_X,
-        y: GRAPH_CENTER_Y,
-        kind: 'character',
-        characterId: selectedCharacter.id,
-      }
-      const stopNodes = stops.map((stop, index) => {
-        const point = polarPoint(index, stops.length, 150 + Math.min(index * 12, 32), -Math.PI / 2)
-        const verse = findFirstVerse(stop)
-        const passageLabel = stop.event.passages[0] ? formatPassage(stop.event.passages[0]) : 'Stop'
-        const detail = stop.place?.name ?? stop.event.approxDate ?? passageLabel
-        return {
-          id: `stop-${index}`,
-          label: stop.event.label,
-          detail,
-          x: point.x,
-          y: point.y,
-          kind: 'stop' as const,
-          verseId: verse?.id,
-          stopIndex: index,
-        }
-      })
-      return {
-        title: selectedCharacter.name,
-        subtitle: selectedCharacter.summary,
-        nodes: [centerNode, ...stopNodes],
-        edges: stopNodes.map((stop) => ({ source: centerNode.id, target: stop.id })),
-      }
-    }
-
-    const previewCharacters = filteredCharacters.slice(0, 12)
-    const centerNode: WayfinderGraphNode = {
-      id: 'graph-center',
-      label: previewCharacters[0]?.name ?? 'Wayfinder',
-      detail: previewCharacters.length > 0 ? 'Select a person to expand their path' : 'No people matched',
-      x: GRAPH_CENTER_X,
-      y: GRAPH_CENTER_Y,
-      kind: 'character',
-      characterId: previewCharacters[0]?.id,
-    }
-    const orbitNodes = previewCharacters.map((character, index) => {
-      const point = polarPoint(index, previewCharacters.length, 160 + (index % 3) * 18, -Math.PI / 2)
-      return {
-        id: `preview-${character.id}`,
-        label: character.name,
-        detail: character.era,
-        x: point.x,
-        y: point.y,
-        kind: 'character' as const,
-        characterId: character.id,
-      }
-    })
-    return {
-      title: 'Wayfinder graph',
-      subtitle: 'Select a biblical figure to see their path through Scripture.',
-      nodes: [centerNode, ...orbitNodes],
-      edges: orbitNodes.map((node) => ({ source: centerNode.id, target: node.id })),
-    }
-  }, [filteredCharacters, selectedCharacter, stops])
-
   const centerVerse = selectedVerse ?? getAllVerses()[0]
 
   const relatedMatches = useMemo(() => getCrossReferenceMatches(centerVerse), [centerVerse])
@@ -308,53 +211,18 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
     [centerVerse, relatedMatches, networkThemes, knowledgeGraphSeed],
   )
 
-  const graphFocus = useMemo(() => ({ x: GRAPH_CENTER_X / 10, y: GRAPH_CENTER_Y / 10, z: 0 }), [])
+  const graphFocus = useMemo(() => {
+    const c = networkNodes.find((n) => n.kind === 'center')
+    return c ? { x: c.x, y: c.y, z: c.z } : { x: 50, y: 50, z: 0 }
+  }, [networkNodes])
 
-  const scene = useMemo(() => {
-    const characterNodes: any[] = graphModel.nodes.map((node) => {
-      const base = {
-        id: node.id,
-        label: node.label,
-        detail: node.detail ?? '',
-        x: node.x / 10,
-        y: node.y / 10,
-        z: 0,
-        size: node.kind === 'character' ? 140 : 90,
-        kind: node.kind,
-      }
-      if (node.kind === 'stop') {
-        const verse = node.verseId ? findVerse(node.verseId) : undefined
-        return { ...base, verseId: node.verseId, stopIndex: node.stopIndex, verse }
-      }
-      if (node.kind === 'character') {
-        return { ...base, characterId: node.characterId }
-      }
-      return base
-    })
-    const characterEdges: any[] = graphModel.edges.map((edge) => ({
-      id: `character-${edge.source}-${edge.target}`,
-      source: edge.source,
-      target: edge.target,
-      weight: 1,
-      kind: 'spoke' as const,
-    }))
-    const stopNodes = characterNodes.filter((node) => node.kind === 'stop' && node.stopIndex != null)
-    const pathColor = SCENE_PALETTE[theme].nodeColors.person
-    const points = stopNodes
-      .sort((a, b) => (a.stopIndex as number) - (b.stopIndex as number))
-      .map((node) => ({ x: node.x, y: node.y, z: 0 }))
-    const characterPaths = showCharacterPath && points.length > 0 ? [{ id: 'character-path', points, color: pathColor }] : []
-    const visibleCharacterNodes = showCharacterPath ? characterNodes : []
-    const visibleCharacterEdges = showCharacterPath ? characterEdges : []
-    return {
-      nodes: [...networkNodes, ...visibleCharacterNodes],
-      edges: [...networkEdges, ...visibleCharacterEdges],
-      paths: characterPaths,
-    }
-  }, [graphModel, theme, networkNodes, networkEdges, showCharacterPath])
+  const scene = useMemo(
+    () => ({ nodes: networkNodes, edges: networkEdges, paths: [] as any[] }),
+    [networkNodes, networkEdges],
+  )
 
   const handleSceneSelect = (id: string) => {
-    const node = scene.nodes.find((n: any) => n.id === id)
+    const node = networkNodes.find((n: any) => n.id === id)
     if (!node) return
     if ((node.kind === 'related' || node.kind === 'center') && node.verse) {
       onSelect(node.verse.id)
@@ -367,15 +235,6 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
     if (['theme', 'originalWord', 'topic', 'doctrine'].includes(node.kind) && node.jumpVerseId) {
       onSelect(node.jumpVerseId)
       return
-    }
-    if (node.kind === 'stop' && node.verseId) {
-      onSelect(node.verseId)
-      if (node.stopIndex != null) setActiveStopIndex(node.stopIndex)
-      return
-    }
-    if (node.kind === 'character' && node.characterId) {
-      setSelectedId(node.characterId)
-      setQuery('')
     }
   }
 
@@ -918,10 +777,9 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
 
           <div className="bubble-card" style={{ marginBottom: '1rem' }}>
             <div className="lexicon-card-heading" style={{ marginBottom: '0.35rem' }}>
-              <h3 style={{ margin: 0 }}>{graphExpanded ? 'Network map' : 'Wayfinder graph'}</h3>
+              <h3 style={{ margin: 0 }}>Network map</h3>
               <span className="verse-meta-pill">{scene.nodes.length} nodes</span>
             </div>
-            <p style={{ margin: '0 0 0.75rem', fontSize: '0.88rem', opacity: 0.8 }}>{graphModel.subtitle}</p>
             <div
               style={graphExpanded ? {
                 position: 'fixed',
@@ -938,24 +796,37 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
                 overflow: 'hidden',
               }}
             >
+              <Suspense
+                fallback={
+                  <div style={{ width: '100%', height: '100%', minHeight: 420, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)' }}>
+                    Loading 3D wayfinder…
+                  </div>
+                }
+              >
+                <div style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%' }}>
+                  <NetworkThreeScene
+                    nodes={scene.nodes}
+                    edges={scene.edges}
+                    focus={graphFocus}
+                    selectedId={selectedNetworkId}
+                    onSelect={handleSceneSelect}
+                    paths={[]}
+                    theme={theme}
+                  />
+                  {scene.nodes.length === 0 && <div className="panel empty" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>No graph data yet.</div>}
+                </div>
+              </Suspense>
               <div
                 style={{
                   position: 'absolute',
                   top: 8,
                   right: 8,
-                  zIndex: 10,
+                  zIndex: 100,
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.5rem',
                 }}
               >
-                <button
-                  type="button"
-                  onClick={() => setShowCharacterPath((s) => !s)}
-                  style={{ fontSize: '0.78rem', padding: '0.25rem 0.5rem', borderRadius: '0.4rem', border: '1px solid var(--muted)', background: 'color-mix(in srgb, var(--surface) 80%, transparent)', color: 'var(--text)', cursor: 'pointer' }}
-                >
-                  {showCharacterPath ? 'Hide path' : 'Show path'}
-                </button>
                 <button
                   type="button"
                   onClick={() => setGraphExpanded((s) => !s)}
@@ -964,28 +835,7 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
                   {graphExpanded ? 'Collapse' : 'Expand'}
                 </button>
               </div>
-              <Suspense
-                fallback={
-                  <div style={{ width: '100%', height: '100%', minHeight: 420, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)' }}>
-                    Loading 3D wayfinder…
-                  </div>
-                }
-              >
-                <NetworkThreeScene
-                  nodes={scene.nodes}
-                  edges={scene.edges}
-                  focus={graphFocus}
-                  selectedId={selectedNetworkId}
-                  onSelect={handleSceneSelect}
-                  paths={scene.paths}
-                  theme={theme}
-                />
-              </Suspense>
-              {graphModel.nodes.length === 0 && <div className="panel empty" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>No graph data yet.</div>}
             </div>
-            {!selectedCharacter && (
-              <p style={{ margin: '0.75rem 0 0', fontSize: '0.85rem', opacity: 0.75 }}>Pick a biblical figure on the left to turn the graph into a path map.</p>
-            )}
           </div>
 
           {selectedCharacter ? (
