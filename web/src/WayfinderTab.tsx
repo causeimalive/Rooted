@@ -117,6 +117,8 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
   const [commentBody, setCommentBody] = useState('')
   const [graphAnalysis, setGraphAnalysis] = useState<GraphAnalysisSummary | null>(null)
   const [graphAnalysisLoaded, setGraphAnalysisLoaded] = useState(false)
+  const [showCharacterPath, setShowCharacterPath] = useState(true)
+  const [graphExpanded, setGraphExpanded] = useState(false)
 
   const allCharacters = useMemo(() => getAllCharacters().sort((a, b) => a.name.localeCompare(b.name)), [])
   const filteredCharacters = useMemo(() => {
@@ -162,6 +164,15 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
       }
     }
   }, [isPlaying, activeStopIndex, stops])
+
+  useEffect(() => {
+    if (!graphExpanded) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setGraphExpanded(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [graphExpanded])
 
   useEffect(() => {
     if (!friends.length) {
@@ -332,9 +343,15 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
     const points = stopNodes
       .sort((a, b) => (a.stopIndex as number) - (b.stopIndex as number))
       .map((node) => ({ x: node.x, y: node.y, z: 0 }))
-    const paths = points.length > 0 ? [{ id: 'character-path', points, color: pathColor }] : []
-    return { nodes: [...networkNodes, ...characterNodes], edges: [...networkEdges, ...characterEdges], paths }
-  }, [graphModel, theme, networkNodes, networkEdges])
+    const characterPaths = showCharacterPath && points.length > 0 ? [{ id: 'character-path', points, color: pathColor }] : []
+    const visibleCharacterNodes = showCharacterPath ? characterNodes : []
+    const visibleCharacterEdges = showCharacterPath ? characterEdges : []
+    return {
+      nodes: [...networkNodes, ...visibleCharacterNodes],
+      edges: [...networkEdges, ...visibleCharacterEdges],
+      paths: characterPaths,
+    }
+  }, [graphModel, theme, networkNodes, networkEdges, showCharacterPath])
 
   const handleSceneSelect = (id: string) => {
     const node = scene.nodes.find((n: any) => n.id === id)
@@ -901,12 +918,18 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
 
           <div className="bubble-card" style={{ marginBottom: '1rem' }}>
             <div className="lexicon-card-heading" style={{ marginBottom: '0.35rem' }}>
-              <h3 style={{ margin: 0 }}>Wayfinder graph</h3>
-              <span className="verse-meta-pill">{graphModel.nodes.length} nodes</span>
+              <h3 style={{ margin: 0 }}>{graphExpanded ? 'Network map' : 'Wayfinder graph'}</h3>
+              <span className="verse-meta-pill">{scene.nodes.length} nodes</span>
             </div>
             <p style={{ margin: '0 0 0.75rem', fontSize: '0.88rem', opacity: 0.8 }}>{graphModel.subtitle}</p>
             <div
-              style={{
+              style={graphExpanded ? {
+                position: 'fixed',
+                inset: 0,
+                zIndex: 100,
+                background: 'var(--bg)',
+                overflow: 'hidden',
+              } : {
                 position: 'relative',
                 height: 420,
                 borderRadius: '0.85rem',
@@ -915,6 +938,32 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
                 overflow: 'hidden',
               }}
             >
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                  zIndex: 10,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setShowCharacterPath((s) => !s)}
+                  style={{ fontSize: '0.78rem', padding: '0.25rem 0.5rem', borderRadius: '0.4rem', border: '1px solid var(--muted)', background: 'color-mix(in srgb, var(--surface) 80%, transparent)', color: 'var(--text)', cursor: 'pointer' }}
+                >
+                  {showCharacterPath ? 'Hide path' : 'Show path'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGraphExpanded((s) => !s)}
+                  style={{ fontSize: '0.78rem', padding: '0.25rem 0.5rem', borderRadius: '0.4rem', border: '1px solid var(--muted)', background: 'color-mix(in srgb, var(--surface) 80%, transparent)', color: 'var(--text)', cursor: 'pointer' }}
+                >
+                  {graphExpanded ? 'Collapse' : 'Expand'}
+                </button>
+              </div>
               <Suspense
                 fallback={
                   <div style={{ width: '100%', height: '100%', minHeight: 420, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)' }}>
