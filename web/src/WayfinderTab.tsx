@@ -1,7 +1,9 @@
 import React, { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { getAllCharacters, getCharacter, getCharacterPath, type CharacterPathStop } from './characters'
 import { getPlace, formatPassage } from './places'
-import { findVerse } from './bible'
+import { findVerse, getAllVerses, getCrossReferenceMatches, extractNetworkThemes } from './bible'
+import { buildKnowledgeGraphSeed } from './knowledgeGraph'
+import { buildNetworkNodes, buildNetworkEdges } from './graphFactories'
 import { SCENE_PALETTE } from './relationshipGraph/palette'
 import { useI18n } from './i18n'
 import { Character, Comment, Friend, GraphAnalysisSummary, Memory, MemoryType, PublicMemory, Reaction, ReactionType, ShareLevel, Verse } from './types'
@@ -278,10 +280,27 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
     }
   }, [filteredCharacters, selectedCharacter, stops])
 
+  const centerVerse = selectedVerse ?? getAllVerses()[0]
+
+  const relatedMatches = useMemo(() => getCrossReferenceMatches(centerVerse), [centerVerse])
+  const networkThemes = useMemo(() => extractNetworkThemes(relatedMatches.map((m) => m.verse), 6), [relatedMatches])
+  const knowledgeGraphSeed = useMemo(
+    () => buildKnowledgeGraphSeed(centerVerse, relatedMatches, networkThemes),
+    [centerVerse, relatedMatches, networkThemes],
+  )
+  const networkNodes = useMemo(
+    () => buildNetworkNodes(centerVerse, relatedMatches, networkThemes, selectedCharacter?.id, knowledgeGraphSeed),
+    [centerVerse, relatedMatches, networkThemes, selectedCharacter, knowledgeGraphSeed],
+  )
+  const networkEdges = useMemo(
+    () => buildNetworkEdges(centerVerse, relatedMatches, networkThemes, knowledgeGraphSeed),
+    [centerVerse, relatedMatches, networkThemes, knowledgeGraphSeed],
+  )
+
   const graphFocus = useMemo(() => ({ x: GRAPH_CENTER_X / 10, y: GRAPH_CENTER_Y / 10, z: 0 }), [])
 
   const scene = useMemo(() => {
-    const nodes: any[] = graphModel.nodes.map((node) => {
+    const characterNodes: any[] = graphModel.nodes.map((node) => {
       const base = {
         id: node.id,
         label: node.label,
@@ -301,25 +320,37 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
       }
       return base
     })
-    const edges: any[] = graphModel.edges.map((edge) => ({
-      id: `${edge.source}-${edge.target}`,
+    const characterEdges: any[] = graphModel.edges.map((edge) => ({
+      id: `character-${edge.source}-${edge.target}`,
       source: edge.source,
       target: edge.target,
       weight: 1,
       kind: 'spoke' as const,
     }))
-    const stopNodes = nodes.filter((node) => node.kind === 'stop' && node.stopIndex != null)
+    const stopNodes = characterNodes.filter((node) => node.kind === 'stop' && node.stopIndex != null)
     const pathColor = SCENE_PALETTE[theme].nodeColors.person
     const points = stopNodes
       .sort((a, b) => (a.stopIndex as number) - (b.stopIndex as number))
       .map((node) => ({ x: node.x, y: node.y, z: 0 }))
     const paths = points.length > 0 ? [{ id: 'character-path', points, color: pathColor }] : []
-    return { nodes, edges, paths }
-  }, [graphModel, theme])
+    return { nodes: [...networkNodes, ...characterNodes], edges: [...networkEdges, ...characterEdges], paths }
+  }, [graphModel, theme, networkNodes, networkEdges])
 
   const handleSceneSelect = (id: string) => {
-    const node = graphModel.nodes.find((n) => n.id === id)
+    const node = scene.nodes.find((n: any) => n.id === id)
     if (!node) return
+    if ((node.kind === 'related' || node.kind === 'center') && node.verse) {
+      onSelect(node.verse.id)
+      return
+    }
+    if (node.kind === 'person' || node.kind === 'place') {
+      if (node.jumpVerseId) onSelect(node.jumpVerseId)
+      return
+    }
+    if (['theme', 'originalWord', 'topic', 'doctrine'].includes(node.kind) && node.jumpVerseId) {
+      onSelect(node.jumpVerseId)
+      return
+    }
     if (node.kind === 'stop' && node.verseId) {
       onSelect(node.verseId)
       if (node.stopIndex != null) setActiveStopIndex(node.stopIndex)
@@ -331,7 +362,7 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
     }
   }
 
-  const selectedNetworkId = selectedCharacter ? `character-${selectedCharacter.id}` : null
+  const selectedNetworkId = selectedCharacter ? `character-${selectedCharacter.id}` : `center-${centerVerse.id}`
 
   const sortedMemories = useMemo(
     () =>

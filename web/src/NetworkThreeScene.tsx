@@ -15,7 +15,7 @@ import {
 } from 'three'
 import { SCENE_PALETTE } from './relationshipGraph/palette'
 
-type NetworkKind =
+export type NetworkKind =
   | 'center'
   | 'related'
   | 'theme'
@@ -34,7 +34,7 @@ type NetworkKind =
   | 'character'
   | 'stop'
 
-type NetworkNode = {
+export type NetworkNode = {
   id: string
   kind: NetworkKind
   label: string
@@ -53,7 +53,7 @@ type NetworkNode = {
   chapterNumber?: number
 }
 
-type NetworkEdge = {
+export type NetworkEdge = {
   id: string
   source: string
   target: string

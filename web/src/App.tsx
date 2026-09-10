@@ -131,6 +131,15 @@ import LanguageSearchDropdown from './LanguageSearchDropdown'
 import { getWikipediaLink, useWikiImages, useWikiSummary, type WikiImage } from './wikipedia'
 import { useYVAuth } from '@youversion/platform-react-hooks'
 import { getYouVersionRedirectUrl } from './youversionRedirect'
+import {
+  buildBibleHierarchyNodes,
+  buildNetworkEdges,
+  buildNetworkNodes,
+  clamp,
+  clampScale,
+  fibonacciSpherePoint,
+  hashString,
+} from './graphFactories'
 
 type Tab = 'search' | 'reader' | 'wayfinder' | 'map' | 'network'
 
@@ -1951,23 +1960,6 @@ type NetworkNode = {
   chapterNumber?: number
 }
 
-// Canonical Bible book order (Protestant canon, 66 books). Used to sort the
-// network map hierarchy by book -> chapter -> verse instead of alphabetically.
-const CANONICAL_BOOK_ORDER = [
-  'Gen', 'Exod', 'Lev', 'Num', 'Deut', 'Josh', 'Judg', 'Ruth', '1Sam', '2Sam',
-  '1Kgs', '2Kgs', '1Chr', '2Chr', 'Ezra', 'Neh', 'Esth', 'Job', 'Ps', 'Prov',
-  'Eccl', 'Song', 'Isa', 'Jer', 'Lam', 'Ezek', 'Dan', 'Hos', 'Joel', 'Amos',
-  'Obad', 'Jonah', 'Mic', 'Nah', 'Hab', 'Zeph', 'Hag', 'Zech', 'Mal',
-  'Matt', 'Mark', 'Luke', 'John', 'Acts', 'Rom', '1Cor', '2Cor', 'Gal', 'Eph',
-  'Phil', 'Col', '1Thess', '2Thess', '1Tim', '2Tim', 'Titus', 'Phlm', 'Heb',
-  'Jas', '1Pet', '2Pet', '1John', '2John', '3John', 'Jude', 'Rev',
-]
-
-function canonicalBookIndex(book: string) {
-  const index = CANONICAL_BOOK_ORDER.indexOf(book)
-  return index === -1 ? CANONICAL_BOOK_ORDER.length : index
-}
-
 type NetworkEdgeKind = 'spoke' | 'bridge' | 'theme'
 
 type NetworkEdge = {
@@ -1976,18 +1968,6 @@ type NetworkEdge = {
   target: string
   weight: number
   kind: NetworkEdgeKind
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value))
-}
-
-function hashString(input: string) {
-  let hash = 0
-  for (let i = 0; i < input.length; i += 1) {
-    hash = (hash * 31 + input.charCodeAt(i)) % 3600
-  }
-  return hash
 }
 
 function toSvgPoint(node: { x: number; y: number }) {
@@ -2026,10 +2006,6 @@ function normalizeAngle(rotation: number) {
 
 function normalizeRotation(rotation: number) {
   return normalizeAngle(rotation)
-}
-
-function clampScale(scale: number) {
-  return clamp(scale, 0.72, 4.2)
 }
 
 function pointFromEvent(event: { clientX: number; clientY: number }, rect: DOMRect): Point {
@@ -2138,447 +2114,6 @@ function angleBetween(a: Point, b: Point) {
   return Math.atan2(b.y - a.y, b.x - a.x)
 }
 
-function buildNetworkNodes(
-  centerVerse: Verse,
-  relatedMatches: VerseMatch[],
-  themes: NetworkTheme[],
-  selectedPersonId?: string,
-  knowledgeGraphSeed?: {
-    originalWords: KnowledgeGraphAnchor[]
-    topics: KnowledgeGraphAnchor[]
-    doctrines: KnowledgeGraphAnchor[]
-  },
-): NetworkNode[] {
-  const allVerses = getAllVerses()
-  const nodes: NetworkNode[] = [
-    {
-      id: `center-${centerVerse.id}`,
-      kind: 'center',
-      label: `${centerVerse.bookName} ${centerVerse.chapter}:${centerVerse.verse}`,
-      detail: centerVerse.text.slice(0, 150),
-      x: 50,
-      y: 50,
-      z: 0,
-      size: 234,
-      verse: centerVerse,
-    },
-  ]
-
-  const relatedCount = Math.max(relatedMatches.length, 1)
-  relatedMatches.forEach((match, index) => {
-    const verse = match.verse
-    const tier = match.score >= 32 ? 'strong' : match.score >= 24 ? 'medium' : 'soft'
-    const baseAngle = (hashString(verse.id) / 3600) * Math.PI * 2
-    const spread = (index / relatedCount) * Math.PI * 1.15
-    const angle = baseAngle + spread
-    const radius = tier === 'strong' ? 18 : tier === 'medium' ? 27 : 38
-    const x = clamp(50 + Math.cos(angle) * radius, 10, 90)
-    const y = clamp(50 + Math.sin(angle) * radius * (tier === 'soft' ? 0.9 : 1.03), 10, 90)
-
-    nodes.push({
-      id: verse.id,
-      kind: 'related',
-      label: `${verse.bookName} ${verse.chapter}:${verse.verse}`,
-      detail: match.sharedTerms.slice(0, 3).join(' • ') || `${Math.round(match.score)} strength`,
-      x,
-      y,
-      z: clamp(42 - index * 2.5, 12, 42),
-      size: clamp(158 - index * 7, 102, 158),
-      verse,
-      score: match.score,
-      tier,
-    })
-  })
-
-  themes.forEach((theme, index) => {
-    const angle = -Math.PI / 2 + (index / Math.max(themes.length, 1)) * Math.PI * 2
-    const radius = 44 + Math.min(index * 2.2, 10)
-    const jumpVerseId = relatedMatches.find((match) => match.sharedTerms.includes(theme.label))?.verse.id
-
-    nodes.push({
-      id: `theme-${theme.label}`,
-      kind: 'theme',
-      label: theme.label,
-      detail: `${theme.count} verses`,
-      x: clamp(50 + Math.cos(angle) * radius, 8, 92),
-      y: clamp(50 + Math.sin(angle) * radius, 8, 92),
-      z: clamp(24 + index * 3, 10, 48),
-      size: clamp(118 - index * 5, 84, 118),
-      score: theme.weight,
-      jumpVerseId,
-    })
-  })
-
-  const addAnchorNodes = (anchors: KnowledgeGraphAnchor[], kind: 'originalWord' | 'topic' | 'doctrine', radius: number, zBase: number) => {
-    anchors.forEach((anchor, index) => {
-      const angle = (hashString(anchor.id) / 3600) * Math.PI * 2 + index * 0.28
-      const x = clamp(50 + Math.cos(angle) * radius, 6, 94)
-      const y = clamp(50 + Math.sin(angle) * radius * 0.88, 6, 94)
-      nodes.push({
-        id: anchor.id,
-        kind,
-        label: anchor.label,
-        detail: anchor.detail,
-        x,
-        y,
-        z: clamp(zBase + index * 4, 8, 56),
-        size: kind === 'doctrine' ? 118 : kind === 'topic' ? 104 : 92,
-        score: anchor.count,
-        jumpVerseId: anchor.verseIds[0],
-        verseIds: anchor.verseIds,
-      })
-    })
-  }
-
-  if (knowledgeGraphSeed) {
-    addAnchorNodes(knowledgeGraphSeed.originalWords, 'originalWord', 62, 18)
-    addAnchorNodes(knowledgeGraphSeed.topics, 'topic', 74, 26)
-    addAnchorNodes(knowledgeGraphSeed.doctrines, 'doctrine', 58, 34)
-  }
-
-  const people = getCharactersForVerse(centerVerse, 3)
-  const places = getPlacesForVerse(centerVerse, 3)
-
-  people.forEach((person, index) => {
-    const angle = Math.PI + (index / Math.max(people.length, 1)) * Math.PI + (hashString(person.id) / 3600) * Math.PI * 0.2
-    const radius = 52
-    const x = clamp(50 + Math.cos(angle) * radius, 5, 95)
-    const y = clamp(50 + Math.sin(angle) * radius * 0.9, 5, 95)
-
-    nodes.push({
-      id: `person-${person.id}`,
-      kind: 'person',
-      label: person.name,
-      detail: person.era || 'Person',
-      x,
-      y,
-      z: clamp(20 + index * 8, 10, 44),
-      size: 72,
-      score: 0,
-    })
-  })
-
-  places.forEach((place, index) => {
-    const angle = (index / Math.max(places.length, 1)) * Math.PI * 2 + (hashString(place.id) / 3600) * Math.PI * 0.2
-    const radius = 62
-    const x = clamp(50 + Math.cos(angle) * radius, 5, 95)
-    const y = clamp(50 + Math.sin(angle) * radius * 0.9, 5, 95)
-
-    nodes.push({
-      id: `place-${place.id}`,
-      kind: 'place',
-      label: place.name,
-      detail: place.region || 'Place',
-      x,
-      y,
-      z: clamp(-20 - index * 8, -44, -10),
-      size: 72,
-      score: 0,
-    })
-  })
-
-  if (selectedPersonId) {
-    const selected = getCharacter(selectedPersonId)
-    const alreadyIncluded = people.some((p) => p.id === selectedPersonId)
-    if (selected && !alreadyIncluded) {
-      const angle = (hashString(selected.id) / 3600) * Math.PI * 2
-      const x = clamp(50 + Math.cos(angle) * 52, 5, 95)
-      const y = clamp(50 + Math.sin(angle) * 52 * 0.9, 5, 95)
-      nodes.push({
-        id: `person-${selected.id}`,
-        kind: 'person',
-        label: selected.name,
-        detail: selected.era || 'Person',
-        x,
-        y,
-        z: 30,
-        size: 72,
-        score: 0,
-      })
-    }
-  }
-
-  const occupied = new Set(nodes.map((node) => node.verse?.id).filter((id): id is string => Boolean(id)))
-  relatedMatches.slice(0, 6).forEach((match, parentIndex) => {
-    const parentNode = nodes.find((node) => node.verse?.id === match.verse.id)
-    if (!parentNode) return
-
-    const echoes = getCrossReferenceMatches(match.verse, allVerses, 6)
-      .filter((candidate) => !occupied.has(candidate.verse.id) && candidate.verse.id !== centerVerse.id)
-      .slice(0, parentIndex < 3 ? 2 : 1)
-
-    echoes.forEach((echo, echoIndex) => {
-      const angle = (hashString(`${parentNode.id}:${echo.verse.id}`) / 3600) * Math.PI * 2
-      const radius = 11 + parentIndex * 1.6 + echoIndex * 3.2
-      const x = clamp(parentNode.x + Math.cos(angle) * radius, 4, 96)
-      const y = clamp(parentNode.y + Math.sin(angle) * radius * 0.94, 4, 96)
-
-      occupied.add(echo.verse.id)
-      nodes.push({
-        id: `echo-${echo.verse.id}`,
-        kind: 'echo',
-        label: `${echo.verse.bookName} ${echo.verse.chapter}:${echo.verse.verse}`,
-        detail: echo.sharedTerms.slice(0, 2).join(' • ') || `${Math.round(echo.score)} echo`,
-        x,
-        y,
-        z: clamp(58 + parentIndex * 2 + echoIndex * 4, 28, 82),
-        size: clamp(92 - parentIndex * 3 - echoIndex * 5, 64, 92),
-        verse: echo.verse,
-        score: echo.score * 0.72,
-        tier: 'soft',
-        parentId: parentNode.id,
-      })
-    })
-  })
-
-  return nodes
-}
-
-function buildNetworkEdges(
-  centerVerse: Verse,
-  relatedMatches: VerseMatch[],
-  themes: NetworkTheme[],
-  knowledgeGraphSeed?: {
-    originalWords: KnowledgeGraphAnchor[]
-    topics: KnowledgeGraphAnchor[]
-    doctrines: KnowledgeGraphAnchor[]
-  },
-): NetworkEdge[] {
-  const allVerses = getAllVerses()
-  const edges: NetworkEdge[] = []
-  const occupied = new Set<string>([centerVerse.id])
-
-  relatedMatches.forEach((match) => {
-    occupied.add(match.verse.id)
-  })
-
-  relatedMatches.forEach((match) => {
-    edges.push({
-      id: `spoke-${centerVerse.id}-${match.verse.id}`,
-      source: `center-${centerVerse.id}`,
-      target: match.verse.id,
-      weight: match.score,
-      kind: 'spoke',
-    })
-  })
-
-  if (knowledgeGraphSeed) {
-    const anchorGroups = [
-      ...knowledgeGraphSeed.originalWords,
-      ...knowledgeGraphSeed.topics,
-      ...knowledgeGraphSeed.doctrines,
-    ]
-
-    anchorGroups.forEach((anchor) => {
-      edges.push({
-        id: `anchor-center-${anchor.id}`,
-        source: `center-${centerVerse.id}`,
-        target: anchor.id,
-        weight: Math.max(0.6, anchor.count / 8),
-        kind: 'theme',
-      })
-      anchor.verseIds.forEach((verseId) => {
-        if (verseId === centerVerse.id) return
-        edges.push({
-          id: `anchor-verse-${anchor.id}-${verseId}`,
-          source: anchor.id,
-          target: verseId,
-          weight: Math.max(0.25, anchor.count / 12),
-          kind: 'bridge',
-        })
-      })
-    })
-  }
-
-  const peopleForCenter = getCharactersForVerse(centerVerse, 3)
-  const placesForCenter = getPlacesForVerse(centerVerse, 3)
-
-  peopleForCenter.forEach((person) => {
-    edges.push({
-      id: `spoke-person-${centerVerse.id}-${person.id}`,
-      source: `center-${centerVerse.id}`,
-      target: `person-${person.id}`,
-      weight: 0.8,
-      kind: 'spoke',
-    })
-  })
-
-  placesForCenter.forEach((place) => {
-    edges.push({
-      id: `spoke-place-${centerVerse.id}-${place.id}`,
-      source: `center-${centerVerse.id}`,
-      target: `place-${place.id}`,
-      weight: 0.8,
-      kind: 'spoke',
-    })
-  })
-
-  for (let i = 0; i < relatedMatches.length; i += 1) {
-    for (let j = i + 1; j < relatedMatches.length; j += 1) {
-      const left = relatedMatches[i].verse
-      const right = relatedMatches[j].verse
-      const sameBook = left.book === right.book
-      const sameChapter = sameBook && left.chapter === right.chapter
-      const closeScore = Math.abs(relatedMatches[i].score - relatedMatches[j].score)
-
-      if (sameChapter || (sameBook && closeScore <= 6) || (sameBook && j - i <= 2)) {
-        edges.push({
-          id: `bridge-${left.id}-${right.id}`,
-          source: left.id,
-          target: right.id,
-          weight: sameChapter ? 1 : 0.7,
-          kind: 'bridge',
-        })
-      }
-    }
-  }
-
-  relatedMatches.slice(0, 6).forEach((match, parentIndex) => {
-    const echoMatches = getCrossReferenceMatches(match.verse, allVerses, 6)
-      .filter((candidate) => !occupied.has(candidate.verse.id) && candidate.verse.id !== centerVerse.id)
-      .slice(0, parentIndex < 3 ? 2 : 1)
-
-    echoMatches.forEach((echo) => {
-      occupied.add(echo.verse.id)
-      edges.push({
-        id: `echo-${match.verse.id}-${echo.verse.id}`,
-        source: match.verse.id,
-        target: `echo-${echo.verse.id}`,
-        weight: Math.max(0.3, echo.score * 0.45),
-        kind: 'bridge',
-      })
-    })
-  })
-
-  themes.forEach((theme) => {
-    const themeId = `theme-${theme.label}`
-    relatedMatches.forEach((match) => {
-      if (match.sharedTerms.includes(theme.label) || match.verse.text.toLowerCase().includes(theme.label.toLowerCase())) {
-        edges.push({
-          id: `theme-${theme.label}-${match.verse.id}`,
-          source: match.verse.id,
-          target: themeId,
-          weight: theme.weight,
-          kind: 'theme',
-        })
-      }
-    })
-  })
-
-  return edges
-}
-
-function fibonacciSpherePoint(index: number, total: number, radius: number) {
-  if (total <= 1) return { x: 0, y: 0, z: radius }
-  const goldenAngle = Math.PI * (3 - Math.sqrt(5))
-  const t = index / (total - 1)
-  const yUnit = 1 - t * 2
-  const radiusAtY = Math.sqrt(Math.max(0, 1 - yUnit * yUnit))
-  const theta = goldenAngle * index
-  return {
-    x: Math.cos(theta) * radiusAtY * radius,
-    y: yUnit * radius,
-    z: Math.sin(theta) * radiusAtY * radius,
-  }
-}
-
-type AmbientBibleData = {
-  bookNodes: NetworkNode[]
-  chapterNodes: NetworkNode[]
-  chapterByKey: Map<string, NetworkNode>
-  verseByChapter: Map<string, Verse[]>
-}
-
-function buildBibleHierarchyNodes(allVerses: Verse[]): AmbientBibleData {
-  if (!allVerses.length) {
-    return { bookNodes: [], chapterNodes: [], chapterByKey: new Map(), verseByChapter: new Map() }
-  }
-
-  const bookOrder: string[] = []
-  const bookSeen = new Set<string>()
-  const bookNames = new Map<string, string>()
-  const chaptersByBook = new Map<string, number[]>()
-  const versesByBookChapter = new Map<string, Verse[]>()
-
-  allVerses.forEach((verse) => {
-    if (!bookSeen.has(verse.book)) {
-      bookSeen.add(verse.book)
-      bookOrder.push(verse.book)
-      bookNames.set(verse.book, verse.bookName)
-    }
-    const chapters = chaptersByBook.get(verse.book) ?? []
-    if (!chapters.includes(verse.chapter)) chapters.push(verse.chapter)
-    chaptersByBook.set(verse.book, chapters)
-
-    const key = `${verse.book}-${verse.chapter}`
-    const verses = versesByBookChapter.get(key) ?? []
-    verses.push(verse)
-    versesByBookChapter.set(key, verses)
-  })
-
-  // Enforce canonical book order and numeric chapter/verse order regardless
-  // of the order verses were loaded in.
-  bookOrder.sort((a, b) => canonicalBookIndex(a) - canonicalBookIndex(b))
-  chaptersByBook.forEach((chapters) => chapters.sort((a, b) => a - b))
-  versesByBookChapter.forEach((verses) => verses.sort((a, b) => a.verse - b.verse))
-
-  const bookNodes: NetworkNode[] = []
-  const chapterNodes: NetworkNode[] = []
-  const chapterByKey = new Map<string, NetworkNode>()
-  const verseByChapter = new Map<string, Verse[]>()
-  const bookRadius = 480
-  const chapterRadius = 90
-
-  bookOrder.forEach((book, bookIndex) => {
-    const bookPos = fibonacciSpherePoint(bookIndex, bookOrder.length, bookRadius)
-    const bookName = bookNames.get(book) ?? book
-    const chapters = chaptersByBook.get(book) ?? []
-
-    bookNodes.push({
-      id: `book-${book}`,
-      kind: 'book',
-      label: bookName,
-      detail: `${chapters.length} chapters`,
-      x: bookPos.x,
-      y: bookPos.y,
-      z: bookPos.z,
-      size: 40,
-      bookId: book,
-      bookName,
-    })
-
-    chapters.forEach((chapter, chapterIndex) => {
-      const chapterOffset = fibonacciSpherePoint(chapterIndex, chapters.length, chapterRadius)
-      const chapterPos = {
-        x: bookPos.x + chapterOffset.x,
-        y: bookPos.y + chapterOffset.y,
-        z: bookPos.z + chapterOffset.z,
-      }
-      const key = `${book}-${chapter}`
-      const verses = versesByBookChapter.get(key) ?? []
-
-      const chapterNode: NetworkNode = {
-        id: `chapter-${key}`,
-        kind: 'chapter',
-        label: `${bookName} ${chapter}`,
-        detail: `${verses.length} verses`,
-        x: chapterPos.x,
-        y: chapterPos.y,
-        z: chapterPos.z,
-        size: 18,
-        parentId: `book-${book}`,
-        bookId: book,
-        bookName,
-        chapterNumber: chapter,
-      }
-      chapterNodes.push(chapterNode)
-      chapterByKey.set(key, chapterNode)
-      verseByChapter.set(key, verses)
-    })
-  })
-
-  return { bookNodes, chapterNodes, chapterByKey, verseByChapter }
-}
 
 function OldNetworkTab({
   selectedVerse,
@@ -2802,13 +2337,13 @@ function OldNetworkTab({
     [focusedNodeId],
   )
 
-  const nodes = useMemo(
-    () => (centerVerse ? buildNetworkNodes(centerVerse, relatedMatches, themes, selectedPersonId, knowledgeGraphSeed) : []),
+  const nodes = useMemo<NetworkNode[]>(
+    () => (centerVerse ? buildNetworkNodes(centerVerse, relatedMatches, themes, selectedPersonId, knowledgeGraphSeed) as unknown as NetworkNode[] : []),
     [centerVerse, relatedMatches, themes, selectedPersonId, knowledgeGraphSeed],
   )
 
-  const edges = useMemo(
-    () => (centerVerse ? buildNetworkEdges(centerVerse, relatedMatches, themes, knowledgeGraphSeed) : []),
+  const edges = useMemo<NetworkEdge[]>(
+    () => (centerVerse ? buildNetworkEdges(centerVerse, relatedMatches, themes, knowledgeGraphSeed) as unknown as NetworkEdge[] : []),
     [centerVerse, relatedMatches, themes, knowledgeGraphSeed],
   )
   const deferredEdges = useDeferredValue(edges)
@@ -2822,7 +2357,10 @@ function OldNetworkTab({
       .slice(0, 80)
   }, [allCharacters, characterQuery])
 
-  const ambientBible = useMemo(() => buildBibleHierarchyNodes(all), [all])
+  const ambientBible = useMemo<{ bookNodes: NetworkNode[]; chapterNodes: NetworkNode[]; chapterByKey: Map<string, NetworkNode>; verseByChapter: Map<string, Verse[]> }>(
+    () => buildBibleHierarchyNodes(all) as unknown as { bookNodes: NetworkNode[]; chapterNodes: NetworkNode[]; chapterByKey: Map<string, NetworkNode>; verseByChapter: Map<string, Verse[]> },
+    [all],
+  )
 
   const localVerseIds = useMemo(
     () => new Set(nodes.map((node) => node.verse?.id).filter((id): id is string => Boolean(id))),
