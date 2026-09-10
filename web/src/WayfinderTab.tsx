@@ -239,7 +239,7 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
     }
   }
 
-  const selectedNetworkId = selectedCharacter ? `character-${selectedCharacter.id}` : `center-${centerVerse.id}`
+  const selectedNetworkId = null
 
   const sortedMemories = useMemo(
     () =>
@@ -842,8 +842,8 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
                   <div
                     style={{
                       position: 'fixed',
-                      top: 16,
-                      right: 16,
+                      top: 20,
+                      right: 20,
                       zIndex: 2147483647,
                       display: 'flex',
                       alignItems: 'center',
@@ -856,16 +856,17 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
                       aria-label="Exit full-screen"
                       onClick={() => setGraphExpanded(false)}
                       style={{
-                        fontSize: '0.9rem',
+                        fontSize: '1.1rem',
                         fontWeight: 700,
-                        padding: '0.6rem 1.1rem',
+                        padding: '0.75rem 1.25rem',
                         borderRadius: '0.5rem',
-                        border: '1px solid #ffffff',
-                        background: 'rgba(0, 0, 0, 0.85)',
+                        border: '2px solid #ffffff',
+                        background: 'rgba(0, 0, 0, 0.9)',
                         color: '#ffffff',
                         cursor: 'pointer',
-                        boxShadow: '0 2px 14px rgba(0,0,0,0.45)',
+                        boxShadow: '0 4px 18px rgba(0,0,0,0.55)',
                         pointerEvents: 'auto',
+                        whiteSpace: 'nowrap',
                       }}
                     >
                       × Exit full-screen
