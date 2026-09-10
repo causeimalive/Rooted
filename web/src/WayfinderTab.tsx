@@ -778,7 +778,27 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
           <div className="bubble-card" style={{ marginBottom: '1rem' }}>
             <div className="lexicon-card-heading" style={{ marginBottom: '0.35rem' }}>
               <h3 style={{ margin: 0 }}>Network map</h3>
-              <span className="verse-meta-pill">{scene.nodes.length} nodes</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <span className="verse-meta-pill">{scene.nodes.length} nodes</span>
+                {!graphExpanded && (
+                  <button
+                    type="button"
+                    onClick={() => setGraphExpanded(true)}
+                    style={{
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      padding: '0.35rem 0.65rem',
+                      borderRadius: '0.45rem',
+                      border: '1px solid var(--muted)',
+                      background: 'var(--surface)',
+                      color: 'var(--text)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Expand
+                  </button>
+                )}
+              </div>
             </div>
             <div
               style={graphExpanded ? {
@@ -816,37 +836,40 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
                   {scene.nodes.length === 0 && <div className="panel empty" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>No graph data yet.</div>}
                 </div>
               </Suspense>
-              <div
-                style={{
-                  position: 'absolute',
-                  top: 8,
-                  right: 8,
-                  zIndex: 100,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                }}
-              >
-                <button
-                  type="button"
-                  aria-label={graphExpanded ? 'Exit full-screen' : 'Expand full-screen'}
-                  onClick={() => setGraphExpanded((s) => !s)}
+              {graphExpanded && (
+                <div
                   style={{
-                    fontSize: '0.78rem',
-                    fontWeight: 600,
-                    padding: '0.45rem 0.85rem',
-                    borderRadius: '0.5rem',
-                    border: '1px solid var(--muted)',
-                    background: 'var(--surface)',
-                    color: 'var(--text)',
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 10px rgba(0,0,0,0.25)',
+                    position: 'fixed',
+                    top: 16,
+                    right: 16,
+                    zIndex: 9999,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
                     pointerEvents: 'auto',
                   }}
                 >
-                  {graphExpanded ? '× Exit full-screen' : 'Expand'}
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    aria-label="Exit full-screen"
+                    onClick={() => setGraphExpanded(false)}
+                    style={{
+                      fontSize: '0.9rem',
+                      fontWeight: 700,
+                      padding: '0.55rem 1rem',
+                      borderRadius: '0.5rem',
+                      border: '2px solid var(--muted)',
+                      background: 'var(--surface)',
+                      color: 'var(--text)',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 14px rgba(0,0,0,0.35)',
+                      pointerEvents: 'auto',
+                    }}
+                  >
+                    × Exit full-screen
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
