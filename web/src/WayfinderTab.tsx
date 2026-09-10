@@ -829,10 +829,22 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
               >
                 <button
                   type="button"
+                  aria-label={graphExpanded ? 'Exit full-screen' : 'Expand full-screen'}
                   onClick={() => setGraphExpanded((s) => !s)}
-                  style={{ fontSize: '0.78rem', padding: '0.25rem 0.5rem', borderRadius: '0.4rem', border: '1px solid var(--muted)', background: 'color-mix(in srgb, var(--surface) 80%, transparent)', color: 'var(--text)', cursor: 'pointer' }}
+                  style={{
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    padding: '0.45rem 0.85rem',
+                    borderRadius: '0.5rem',
+                    border: '1px solid var(--muted)',
+                    background: 'var(--surface)',
+                    color: 'var(--text)',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 10px rgba(0,0,0,0.25)',
+                    pointerEvents: 'auto',
+                  }}
                 >
-                  {graphExpanded ? 'Collapse' : 'Expand'}
+                  {graphExpanded ? '× Exit full-screen' : 'Expand'}
                 </button>
               </div>
             </div>
