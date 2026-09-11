@@ -11,6 +11,7 @@ import {
   LineSegments,
   MeshBasicMaterial,
   Object3D,
+  PerspectiveCamera,
   Vector3,
 } from 'three'
 import { SCENE_PALETTE } from './relationshipGraph/palette'
@@ -183,6 +184,7 @@ function CameraRig({
   const reportRef = useRef(0)
   const tmpDir = useRef(new Vector3())
   const tmpGoal = useRef(new Vector3())
+  const fittedRef = useRef(false)
 
   const selectedNode = useMemo(() => nodes.find((n) => n.id === selectedId), [nodes, selectedId])
 
@@ -191,9 +193,47 @@ function CameraRig({
     targetGoal.current.copy(goal)
   }, [focus, selectedNode])
 
+  const fitCamera = useCallback(() => {
+    const controls = controlsRef.current
+    if (!controls || !(camera instanceof PerspectiveCamera)) return
+    const vFov = (camera.fov * Math.PI) / 180
+    const vTan = Math.tan(vFov / 2)
+    const aspect = camera.aspect || 1
+    const hTan = vTan * Math.max(aspect, 0.01)
+    const margin = 14
+    let maxD = 0
+    nodes.forEach((node) => {
+      const dx = node.x - focus.x
+      const dy = node.y - focus.y
+      const dz = node.z - focus.z
+      const transverse = Math.sqrt(dx * dx + dy * dy) + margin
+      const dV = dz + transverse / vTan
+      const dH = dz + transverse / hTan
+      maxD = Math.max(maxD, dV, dH)
+    })
+    const D = Math.max(maxD, 120)
+    camera.position.set(focus.x, focus.y, focus.z + D)
+    controls.target.set(focus.x, focus.y, focus.z)
+    controls.update()
+    fittedRef.current = true
+  }, [camera, focus, nodes])
+
+  useEffect(() => {
+    fittedRef.current = false
+    fitCamera()
+    const onResize = () => {
+      fittedRef.current = false
+      fitCamera()
+    }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [fitCamera])
+
   useFrame((state) => {
     const controls = controlsRef.current
     if (!controls) return
+
+    if (!fittedRef.current) fitCamera()
 
     controls.target.lerp(targetGoal.current, 0.08)
     controls.update()

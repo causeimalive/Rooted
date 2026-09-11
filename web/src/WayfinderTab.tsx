@@ -755,7 +755,7 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
         </aside>
 
         <section className="bubble-canvas-card" style={{ minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: '1rem', overflow: 'hidden' }}>
-          <div className="bubble-card" style={{ flex: 'none' }}>
+          <div className="bubble-card" style={{ flex: 'none', maxHeight: '45%', minHeight: '120px', overflowY: 'auto' }}>
             <div className="lexicon-card-heading" style={{ marginBottom: '0.35rem' }}>
               <h3 style={{ margin: 0 }}>Graph analysis</h3>
               <span className="verse-meta-pill">Phase 5.4</span>
