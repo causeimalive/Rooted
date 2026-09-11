@@ -529,10 +529,10 @@ function Network3DScene(props: NetworkThreeSceneProps) {
   return (
     <div
       className={`network-three-scene-shell ${theme}`}
-      style={{ width: '100%', height: '100%', minHeight: 460, background: `rgb(${r * 255}, ${g * 255}, ${b * 255})` }}
+      style={{ width: '100%', height: '100%', minHeight: 0, background: `rgb(${r * 255}, ${g * 255}, ${b * 255})` }}
     >
       <Canvas
-        camera={{ fov: 60, near: 1, far: 4000, position: [props.focus.x, props.focus.y, props.focus.z + 260] }}
+        camera={{ fov: 60, near: 1, far: 4000, position: [props.focus.x, props.focus.y, props.focus.z + 180] }}
         style={{ width: '100%', height: '100%' }}
         gl={{ antialias: true, alpha: false }}
         dpr={quality === 'low' ? 1 : [1, 1.5]}
@@ -629,7 +629,7 @@ function Network2DFallback({
       style={{
         width: '100%',
         height: '100%',
-        minHeight: 460,
+        minHeight: 0,
         background: `rgb(${r * 255}, ${g * 255}, ${b * 255})`,
         overflow: 'hidden',
         cursor: isDragging ? 'grabbing' : 'grab',

@@ -324,8 +324,8 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
         </div>
       </div>
 
-      <div className="wayfinder-grid" style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '1rem', flex: 1, minHeight: 0 }}>
-        <aside className="wayfinder-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minWidth: 0 }}>
+      <div className="wayfinder-grid" style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gridTemplateRows: 'minmax(0, 1fr)', gap: '1rem', flex: 1, minHeight: 0 }}>
+        <aside className="wayfinder-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minWidth: 0, minHeight: 0, overflowY: 'auto' }}>
           <div className="bubble-card" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             <h3>{t('characters')}</h3>
             <input
@@ -754,8 +754,8 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
           )}
         </aside>
 
-        <section className="bubble-canvas-card" style={{ minWidth: 0, overflowY: 'auto' }}>
-          <div className="bubble-card" style={{ marginBottom: '1rem' }}>
+        <section className="bubble-canvas-card" style={{ minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: '1rem', overflow: 'hidden' }}>
+          <div className="bubble-card" style={{ flex: 'none' }}>
             <div className="lexicon-card-heading" style={{ marginBottom: '0.35rem' }}>
               <h3 style={{ margin: 0 }}>Graph analysis</h3>
               <span className="verse-meta-pill">Phase 5.4</span>
@@ -794,7 +794,7 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
             ) : <div className="network-helper-text">No analysis available yet.</div> : <div className="network-helper-text">Loading server-side graph analysis…</div>}
           </div>
 
-          <div className="bubble-card" style={{ marginBottom: '1rem' }}>
+          <div className="bubble-card" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             <div className="lexicon-card-heading" style={{ marginBottom: '0.35rem' }}>
               <h3 style={{ margin: 0 }}>Network map</h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
@@ -831,7 +831,8 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
                 overflow: 'hidden',
               } : {
                 position: 'relative',
-                height: 420,
+                flex: 1,
+                minHeight: 0,
                 borderRadius: '0.85rem',
                 border: '1px solid color-mix(in srgb, var(--muted) 70%, transparent)',
                 background: 'linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, transparent), var(--bg))',
