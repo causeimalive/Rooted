@@ -87,6 +87,7 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
   const [graphAnalysis, setGraphAnalysis] = useState<GraphAnalysisSummary | null>(null)
   const [graphAnalysisLoaded, setGraphAnalysisLoaded] = useState(false)
   const [graphExpanded, setGraphExpanded] = useState(false)
+  const [openSection, setOpenSection] = useState<'people' | 'journey' | 'friends' | 'public' | null>('people')
   const [headerHeight, setHeaderHeight] = useState(56)
 
   useEffect(() => {
@@ -327,7 +328,16 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
       <div className="wayfinder-grid" style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gridTemplateRows: 'minmax(0, 1fr)', gap: '1rem', flex: 1, minHeight: 0 }}>
         <aside className="wayfinder-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minWidth: 0, minHeight: 0, overflowY: 'auto' }}>
           <div className="bubble-card" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-            <h3>{t('characters')}</h3>
+            <button
+              type="button"
+              onClick={() => setOpenSection(openSection === 'people' ? null : 'people')}
+              style={{ background: 'transparent', border: 'none', color: 'var(--text)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 0, width: '100%' }}
+            >
+              <h3 style={{ margin: 0 }}>{t('characters')}</h3>
+              <span style={{ fontSize: '0.8rem' }}>{openSection === 'people' ? '▾' : '▸'}</span>
+            </button>
+            {openSection === 'people' && (
+            <>
             <input
               type="text"
               value={query}
@@ -348,10 +358,21 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
                 </button>
               ))}
             </div>
+            </>
+            )}
           </div>
 
           <div className="bubble-card" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-            <h3>My Journey</h3>
+            <button
+              type="button"
+              onClick={() => setOpenSection(openSection === 'journey' ? null : 'journey')}
+              style={{ background: 'transparent', border: 'none', color: 'var(--text)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 0, width: '100%' }}
+            >
+              <h3 style={{ margin: 0 }}>My Journey</h3>
+              <span style={{ fontSize: '0.8rem' }}>{openSection === 'journey' ? '▾' : '▸'}</span>
+            </button>
+            {openSection === 'journey' && (
+            <>
             {!selectedVerse ? (
               <p style={{ fontSize: '0.88rem', opacity: 0.8 }}>Select a verse in the Reader to add a memory here.</p>
             ) : (
@@ -543,10 +564,21 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
                 )
               })}
             </div>
+            </>
+            )}
           </div>
 
           <div className="bubble-card" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-            <h3>Friends</h3>
+            <button
+              type="button"
+              onClick={() => setOpenSection(openSection === 'friends' ? null : 'friends')}
+              style={{ background: 'transparent', border: 'none', color: 'var(--text)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 0, width: '100%' }}
+            >
+              <h3 style={{ margin: 0 }}>Friends</h3>
+              <span style={{ fontSize: '0.8rem' }}>{openSection === 'friends' ? '▾' : '▸'}</span>
+            </button>
+            {openSection === 'friends' && (
+            <>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', margin: '0.5rem 0' }}>
               <input
                 type="text"
@@ -604,10 +636,20 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
                 </div>
               ))}
             </div>
+            </>
+            )}
           </div>
 
           <div className="bubble-card" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-            <h3>Friends' Public Journey</h3>
+            <button
+              type="button"
+              onClick={() => setOpenSection(openSection === 'public' ? null : 'public')}
+              style={{ background: 'transparent', border: 'none', color: 'var(--text)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 0, width: '100%' }}
+            >
+              <h3 style={{ margin: 0 }}>Friends' Public Journey</h3>
+              <span style={{ fontSize: '0.8rem' }}>{openSection === 'public' ? '▾' : '▸'}</span>
+            </button>
+            {openSection === 'public' && (
             <div className="bubble-list" style={{ maxHeight: 240, overflowY: 'auto' }}>
               {friendMemories.length === 0 && <div className="empty">No public memories from friends.</div>}
               {friendMemories.map((memory) => {
@@ -640,9 +682,10 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
                 )
               })}
             </div>
+            )}
           </div>
 
-          {selectedPublicMemory && (
+          {openSection === 'public' && selectedPublicMemory && (
             <div className="bubble-card" style={{ display: 'flex', flexDirection: 'column', minHeight: 0, padding: '0.75rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <h4 style={{ margin: 0 }}>{MEMORY_TYPE_LABELS[selectedPublicMemory.type]}</h4>
@@ -755,7 +798,7 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
         </aside>
 
         <section className="bubble-canvas-card" style={{ minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: '1rem', overflow: 'hidden' }}>
-          <div className="bubble-card" style={{ flex: 'none', maxHeight: '45%', minHeight: '120px', overflowY: 'auto' }}>
+          <div className="bubble-card" style={{ flex: 'none', maxHeight: '32%', minHeight: '120px', overflowY: 'auto' }}>
             <div className="lexicon-card-heading" style={{ marginBottom: '0.35rem' }}>
               <h3 style={{ margin: 0 }}>Graph analysis</h3>
               <span className="verse-meta-pill">Phase 5.4</span>
