@@ -87,6 +87,25 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
   const [graphAnalysis, setGraphAnalysis] = useState<GraphAnalysisSummary | null>(null)
   const [graphAnalysisLoaded, setGraphAnalysisLoaded] = useState(false)
   const [graphExpanded, setGraphExpanded] = useState(false)
+  const [headerHeight, setHeaderHeight] = useState(56)
+
+  useEffect(() => {
+    const header = document.querySelector('.app-header')
+    if (!header) return
+    const update = () => setHeaderHeight(header.getBoundingClientRect().height)
+    update()
+    let ro: ResizeObserver | null = null
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(update)
+      ro.observe(header)
+    } else {
+      window.addEventListener('resize', update)
+    }
+    return () => {
+      if (ro) ro.disconnect()
+      else window.removeEventListener('resize', update)
+    }
+  }, [])
 
   const allCharacters = useMemo(() => getAllCharacters().sort((a, b) => a.name.localeCompare(b.name)), [])
   const filteredCharacters = useMemo(() => {
@@ -803,7 +822,7 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
             <div
               style={graphExpanded ? {
                 position: 'fixed',
-                top: '3.5rem',
+                top: headerHeight,
                 left: 0,
                 right: 0,
                 bottom: 0,
@@ -845,7 +864,7 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
                     position: 'absolute',
                     top: 16,
                     right: 16,
-                    zIndex: 10,
+                    zIndex: 1000,
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.5rem',
@@ -857,15 +876,15 @@ export default function WayfinderTab({ memories, friends, selectedVerse, onSelec
                     aria-label="Exit full-screen"
                     onClick={() => setGraphExpanded(false)}
                     style={{
-                      fontSize: '0.8rem',
+                      fontSize: '0.75rem',
                       fontWeight: 600,
-                      padding: '0.4rem 0.7rem',
-                      borderRadius: '0.4rem',
-                      border: '1px solid rgba(255, 255, 255, 0.5)',
-                      background: 'rgba(0, 0, 0, 0.6)',
+                      padding: '0.3rem 0.55rem',
+                      borderRadius: '0.35rem',
+                      border: '1px solid rgba(255, 255, 255, 0.45)',
+                      background: 'rgba(0, 0, 0, 0.55)',
                       color: '#ffffff',
                       cursor: 'pointer',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
                       pointerEvents: 'auto',
                       whiteSpace: 'nowrap',
                     }}
